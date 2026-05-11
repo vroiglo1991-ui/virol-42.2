@@ -332,15 +332,25 @@
 
 <!-- MODAL SETTINGS -->
 <div class="modal" id="modal-settings">
-  <div class="modal-content">
-    <div class="card-title" style="margin-bottom:8px">Configuración Gemini IA</div>
-    <p style="font-size:12px;color:var(--muted)">Introduce tu API Key para activar las funciones inteligentes.</p>
-    <input type="password" class="input-ai" id="api-key-input" placeholder="AIzaSy...">
-    <div style="display:flex;gap:10px;margin-top:10px">
-      <button class="btn-ai" style="flex:1;justify-content:center" onclick="saveApiKey()">Guardar</button>
-      <button class="nav-item" style="flex:1;text-align:center;justify-content:center;background:var(--s2)" onclick="toggleModal(false)">Cerrar</button>
+    <div class="modal-content">
+      <div class="card-title title-telemetry">Configuración Avanzada</div>
+      
+      <div style="margin: 15px 0; padding: 15px; background: var(--s2); border-radius: var(--radius-sm); border: 1px solid var(--border2);">
+        <div class="label-tech" style="margin-bottom:8px">Sincronización Strava</div>
+        <button id="btn-strava-connect" class="btn-ai" onclick="connectStrava()" style="width:100%; justify-content:center; background:#FC6100">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="margin-right:8px"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.67h4.171L10.379 0 0 20.405h4.171"/></svg>
+          Conectar con Strava
+        </button>
+        <div id="strava-status" style="font-size:10px; color:var(--muted); margin-top:8px; text-align:center">Estado: No vinculado</div>
+      </div>
+
+      <div class="label-tech">Gemini API Key</div>
+      <input type="password" id="api-key-input" class="input-ai" placeholder="Introduce tu clave de Google AI...">
+      <div style="display:flex; gap:10px; margin-top:20px">
+        <button class="btn-ai" onclick="saveApiKey()" style="flex:1; justify-content:center">Guardar</button>
+        <button class="btn-ai" onclick="toggleModal(false)" style="flex:1; justify-content:center; background:var(--s3); color:var(--text)">Cerrar</button>
+      </div>
     </div>
-  </div>
 </div>
 
 </main>

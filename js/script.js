@@ -49,17 +49,17 @@ const SUPPLEMENTS = [
   { name: 'Magnesio', icon: ICONS.pill, time: '21:30', id: 'mag', notifMsg: '¡Magnesio antes de dormir!' }
 ];
 
-const STRAVA_DATA = [
-  { date: '10/05/2026', title: '5K Redolat', time: '21:59', dist: '5.07 km', elev: '4m' },
-  { date: '07/05/2026', title: 'Carrera de noche', time: '38:26', dist: '7.02 km', elev: '11m' },
-  { date: '04/05/2026', title: 'Carrera de noche', time: '41:07', dist: '8.50 km', elev: '9m' },
-  { date: '29/04/2026', title: 'Carrera de noche', time: '40:17', dist: '8.01 km', elev: '46m' },
-  { date: '27/04/2026', title: 'Carrera de noche', time: '34:54', dist: '7.05 km', elev: '43m' },
-  { date: '26/04/2026', title: 'Carrera de mañana', time: '35:30', dist: '7.10 km', elev: '19m' },
-  { date: '22/04/2026', title: 'Carrera de noche', time: '50:05', dist: '9.03 km', elev: '77m' },
-  { date: '20/04/2026', title: 'Carrera de tarde', time: '27:08', dist: '5.17 km', elev: '4m' },
-  { date: '16/04/2026', title: 'Carrera de noche', time: '36:29', dist: '7.01 km', elev: '8m' },
-  { date: '13/04/2026', title: 'Carrera de noche', time: '26:05', dist: '5.03 km', elev: '12m' }
+const STRAVA_CONFIG = {
+  clientId: '243799',
+  clientSecret: '74c79e75d6bbe253d1f91606ee06f074262fe096',
+  redirectUri: 'https://virol.v-roiglo1991.workers.dev/'
+};
+
+let STRAVA_DATA = [
+  { date: '10/05/2026', title: '5K Redolat', time: '21:59', dist: '5.07 km', elev: '4m', sense: 8 },
+  { date: '07/05/2026', title: 'Carrera de noche', time: '38:26', dist: '7.02 km', elev: '11m', sense: 6 },
+  { date: '04/05/2026', title: 'Carrera de noche', time: '41:07', dist: '8.50 km', elev: '9m', sense: 7 },
+  { date: '29/04/2026', title: 'Carrera de noche', time: '40:17', dist: '8.01 km', elev: '46m', sense: 5 }
 ];
 
 // ===================== STATE =====================
@@ -75,6 +75,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Restore saved theme
   const savedTheme = localStorage.getItem('virol_theme') || 'dark';
   applyTheme(savedTheme);
+
+  // Check for Strava OAuth callback
+  const urlParams = new URLSearchParams(window.location.search);
+  const stravaCode = urlParams.get('code');
+  if (stravaCode) {
+    handleStravaCallback(stravaCode);
+    window.history.replaceState({}, document.title, "/"); // Limpiar URL
+  } else {
+    initStrava();
+  }
 
   renderCalendar();
   renderNextSession();
@@ -437,6 +447,78 @@ function updateBioProfile() {
       imcEl.style.color = 'var(--primary-orange)'; // Naranja
     }
   }
+}
+
+// ===================== STRAVA API LOGIC =====================
+function connectStrava() {
+  const authUrl = `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CONFIG.clientId}&redirect_uri=${STRAVA_CONFIG.redirectUri}&response_type=code&scope=activity:read_all`;
+  window.location.href = authUrl;
+}
+
+async function handleStravaCallback(code) {
+  try {
+    const response = await fetch('https://www.strava.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: STRAVA_CONFIG.clientId,
+        client_secret: STRAVA_CONFIG.clientSecret,
+        code: code,
+        grant_type: 'authorization_code'
+      })
+    });
+    const data = await response.json();
+    if (data.access_token) {
+      localStorage.setItem('strava_access_token', data.access_token);
+      localStorage.setItem('strava_refresh_token', data.refresh_token);
+      localStorage.setItem('strava_athlete', JSON.stringify(data.athlete));
+      alert('¡Strava conectado correctamente!');
+      fetchStravaActivities();
+    }
+  } catch (e) { alert('Error al conectar con Strava'); }
+}
+
+async function initStrava() {
+  const token = localStorage.getItem('strava_access_token');
+  const statusEl = document.getElementById('strava-status');
+  if (token) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#32D74B">● Vinculado</span>';
+    const savedData = localStorage.getItem('strava_cached_data');
+    if (savedData) {
+      STRAVA_DATA = JSON.parse(savedData);
+      renderStravaActivities();
+    } else {
+      fetchStravaActivities();
+    }
+  }
+}
+
+async function fetchStravaActivities() {
+  const token = localStorage.getItem('strava_access_token');
+  if (!token) return;
+
+  try {
+    const response = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=15', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+    
+    if (Array.isArray(data)) {
+      STRAVA_DATA = data.map(a => {
+        const d = new Date(a.start_date_local);
+        return {
+          date: d.toLocaleDateString('es-ES'),
+          title: a.name,
+          dist: (a.distance / 1000).toFixed(2) + ' km',
+          time: Math.floor(a.moving_time / 60) + ':' + (a.moving_time % 60).toString().padStart(2, '0'),
+          elev: a.total_elevation_gain + 'm',
+          sense: 5 // Por defecto
+        };
+      });
+      localStorage.setItem('strava_cached_data', JSON.stringify(STRAVA_DATA));
+      renderStravaActivities();
+    }
+  } catch (e) { console.error('Error fetching Strava activities', e); }
 }
 
 // ===================== STRAVA DASHBOARD =====================
