@@ -283,17 +283,18 @@ function renderTrainingTable(data) {
         });
 
         return `
-          <div class="training-card type-${d.tipo.toLowerCase()}">
+          <div class="training-card type-${d.tipo.toLowerCase()} ${coachMatch ? 'is-coach' : ''}">
             <div style="display:flex; justify-content:space-between; align-items:start">
               <div class="label-tech" style="font-size:9px; margin-bottom:5px">${d.dia}</div>
-              ${coachMatch ? '<span class="badge-coach" style="background:var(--blue); color:white; font-size:7px; padding:2px 4px; border-radius:4px; font-family:var(--font-tech)">COACH</span>' : ''}
+              ${coachMatch ? '<span class="badge-coach">VALENCE FIT</span>' : ''}
             </div>
             <div class="card-title" style="font-size:13px; margin-bottom:5px">${d.tipo}</div>
             <div style="font-size:11px; line-height:1.4; color:var(--text-sub)">${d.sesion}</div>
             
             ${coachMatch ? `
-              <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); font-size:10px; color:var(--blue)">
-                <b>Instrucción Coach:</b><br>${coachMatch.summary}
+              <div class="coach-instruction">
+                <b style="color:var(--blue); text-transform:uppercase; font-size:9px">Misión Coach:</b><br>
+                ${coachMatch.summary}
               </div>
             ` : ''}
           </div>
