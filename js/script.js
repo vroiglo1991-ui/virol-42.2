@@ -94,7 +94,18 @@ document.addEventListener('DOMContentLoaded', () => {
   renderStravaActivities();
   updateBioProfile();
   setupFilters();
+
   if(apiKey) document.getElementById('api-key-input').value = apiKey;
+
+  // Cargar planes guardados
+  const savedTraining = localStorage.getItem('weekly_training');
+  if (savedTraining) {
+    weeklyTraining = JSON.parse(savedTraining);
+    renderTrainingTable(weeklyTraining);
+  } else {
+    renderWeeklyTraining();
+  }
+
   if(weeklyNutrition) renderNutritionTable(weeklyNutrition);
   if(weeklyShopping) renderShoppingList(weeklyShopping);
 });
@@ -250,12 +261,12 @@ function renderTrainingTable(data) {
   if (!el || !data) return;
 
   el.innerHTML = `
-    <div class="grid7-training" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top:15px">
+    <div class="grid7-training">
       ${data.map(d => `
-        <div class="card" style="background:var(--s2); padding:10px; border-top: 3px solid ${d.tipo === 'Running' ? 'var(--orange)' : d.tipo === 'Fuerza' ? 'var(--lime)' : 'var(--muted)'}">
-          <div class="label-tech" style="font-size:10px; margin-bottom:5px">${d.dia}</div>
-          <div class="card-title" style="font-size:14px; margin-bottom:5px">${d.tipo}</div>
-          <div style="font-size:11px; line-height:1.3; color:var(--text-sub)">${d.sesion}</div>
+        <div class="training-card type-${d.tipo.toLowerCase()}">
+          <div class="label-tech" style="font-size:9px; margin-bottom:5px">${d.dia}</div>
+          <div class="card-title" style="font-size:13px; margin-bottom:5px">${d.tipo}</div>
+          <div style="font-size:11px; line-height:1.4; color:var(--text-sub)">${d.sesion}</div>
         </div>
       `).join('')}
     </div>

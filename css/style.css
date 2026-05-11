@@ -469,3 +469,36 @@ tr:last-child td{border-bottom:none}
   .nutri-cards-mobile{display:block !important}
   .stat-val{font-size:22px}
 }
+
+/* AI TRAINING GRID */
+.grid7-training {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-top: 15px;
+}
+
+@media (max-width: 900px) {
+  .grid7-training {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+.training-card {
+  background: var(--s2);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--muted);
+  transition: transform 0.2s;
+}
+
+.training-card:hover {
+  transform: translateY(-2px);
+}
+
+.type-running { border-top-color: var(--primary-orange) !important; }
+.type-fuerza { border-top-color: var(--lime) !important; }
+.type-descanso { border-top-color: var(--muted) !important; }
+.type-hibrido { border-top-color: var(--blue) !important; }
+
