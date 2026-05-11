@@ -321,7 +321,14 @@ function showPage(pageId, btn, bnavBtn) {
   const titleEl = document.getElementById('topbar-title');
   if (titleEl) titleEl.textContent = titles[pageId] || pageId;
 
-  if (pageId === 'training') renderWeeklyTraining();
+  if (pageId === 'training') {
+    const savedTraining = localStorage.getItem('weekly_training');
+    if (savedTraining) {
+      renderTrainingTable(JSON.parse(savedTraining));
+    } else {
+      renderWeeklyTraining();
+    }
+  }
   toggleMenu(false);
 }
 
