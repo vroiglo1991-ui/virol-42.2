@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIROL 42.2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto+Mono:wght@300;400;500&family=Inter:wght@400;600;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VIROL 42.2">
+<link rel="apple-touch-icon" href="virol_app_icon_1778517319688.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div id="app">
+
+<!-- MOBILE OVERLAY -->
+<div class="mobile-overlay" id="mobile-overlay" onclick="toggleMenu()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-text">VIROL<span> 42.2</span></div>
+    <div class="logo-sub">Valencia 2026</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Principal</div>
+    <button class="nav-item active" onclick="showPage('dashboard',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="showPage('training',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12l4 6-10 12L2 9l4-6z"/></svg>
+      Entrenamiento
+    </button>
+    <div class="nav-section">Nutrición</div>
+    <button class="nav-item" onclick="showPage('nutrition',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-9m3 10h5M3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/></svg>
+      Real Food Plan
+    </button>
+    <button class="nav-item" onclick="showPage('shopping',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      Lista Compra
+    </button>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="marathon-countdown">
+      <div class="countdown-label">Maratón Valencia</div>
+      <div class="countdown-days" id="days-counter">—</div>
+    </div>
+    <button class="nav-item" style="margin-top:12px" onclick="toggleModal(true)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 1.5-3.5h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configuración IA
+    </button>
+  </div>
+</aside>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-logo-mobile">VIROL<span> 42.2</span></div>
+  <div class="topbar-right">
+    <!-- THEME TOGGLE -->
+    <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar Modo">
+      <span id="theme-icon-moon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </span>
+      <span id="theme-icon-sun" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </span>
+    </button>
+    <div class="athlete-chip">
+      <div class="athlete-av-initials">VR</div>
+      <img src="img/victor.jpg.png" alt="VR" class="athlete-av-img">
+      <div class="athlete-name topbar-name-desktop">Víctor</div>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- ============ DASHBOARD ============ -->
+  <div class="page active" id="page-dashboard">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Semana de Entrenamiento</div><div class="card-badge" id="current-day-label">Lunes</div></div>
+      <div class="calendar-scroll-wrap">
+        <div class="calendar-grid" id="week-calendar">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <div class="grid3">
+      <div class="card card-widget">
+        <div class="card-header"><div class="card-title title-telemetry">Perfil Antropométrico</div></div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 5px;">
+          <div>
+            <div class="label-tech">Peso (kg)</div>
+            <div class="data-value" id="bio-peso">70</div>
+          </div>
+          <div>
+            <div class="label-tech">Altura (cm)</div>
+            <div class="data-value" id="bio-altura">178</div>
+          </div>
+          <div>
+            <div class="label-tech">IMC</div>
+            <div class="data-value" id="bio-imc">-</div>
+          </div>
+          <div>
+            <div class="label-tech">% Grasa</div>
+            <div class="data-value" id="bio-grasa">8.5%</div>
+          </div>
+        </div>
+      </div>
+      <div class="card card-widget">
+        <div class="card-header"><div class="card-title title-telemetry">Siguiente Sesión</div></div>
+        <div id="next-session-card"></div>
+      </div>
+      <div class="card card-widget">
+        <div class="card-header"><div class="card-title title-telemetry">Suplementación</div><span class="card-badge" id="supp-done-count">0/4</span></div>
+        <div id="dash-supps"></div>
+        <p id="supp-notif-tip" style="font-size:10px;color:var(--muted);margin-top:8px;display:none">
+          ℹ️ Activa las notificaciones para recibir avisos en el momento exacto.
+        </p>
+        <button class="btn-ai" style="margin-top:12px; width:100%; justify-content:center; font-size:11px" onclick="requestNotifPermission()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Activar Recordatorios
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Alertas y Logros</div></div>
+      <div class="alert warn" style="background:rgba(255,159,67,0.1); border-left:4px solid var(--orange); padding:12px; border-radius:8px; margin-bottom:10px; font-size:13px">
+        ⚠ Hoy entreno a las 19:00 — Priorizar hidratos complejos a mediodía.
+      </div>
+      <div class="alert success" style="background:var(--lime-glow); border-left:4px solid var(--lime); padding:12px; border-radius:8px; margin-bottom:10px; font-size:13px; color:var(--text)">
+        🏆 <b>¡Gran resultado ayer!</b> Redolat 5K en <b>21:59</b> (Ritmo: 4:20 min/km). ¡Sigue así!
+      </div>
+      <div class="alert info" style="background:rgba(79,195,247,0.1); border-left:4px solid var(--blue); padding:12px; border-radius:8px; font-size:13px">
+        📅 Faltan <span id="days-alert">—</span> días para la gran cita en Valencia.
+      </div>
+    </div>
+
+    <div class="card" style="border-color:var(--lime-glow)">
+      <div class="card-header"><div class="card-title">➕ Registrar Nueva Actividad</div></div>
+      <div class="grid4" style="gap:10px">
+        <div>
+          <label class="stat-label">Fecha</label>
+          <input type="date" id="new-date" class="input-ai" style="margin:5px 0">
+        </div>
+        <div>
+          <label class="stat-label">Actividad</label>
+          <input type="text" id="new-title" class="input-ai" placeholder="Ej: Carrera noche" style="margin:5px 0">
+        </div>
+        <div>
+          <label class="stat-label">Distancia (km)</label>
+          <input type="number" step="0.01" id="new-dist" class="input-ai" placeholder="0.00" style="margin:5px 0">
+        </div>
+        <div>
+          <label class="stat-label">Tiempo (mm:ss)</label>
+          <input type="text" id="new-time" class="input-ai" placeholder="00:00" style="margin:5px 0">
+        </div>
+      </div>
+      <div class="grid3" style="gap:10px; margin-top:10px">
+        <div>
+          <label class="stat-label">Elevación (m)</label>
+          <input type="number" id="new-elev" class="input-ai" placeholder="0" style="margin:5px 0">
+        </div>
+        <div>
+          <label class="stat-label">Sensación (1-10)</label>
+          <input type="number" id="new-sense" class="input-ai" min="1" max="10" placeholder="5" style="margin:5px 0">
+        </div>
+        <div style="display:flex; align-items:flex-end">
+          <button class="btn-ai" style="width:100%; justify-content:center; height:38px; margin-bottom:5px" onclick="addNewActivity()">Guardar Actividad</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Dashboard de Rendimiento (Strava)</div>
+        <select id="activity-filter" class="input-ai" style="margin:0; width:auto; padding:4px 10px; height:32px">
+          <option value="all">Todas las sesiones</option>
+          <option value="run">Solo Carreras</option>
+          <option value="race">Competición</option>
+        </select>
+      </div>
+      
+      <!-- KPIs -->
+      <div class="grid4" style="margin-bottom:20px">
+        <div class="stat-card">
+          <div class="stat-label">Distancia Total</div>
+          <div class="stat-val" id="kpi-dist">0 km</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Ritmo Medio</div>
+          <div class="stat-val" id="kpi-pace">0:00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Elevación Acum.</div>
+          <div class="stat-val" id="kpi-elev">0 m</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Mejor 5K</div>
+          <div class="stat-val" style="color:var(--lime)">21:59</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card" style="background:var(--s2); border:none">
+          <div class="card-title" style="margin-bottom:15px">Distancia por Sesión (km)</div>
+          <div style="position:relative; height:180px; width:100%"><canvas id="chart-distance"></canvas></div>
+        </div>
+        <div class="card" style="background:var(--s2); border:none">
+          <div class="card-title" style="margin-bottom:15px">Distribución por Esfuerzo (RPE)</div>
+          <div style="position:relative; height:180px; width:100%"><canvas id="chart-types"></canvas></div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px">
+        <table class="activity-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Actividad</th>
+              <th class="hide-xs">Dist.</th>
+              <th>Ritmo</th>
+              <th class="hide-xs">Sns.</th>
+            </tr>
+          </thead>
+          <tbody id="strava-activities-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TRAINING ============ -->
+  <div class="page" id="page-training">
+    <div class="card" id="routine-header">
+      <div class="card-header">
+        <div class="card-title" id="routine-title">Plan de Fuerza Semanal</div>
+        <button class="btn-ai" id="btn-gen-training" onclick="generateWeeklyTrainingIA()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Planificar Semana
+        </button>
+      </div>
+      <div id="weekly-routines-container">
+        <!-- Rendered by JS -->
+        <div style="text-align:center;padding:40px;color:var(--muted)">Pulsa para generar tus 3 rutinas de fuerza de la semana.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ NUTRITION ============ -->
+  <div class="page" id="page-nutrition">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Planificador Semanal Real Food</div>
+        <button class="btn-ai" id="btn-gen-nutrition" onclick="generateWeeklyNutritionIA()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Generar Semana Completa
+        </button>
+      </div>
+      <div id="nutrition-cards-wrap">
+        <!-- Rendered by JS as cards on mobile, table on desktop -->
+        <div id="nutrition-body-container">
+          <table id="nutrition-table">
+            <thead>
+              <tr>
+                <th>Día</th>
+                <th>Desayuno</th>
+                <th>Comida</th>
+                <th>Cena</th>
+              </tr>
+            </thead>
+            <tbody id="nutrition-body">
+              <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">Genera tu plan semanal para ver la tabla de comidas.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SHOPPING ============ -->
+  <div class="page" id="page-shopping">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Lista de la Compra</div></div>
+      <div id="grocery-list">
+        <!-- Static for now -->
+      </div>
+    </div>
+  </div>
+
+<!-- MODAL SETTINGS -->
+<div class="modal" id="modal-settings">
+  <div class="modal-content">
+    <div class="card-title" style="margin-bottom:8px">Configuración Gemini IA</div>
+    <p style="font-size:12px;color:var(--muted)">Introduce tu API Key para activar las funciones inteligentes.</p>
+    <input type="password" class="input-ai" id="api-key-input" placeholder="AIzaSy...">
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <button class="btn-ai" style="flex:1;justify-content:center" onclick="saveApiKey()">Guardar</button>
+      <button class="nav-item" style="flex:1;text-align:center;justify-content:center;background:var(--s2)" onclick="toggleModal(false)">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script src="js/script.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('SW Registered'))
+        .catch(err => console.log('SW Registration failed', err));
+    });
+  }
+</script>
+
+<!-- BOTTOM NAV (Mobile Only) -->
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="bottom-nav-item active" id="bnav-dashboard" onclick="showPage('dashboard', null, this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span>Inicio</span>
+  </button>
+  <button class="bottom-nav-item" id="bnav-training" onclick="showPage('training', null, this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+    <span>Entreno</span>
+  </button>
+  <button class="bottom-nav-item" id="bnav-nutrition" onclick="showPage('nutrition', null, this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+    <span>Nutrición</span>
+  </button>
+  <button class="bottom-nav-item" id="bnav-shopping" onclick="showPage('shopping', null, this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+    <span>Compra</span>
+  </button>
+  <button class="bottom-nav-item" id="bnav-settings" onclick="toggleModal(true)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9"/></svg>
+    <span>Config</span>
+  </button>
+</nav>
+
+</body>
+</html>

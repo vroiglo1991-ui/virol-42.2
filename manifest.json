@@ -1,0 +1,17 @@
+{
+  "name": "VIROL 42.2",
+  "short_name": "VIROL",
+  "description": "Elite Performance Dashboard for Marathon Training",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#C8FF00",
+  "icons": [
+    {
+      "src": "virol_app_icon_1778517319688.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
