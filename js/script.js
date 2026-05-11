@@ -98,6 +98,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if(apiKey) document.getElementById('api-key-input').value = apiKey;
 
   // Cargar planes guardados
+  const savedIcal = localStorage.getItem('ical_link');
+  if(savedIcal) {
+    const input = document.getElementById('ical-link-input');
+    if(input) input.value = savedIcal;
+    syncCalendar();
+  }
+
   const savedTraining = localStorage.getItem('weekly_training');
   if (savedTraining) {
     weeklyTraining = JSON.parse(savedTraining);
@@ -260,15 +267,38 @@ function renderTrainingTable(data) {
   const el = document.getElementById('weekly-routines-container');
   if (!el || !data) return;
 
+  const coachEvents = JSON.parse(localStorage.getItem('coach_events') || '[]');
+  
+  // Mapeo de días para buscar en el calendario del coach
+  const dayMap = { 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6, 'Domingo': 0 };
+
   el.innerHTML = `
     <div class="grid7-training">
-      ${data.map(d => `
-        <div class="training-card type-${d.tipo.toLowerCase()}">
-          <div class="label-tech" style="font-size:9px; margin-bottom:5px">${d.dia}</div>
-          <div class="card-title" style="font-size:13px; margin-bottom:5px">${d.tipo}</div>
-          <div style="font-size:11px; line-height:1.4; color:var(--text-sub)">${d.sesion}</div>
-        </div>
-      `).join('')}
+      ${data.map(d => {
+        // Buscar si hay algo del coach para este día de la semana (simplificado)
+        const dayIdx = dayMap[d.dia];
+        const coachMatch = coachEvents.find(e => {
+          const eventDate = new Date(e.date);
+          return eventDate.getDay() === dayIdx;
+        });
+
+        return `
+          <div class="training-card type-${d.tipo.toLowerCase()}">
+            <div style="display:flex; justify-content:space-between; align-items:start">
+              <div class="label-tech" style="font-size:9px; margin-bottom:5px">${d.dia}</div>
+              ${coachMatch ? '<span class="badge-coach" style="background:var(--blue); color:white; font-size:7px; padding:2px 4px; border-radius:4px; font-family:var(--font-tech)">COACH</span>' : ''}
+            </div>
+            <div class="card-title" style="font-size:13px; margin-bottom:5px">${d.tipo}</div>
+            <div style="font-size:11px; line-height:1.4; color:var(--text-sub)">${d.sesion}</div>
+            
+            ${coachMatch ? `
+              <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); font-size:10px; color:var(--blue)">
+                <b>Instrucción Coach:</b><br>${coachMatch.summary}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('')}
     </div>
   `;
 }
@@ -784,4 +814,53 @@ function renderShoppingList(data) {
       `).join('')}
     </div>
   `).join('');
+}
+
+// ===================== GOOGLE CALENDAR SYNC =====================
+function saveIcalLink() {
+  const link = document.getElementById('ical-link-input').value.trim();
+  if (!link) return;
+  localStorage.setItem('ical_link', link);
+  syncCalendar();
+  alert('¡Calendario vinculado! Sincronizando entrenamientos...');
+}
+
+async function syncCalendar() {
+  const link = localStorage.getItem('ical_link');
+  if (!link) return;
+
+  try {
+    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(link);
+    const response = await fetch(proxyUrl);
+    const icsText = await response.text();
+    const events = parseICS(icsText);
+    localStorage.setItem('coach_events', JSON.stringify(events));
+    
+    const savedTraining = localStorage.getItem('weekly_training');
+    if (savedTraining) renderTrainingTable(JSON.parse(savedTraining));
+  } catch (e) { console.error('Error cal:', e); }
+}
+
+function parseICS(icsText) {
+  const events = [];
+  const lines = icsText.split(/\r?\n/);
+  let currentEvent = null;
+  for (let line of lines) {
+    if (line.startsWith('BEGIN:VEVENT')) currentEvent = {};
+    else if (line.startsWith('END:VEVENT')) {
+      if (currentEvent && currentEvent.summary) events.push(currentEvent);
+      currentEvent = null;
+    } else if (currentEvent) {
+      if (line.startsWith('SUMMARY:')) currentEvent.summary = line.substring(8);
+      if (line.startsWith('DESCRIPTION:')) currentEvent.description = line.substring(12).replace(/\\n/g, '\n');
+      if (line.startsWith('DTSTART')) {
+        const match = line.match(/\d{8}/);
+        if (match) {
+          const d = match[0];
+          currentEvent.date = `${d.substring(0,4)}-${d.substring(4,6)}-${d.substring(6,8)}`;
+        }
+      }
+    }
+  }
+  return events;
 }

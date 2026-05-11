@@ -337,6 +337,15 @@
         <div id="strava-status" style="font-size:10px; color:var(--muted); margin-top:8px; text-align:center">Estado: No vinculado</div>
       </div>
 
+      <div style="margin: 15px 0; padding: 15px; background: var(--s2); border-radius: var(--radius-sm); border: 1px solid var(--border2);">
+        <div class="label-tech" style="margin-bottom:8px">Sincronización Entrenador (iCal)</div>
+        <input type="text" id="ical-link-input" class="input-ai" placeholder="Pega aquí tu enlace .ics de Google..." style="margin-bottom:10px">
+        <button class="btn-ai" onclick="saveIcalLink()" style="width:100%; justify-content:center; background:var(--blue)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="margin-right:8px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Sincronizar Calendario
+        </button>
+      </div>
+
       <div class="label-tech">Gemini API Key</div>
       <input type="password" id="api-key-input" class="input-ai" placeholder="Introduce tu clave de Google AI...">
       <div style="display:flex; gap:10px; margin-top:20px">
