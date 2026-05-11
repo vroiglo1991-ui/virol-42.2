@@ -517,8 +517,36 @@ async function fetchStravaActivities() {
       });
       localStorage.setItem('strava_cached_data', JSON.stringify(STRAVA_DATA));
       renderStravaActivities();
+      updateRacePredictions();
     }
   } catch (e) { console.error('Error fetching Strava activities', e); }
+}
+
+function updateRacePredictions() {
+  // Basado en el mejor 5K (podemos buscarlo en STRAVA_DATA o usar el fijo 21:59)
+  // Riegel: T2 = T1 * (D2/D1)^1.06
+  const best5kSeconds = (21 * 60) + 59; // 21:59
+  
+  const predict = (dist) => {
+    const seconds = best5kSeconds * Math.pow(dist / 5, 1.06);
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const predictPace = (dist) => {
+    const seconds = best5kSeconds * Math.pow(dist / 5, 1.06);
+    const paceSecs = seconds / dist;
+    const m = Math.floor(paceSecs / 60);
+    const s = Math.floor(paceSecs % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  document.getElementById('est-10k').textContent = predict(10);
+  document.getElementById('est-21k').textContent = predict(21.1);
+  document.getElementById('est-42k').textContent = predict(42.2);
+  document.getElementById('est-pace').textContent = predictPace(42.2) + ' m/k';
 }
 
 // ===================== STRAVA DASHBOARD =====================
