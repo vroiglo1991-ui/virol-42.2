@@ -149,7 +149,21 @@ async function callGemini(prompt) {
 async function generateWeeklyNutritionIA() {
   const btn = document.getElementById('btn-gen-nutrition');
   btn.classList.add('loading');
-  const prompt = `Actúa como nutricionista deportivo. Diseña un plan semanal Real Food para un maratoniano. Devuelve un objeto JSON con dos claves obligatorias: "plan" (array de 7 objetos con {dia, desayuno, comida, cena}) y "compra" (array de categorías con {categoria, items: [array de strings]}).`;
+  
+  // Recopilar contexto para la IA
+  const weight = document.getElementById('bio-peso').textContent;
+  const height = document.getElementById('bio-altura').textContent;
+  const imc = document.getElementById('bio-imc').textContent;
+  const totalKm = document.getElementById('kpi-dist').textContent;
+  const daysLeft = document.getElementById('days-counter').textContent;
+
+  const prompt = `Actúa como Nutricionista Deportivo de Élite para un maratoniano.
+  PERFIL ATLETA: Peso ${weight}kg, Altura ${height}cm, IMC ${imc}, %Grasa 8.5%.
+  CONTEXTO ACTUAL: Lleva ${totalKm} esta semana. Faltan ${daysLeft} días para el Maratón de Valencia (07/12).
+  TAREA: Diseña un plan semanal Real Food personalizado. Si el volumen de km es alto, aumenta carbohidratos complejos.
+  Devuelve un objeto JSON con dos claves obligatorias: 
+  "plan" (array de 7 objetos con {dia, desayuno, comida, cena}) 
+  "compra" (array de categorías con {categoria, items: [array de strings]}).`;
   
   const result = await callGemini(prompt);
   if(result && result.plan && result.compra) {
@@ -159,11 +173,6 @@ async function generateWeeklyNutritionIA() {
     localStorage.setItem('weekly_shopping', JSON.stringify(result.compra));
     renderNutritionTable(result.plan);
     renderShoppingList(result.compra);
-  } else if (Array.isArray(result)) {
-    // Fallback if AI ignores format
-    weeklyNutrition = result;
-    localStorage.setItem('weekly_nutrition', JSON.stringify(result));
-    renderNutritionTable(result);
   }
   btn.classList.remove('loading');
 }
@@ -209,6 +218,48 @@ async function generateWeeklyTrainingIA() {
     renderWeeklyTraining();
   }
   btn.classList.remove('loading');
+}
+
+async function generateWeeklyTrainingIA() {
+  const btn = document.getElementById('btn-gen-training');
+  btn.classList.add('loading');
+
+  const totalKm = document.getElementById('kpi-dist').textContent;
+  const best5k = "21:59";
+  const daysLeft = document.getElementById('days-counter').textContent;
+
+  const prompt = `Actúa como Entrenador de Maratón Nivel Pro. 
+  ATLETA: Víctor. Estado actual: ${totalKm} acumulados esta semana. Mejor 5K: ${best5k}.
+  META: Maratón Valencia en ${daysLeft} días.
+  TAREA: Genera un plan de 7 días que combine sesiones de carrera (Running) y Fuerza (Fuerza/Core).
+  Enfócate en la especificidad: si faltan menos de 30 días, prioriza ritmos de maratón. Si faltan más, prioriza base y fuerza.
+  Devuelve un array JSON de 7 objetos: {dia, tipo, sesion}. "tipo" debe ser 'Running', 'Fuerza', 'Hibrido' o 'Descanso'.`;
+  
+  const result = await callGemini(prompt);
+  if(result && Array.isArray(result)) {
+    weeklyTraining = result;
+    localStorage.setItem('weekly_training', JSON.stringify(result));
+    renderTrainingTable(result);
+    renderNextSession();
+  }
+  btn.classList.remove('loading');
+}
+
+function renderTrainingTable(data) {
+  const el = document.getElementById('weekly-routines-container');
+  if (!el || !data) return;
+
+  el.innerHTML = `
+    <div class="grid7-training" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top:15px">
+      ${data.map(d => `
+        <div class="card" style="background:var(--s2); padding:10px; border-top: 3px solid ${d.tipo === 'Running' ? 'var(--orange)' : d.tipo === 'Fuerza' ? 'var(--lime)' : 'var(--muted)'}">
+          <div class="label-tech" style="font-size:10px; margin-bottom:5px">${d.dia}</div>
+          <div class="card-title" style="font-size:14px; margin-bottom:5px">${d.tipo}</div>
+          <div style="font-size:11px; line-height:1.3; color:var(--text-sub)">${d.sesion}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
 }
 
 function renderWeeklyTraining() {
