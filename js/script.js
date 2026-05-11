@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initStrava();
   }
 
+  updateRacePredictions();
   renderCalendar();
   renderNextSession();
   renderDashboardSupps();
@@ -487,6 +488,7 @@ async function initStrava() {
     if (savedData) {
       STRAVA_DATA = JSON.parse(savedData);
       renderStravaActivities();
+      updateRacePredictions();
     } else {
       fetchStravaActivities();
     }
