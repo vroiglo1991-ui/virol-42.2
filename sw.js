@@ -5,7 +5,7 @@ const ASSETS = [
   './css/style.css',
   './js/script.js',
   './manifest.json',
-  './virol_app_icon_1778517319688.png',
+  './virol_logo.png',
   './img/victor.jpg.png'
 ];
 

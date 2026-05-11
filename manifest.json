@@ -4,11 +4,11 @@
   "description": "Elite Performance Dashboard for Marathon Training",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#C8FF00",
+  "background_color": "#0B0E14",
+  "theme_color": "#FF6D00",
   "icons": [
     {
-      "src": "virol_app_icon_1778517319688.png",
+      "src": "virol_logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

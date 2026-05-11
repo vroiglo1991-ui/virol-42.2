@@ -11,7 +11,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VIROL 42.2">
-<link rel="apple-touch-icon" href="virol_app_icon_1778517319688.png">
+<link rel="icon" type="image/png" href="virol_logo.png">
+<link rel="apple-touch-icon" href="virol_logo.png">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -24,7 +25,7 @@
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <div class="logo-text">VIROL<span> 42.2</span></div>
-    <div class="logo-sub">Valencia 2026</div>
+    <div class="logo-sub">ELITE TELEMETRY</div>
   </div>
   <nav class="nav">
     <div class="nav-section">Principal</div>
@@ -48,8 +49,19 @@
   </nav>
   <div class="sidebar-bottom">
     <div class="marathon-countdown">
-      <div class="countdown-label">Maratón Valencia</div>
+      <div class="countdown-label">Valencia 2026</div>
       <div class="countdown-days" id="days-counter">—</div>
+      <div class="countdown-label" style="margin-top:2px">Días restantes</div>
+      
+      <div class="prog-wrap" style="margin-top:12px">
+        <div class="prog-label">
+          <span>13/04</span>
+          <span>07/12</span>
+        </div>
+        <div class="prog-bar" style="height:4px; background:var(--s3); border-radius:2px; margin-top:4px;">
+          <div id="marathon-progress-fill" style="width:0%; height:100%; background:var(--primary-orange); border-radius:2px; transition:width 1s;"></div>
+        </div>
+      </div>
     </div>
     <button class="nav-item" style="margin-top:12px" onclick="toggleModal(true)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 1.5-3.5h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -94,8 +106,17 @@
 <!-- MAIN CONTENT -->
 <main class="main">
 
-  <!-- ============ DASHBOARD ============ -->
   <div class="page active" id="page-dashboard">
+    <div class="card card-widget" style="border-left: 3px solid var(--primary-orange);">
+      <div class="card-header" style="margin-bottom:8px">
+        <div class="card-title title-telemetry">AI Coach Insight</div>
+        <button class="btn-ai" id="btn-coach-ai" onclick="generateCoachInsight()" style="padding:6px 12px; font-size:10px;">Analizar Estado</button>
+      </div>
+      <div id="coach-insight-text" style="font-family: var(--font-data); font-size: 13px; color: var(--muted); line-height: 1.5;">
+        Pulsa para que la IA analice tu fatiga (RPE), volumen actual y perfil antropométrico.
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header"><div class="card-title">Semana de Entrenamiento</div><div class="card-badge" id="current-day-label">Lunes</div></div>
       <div class="calendar-scroll-wrap">
@@ -301,9 +322,10 @@
   <!-- ============ SHOPPING ============ -->
   <div class="page" id="page-shopping">
     <div class="card">
-      <div class="card-header"><div class="card-title">Lista de la Compra</div></div>
+      <div class="card-header"><div class="card-title title-telemetry">Lista de la Compra (Real Food)</div></div>
+      <p style="font-size:12px; color:var(--muted); margin-bottom:20px;">Esta lista se genera automáticamente con los ingredientes exactos necesarios para tu plan nutricional semanal.</p>
       <div id="grocery-list">
-        <!-- Static for now -->
+        <div style="text-align:center;padding:40px;color:var(--muted)">Ve a la sección "Nutrición" y genera un plan semanal para rellenar esta lista.</div>
       </div>
     </div>
   </div>

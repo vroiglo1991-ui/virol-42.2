@@ -134,13 +134,22 @@ async function callGemini(prompt) {
   } catch (e) { return null; }
 }
 
-// ===================== NUTRITION =====================
+// ===================== NUTRITION & SHOPPING =====================
 async function generateWeeklyNutritionIA() {
   const btn = document.getElementById('btn-gen-nutrition');
   btn.classList.add('loading');
-  const prompt = `Actúa como nutricionista deportivo. Diseña un plan semanal Real Food para un maratoniano. Devuelve un array de 7 objetos: {dia, desayuno, comida, merienda, cena}.`;
+  const prompt = `Actúa como nutricionista deportivo. Diseña un plan semanal Real Food para un maratoniano. Devuelve un objeto JSON con dos claves obligatorias: "plan" (array de 7 objetos con {dia, desayuno, comida, cena}) y "compra" (array de categorías con {categoria, items: [array de strings]}).`;
+  
   const result = await callGemini(prompt);
-  if(result && Array.isArray(result)) {
+  if(result && result.plan && result.compra) {
+    weeklyNutrition = result.plan;
+    weeklyShopping = result.compra;
+    localStorage.setItem('weekly_nutrition', JSON.stringify(result.plan));
+    localStorage.setItem('weekly_shopping', JSON.stringify(result.compra));
+    renderNutritionTable(result.plan);
+    renderShoppingList(result.compra);
+  } else if (Array.isArray(result)) {
+    // Fallback if AI ignores format
     weeklyNutrition = result;
     localStorage.setItem('weekly_nutrition', JSON.stringify(result));
     renderNutritionTable(result);
@@ -356,13 +365,50 @@ function scheduleSupplementNotifications() {
 }
 
 function updateCountdown() {
-  const target = new Date('2026-12-07');
+  const start = new Date('2026-04-13T00:00:00');
+  const target = new Date('2026-12-07T00:00:00');
   const now = new Date();
+  
+  const totalDays = (target - start) / (1000 * 60 * 60 * 24);
+  const elapsedDays = (now - start) / (1000 * 60 * 60 * 24);
+  
   const diff = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+  
   const el = document.getElementById('days-counter');
-  const el2 = document.getElementById('days-alert');
-  if(el) el.textContent = diff;
-  if(el2) el2.textContent = diff;
+  if(el) el.textContent = diff > 0 ? diff : 0;
+  
+  let progress = (elapsedDays / totalDays) * 100;
+  if (progress < 0) progress = 0;
+  if (progress > 100) progress = 100;
+
+  const barFill = document.getElementById('marathon-progress-fill');
+  if (barFill) {
+    setTimeout(() => {
+      barFill.style.width = `${progress}%`;
+    }, 100); // Pequeño retraso para que haga la animación al cargar
+  }
+}
+
+// ===================== AI COACH INSIGHT =====================
+async function generateCoachInsight() {
+  const btn = document.getElementById('btn-coach-ai');
+  const textEl = document.getElementById('coach-insight-text');
+  btn.classList.add('loading');
+  textEl.innerHTML = 'Analizando tus métricas...';
+
+  // Recopilar últimos 5 entrenos
+  const recentActs = STRAVA_DATA.slice(0, 5).map(a => `${a.title}: ${a.dist} en ${a.time} (Sns: ${a.sense || 5}/10)`).join(', ');
+  
+  const prompt = `Actúa como un entrenador de élite de maratón. Aquí están los últimos 5 entrenos de tu atleta Víctor: [${recentActs}]. 
+  Basado en esto y en sus sensaciones percibidas (1 al 10), dale un consejo corto (máximo 2 frases) sobre su estado de forma actual y qué debe priorizar hoy. Devuelve un objeto JSON con la clave "insight".`;
+
+  const result = await callGemini(prompt);
+  if (result && result.insight) {
+    textEl.innerHTML = `<strong>Coach:</strong> "${result.insight}"`;
+  } else {
+    textEl.innerHTML = 'No se pudo generar el consejo. Revisa la conexión o tu API Key.';
+  }
+  btn.classList.remove('loading');
 }
 
 // ===================== BIO PROFILE =====================
@@ -543,5 +589,18 @@ function setupFilters() {
 }
 
 function renderShoppingList(data) {
-  // Sim list render
+  const el = document.getElementById('grocery-list');
+  if (!el || !data) return;
+
+  el.innerHTML = data.map(cat => `
+    <div class="shop-cat">
+      <div class="cat-title">${cat.categoria}</div>
+      ${cat.items.map(item => `
+        <div class="check-item" onclick="this.classList.toggle('done')">
+          <div class="check-box"><svg viewBox="0 0 24 24" fill="none" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-info"><div class="check-title" style="font-weight:400; font-family:var(--font-tech)">${item}</div></div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
 }
