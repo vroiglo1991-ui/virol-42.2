@@ -76,15 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const savedTheme = localStorage.getItem('virol_theme') || 'dark';
   applyTheme(savedTheme);
 
-  // Check for Strava OAuth callback
-  const urlParams = new URLSearchParams(window.location.search);
-  const stravaCode = urlParams.get('code');
-  if (stravaCode) {
-    handleStravaCallback(stravaCode);
-    window.history.replaceState({}, document.title, "/"); // Limpiar URL
-  } else {
-    initStrava();
-  }
+  // Iniciar Strava vía Cloudflare Worker
+  initStrava();
 
   updateRacePredictions();
   renderCalendar();
@@ -551,58 +544,35 @@ function updateBioProfile() {
 }
 
 // ===================== STRAVA API LOGIC =====================
-function connectStrava() {
-  const authUrl = `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CONFIG.clientId}&redirect_uri=${STRAVA_CONFIG.redirectUri}&response_type=code&scope=activity:read_all`;
-  window.location.href = authUrl;
-}
+const WORKER_URL = '/api/entrenamientos'; 
 
-async function handleStravaCallback(code) {
-  try {
-    const response = await fetch('https://www.strava.com/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: STRAVA_CONFIG.clientId,
-        client_secret: STRAVA_CONFIG.clientSecret,
-        code: code,
-        grant_type: 'authorization_code'
-      })
-    });
-    const data = await response.json();
-    if (data.access_token) {
-      localStorage.setItem('strava_access_token', data.access_token);
-      localStorage.setItem('strava_refresh_token', data.refresh_token);
-      localStorage.setItem('strava_athlete', JSON.stringify(data.athlete));
-      alert('¡Strava conectado correctamente!');
-      fetchStravaActivities();
-    }
-  } catch (e) { alert('Error al conectar con Strava'); }
+function connectStrava() {
+  alert('La sincronización ahora es automática y segura de fondo vía Cloudflare Workers.');
+  initStrava();
 }
 
 async function initStrava() {
-  const token = localStorage.getItem('strava_access_token');
   const statusEl = document.getElementById('strava-status');
-  if (token) {
-    if (statusEl) statusEl.innerHTML = '<span style="color:#32D74B">● Vinculado</span>';
-    const savedData = localStorage.getItem('strava_cached_data');
-    if (savedData) {
-      STRAVA_DATA = JSON.parse(savedData);
-      renderStravaActivities();
-      updateRacePredictions();
-    } else {
-      fetchStravaActivities();
-    }
+  
+  // Mostrar datos guardados instantáneamente
+  const savedData = localStorage.getItem('strava_cached_data');
+  if (savedData) {
+    STRAVA_DATA = JSON.parse(savedData);
+    renderStravaActivities();
+    updateRacePredictions();
   }
+
+  // Pedir actualización al Worker
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--text-sub)">● Sincronizando...</span>';
+  await fetchStravaActivities();
 }
 
 async function fetchStravaActivities() {
-  const token = localStorage.getItem('strava_access_token');
-  if (!token) return;
-
+  const statusEl = document.getElementById('strava-status');
   try {
-    const response = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=15', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const response = await fetch(WORKER_URL);
+    if (!response.ok) throw new Error('Network response was not ok');
+    
     const data = await response.json();
     
     if (Array.isArray(data)) {
@@ -620,8 +590,12 @@ async function fetchStravaActivities() {
       localStorage.setItem('strava_cached_data', JSON.stringify(STRAVA_DATA));
       renderStravaActivities();
       updateRacePredictions();
+      if (statusEl) statusEl.innerHTML = '<span style="color:#32D74B">● Sincronizado</span>';
     }
-  } catch (e) { console.error('Error fetching Strava activities', e); }
+  } catch (e) { 
+    console.error('Error fetching Strava activities from Worker', e);
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--primary-orange)">● Sin conexión / Usando Caché</span>';
+  }
 }
 
 function updateRacePredictions() {
