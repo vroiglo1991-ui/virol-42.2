@@ -544,7 +544,7 @@ function updateBioProfile() {
 }
 
 // ===================== STRAVA API LOGIC =====================
-const WORKER_URL = '/api/entrenamientos'; 
+const WORKER_URL = 'https://virol.v-roiglo1991.workers.dev/api/entrenamientos'; 
 
 function connectStrava() {
   alert('La sincronización ahora es automática y segura de fondo vía Cloudflare Workers.');
