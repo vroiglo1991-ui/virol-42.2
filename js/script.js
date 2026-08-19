@@ -43,17 +43,11 @@ const ICONS = {
 };
 
 const SUPPLEMENTS = [
-  { name: 'Omega-3', icon: ICONS.water, time: '08:30', id: 'omega', notifMsg: '¡Hora del Omega-3 con el desayuno!' },
-  { name: 'Creatina', icon: ICONS.race, time: '08:30', id: 'crea', notifMsg: '¡Creatina con el desayuno!' },
-  { name: 'Whey Protein', icon: ICONS.shake, time: '20:30', id: 'whey', notifMsg: '¡Proteína post-entreno! 20 mins después de terminar.' },
-  { name: 'Magnesio', icon: ICONS.pill, time: '21:30', id: 'mag', notifMsg: '¡Magnesio antes de dormir!' }
+  { name: 'Omega-3', icon: ICONS.water, time: '08:30', id: 'omega' },
+  { name: 'Creatina', icon: ICONS.race, time: '08:30', id: 'crea' },
+  { name: 'Whey Protein', icon: ICONS.shake, time: '20:30', id: 'whey' },
+  { name: 'Magnesio', icon: ICONS.pill, time: '21:30', id: 'mag' }
 ];
-
-const STRAVA_CONFIG = {
-  clientId: '243799',
-  clientSecret: '74c79e75d6bbe253d1f91606ee06f074262fe096',
-  redirectUri: 'https://virol.v-roiglo1991.workers.dev/'
-};
 
 let STRAVA_DATA = [
   { date: '10/05/2026', title: '5K Redolat', time: '21:59', dist: '5.07 km', elev: '4m', sense: 8 },
@@ -90,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if(apiKey) document.getElementById('api-key-input').value = apiKey;
 
-  // Cargar planes guardados
   const savedIcal = localStorage.getItem('ical_link');
   if(savedIcal) {
     const input = document.getElementById('ical-link-input');
@@ -108,6 +101,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if(weeklyNutrition) renderNutritionTable(weeklyNutrition);
   if(weeklyShopping) renderShoppingList(weeklyShopping);
+
+  // Restaurar Perfil Antropométrico y Preferencias
+  loadBioProfile();
+  updateBioProfile();
+  loadDietaryPreferences();
+  renderDailyLogs();
+  renderSmartSupplementBanner();
 });
 
 function applyTheme(theme) {
@@ -137,6 +137,140 @@ function saveApiKey() {
   toggleModal(false);
   alert('API Key guardada correctamente.');
 }
+
+// ===================== PREFERENCIAS DIETÉTICAS Y REGISTROS DIARIOS =====================
+function saveDietaryPreferences() {
+  const type = document.getElementById('pref-diet-type').value;
+  const avoid = document.getElementById('pref-diet-avoid').value.trim();
+  const favorites = document.getElementById('pref-diet-favorites').value.trim();
+  
+  const preferences = { type, avoid, favorites };
+  localStorage.setItem('dietary_preferences', JSON.stringify(preferences));
+}
+
+function loadDietaryPreferences() {
+  const data = localStorage.getItem('dietary_preferences');
+  if (data) {
+    const preferences = JSON.parse(data);
+    const typeEl = document.getElementById('pref-diet-type');
+    const avoidEl = document.getElementById('pref-diet-avoid');
+    const favEl = document.getElementById('pref-diet-favorites');
+    
+    if (typeEl) typeEl.value = preferences.type || 'omnivora';
+    if (avoidEl) avoidEl.value = preferences.avoid || '';
+    if (favEl) favEl.value = preferences.favorites || '';
+  }
+}
+
+function saveDailyLog() {
+  const weightInput = document.getElementById('daily-weight');
+  const fatInput = document.getElementById('daily-fat');
+  const energySelect = document.getElementById('daily-energy');
+  const digestionSelect = document.getElementById('daily-digestion');
+  const adherenceSelect = document.getElementById('daily-adherence');
+  const notesTextArea = document.getElementById('daily-notes');
+  
+  if (!weightInput || !weightInput.value) {
+    alert('Por favor, introduce tu peso corporal para registrar tu telemetría hoy.');
+    return;
+  }
+  
+  const weight = parseFloat(weightInput.value);
+  if (isNaN(weight) || weight <= 0) {
+    alert('Por favor, introduce un peso corporal válido.');
+    return;
+  }
+
+  const fat = fatInput && fatInput.value ? parseFloat(fatInput.value) : null;
+  const energy = parseInt(energySelect.value);
+  const digestion = parseInt(digestionSelect.value);
+  const adherence = adherenceSelect.value;
+  const notes = notesTextArea.value.trim();
+  
+  // Generar fecha en formato DD/MM/YYYY robusto
+  const d = new Date();
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+  const dateStr = `${day}/${month}/${year}`;
+  
+  const logEntry = {
+    date: dateStr,
+    weight: weight,
+    fat: fat,
+    energy: energy,
+    digestion: digestion,
+    adherence: adherence,
+    notes: notes
+  };
+  
+  let logs = JSON.parse(localStorage.getItem('nutrition_history_log') || '[]');
+  
+  // Evitar duplicados del mismo día reemplazando el registro si ya existe
+  logs = logs.filter(entry => entry.date !== dateStr);
+  logs.unshift(logEntry);
+  
+  // Limitar historial a los últimos 10 días para rendimiento óptimo
+  if (logs.length > 10) {
+    logs = logs.slice(0, 10);
+  }
+  
+  localStorage.setItem('nutrition_history_log', JSON.stringify(logs));
+  
+  // Limpiar/resetear campos
+  weightInput.value = '';
+  if (fatInput) fatInput.value = '';
+  notesTextArea.value = '';
+  
+  // Actualizar el perfil antropométrico global
+  const bioPesoEl = document.getElementById('bio-peso');
+  const bioGrasaEl = document.getElementById('bio-grasa');
+  if (bioPesoEl) bioPesoEl.innerText = weight;
+  if (bioGrasaEl && fat !== null && !isNaN(fat)) bioGrasaEl.innerText = fat + '%';
+  
+  const savedBio = JSON.parse(localStorage.getItem('bio_profile') || '{"peso":70,"altura":178,"grasa":8.5}');
+  savedBio.peso = weight;
+  if (fat !== null && !isNaN(fat)) savedBio.grasa = fat;
+  localStorage.setItem('bio_profile', JSON.stringify(savedBio));
+
+  updateBioProfile();
+  renderDailyLogs();
+  alert('¡Registro de hoy guardado! La IA adaptará tu próximo plan según estos datos.');
+}
+
+function renderDailyLogs() {
+  const tbody = document.getElementById('daily-log-table-body');
+  if (!tbody) return;
+  
+  const logs = JSON.parse(localStorage.getItem('nutrition_history_log') || '[]');
+  
+  if (logs.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align:center;color:var(--muted);padding:15px;">No hay registros grabados en los últimos días.</td>
+      </tr>
+    `;
+    return;
+  }
+  
+  const adherenceMap = {
+    'alta': '<span style="color:#32D74B; font-weight:600;">Alta (100%)</span>',
+    'media': '<span style="color:#FFD60A; font-weight:600;">Media (Cambios)</span>',
+    'baja': '<span style="color:#FF453A; font-weight:600;">Baja (Libre/Fuera)</span>'
+  };
+  
+  tbody.innerHTML = logs.slice(0, 5).map(log => `
+    <tr>
+      <td style="font-family:'DM Mono',monospace; white-space:nowrap">${log.date.substring(0, 5)}</td>
+      <td style="font-weight:600;">${log.weight} kg</td>
+      <td style="text-align:center;"><span class="card-badge" style="background:${log.energy >= 8 ? 'rgba(50,215,75,0.15)' : 'rgba(255,69,58,0.15)'}; color:${log.energy >= 8 ? '#32D74B' : '#FF453A'}">${log.energy}/10</span></td>
+      <td style="text-align:center;"><span class="card-badge" style="background:${log.digestion >= 8 ? 'rgba(50,215,75,0.15)' : 'rgba(255,69,58,0.15)'}; color:${log.digestion >= 8 ? '#32D74B' : '#FF453A'}">${log.digestion}/10</span></td>
+      <td>${adherenceMap[log.adherence] || log.adherence}</td>
+      <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${log.notes || ''}">${log.notes || '<span style="color:var(--muted)">-</span>'}</td>
+    </tr>
+  `).join('');
+}
+
 
 // ===================== AI SERVICE =====================
 async function callGemini(prompt) {
@@ -168,13 +302,44 @@ async function generateWeeklyNutritionIA() {
   const totalKm = document.getElementById('kpi-dist').textContent;
   const daysLeft = document.getElementById('days-counter').textContent;
 
-  const prompt = `Actúa como Nutricionista Deportivo de Élite para un maratoniano.
+  // Obtener Preferencias Alimentarias
+  const prefData = localStorage.getItem('dietary_preferences');
+  const preferences = prefData ? JSON.parse(prefData) : { type: 'omnivora', avoid: 'Ninguno', favorites: 'Ninguno' };
+
+  // Obtener Historial de Salud Diario (últimos 10 registros)
+  const logsData = localStorage.getItem('nutrition_history_log');
+  const logs = logsData ? JSON.parse(logsData) : [];
+  let historyText = "";
+  if (logs.length > 0) {
+    historyText = "\nTELEMETRÍA HISTÓRICA RECIENTE DEL ATLETA:\n";
+    logs.forEach(l => {
+      historyText += `- Fecha: ${l.date}, Peso: ${l.weight}kg, Nivel de Energía: ${l.energy}/10, Digestiones: ${l.digestion}/10, Adherencia a la dieta: ${l.adherence}, Notas: ${l.notes || 'Ninguna'}\n`;
+    });
+  } else {
+    historyText = "\nNo hay registros históricos de salud o sensaciones recientes grabados aún.";
+  }
+
+  const prompt = `Actúa como Nutricionista Deportivo de Élite para un maratoniano de alto nivel.
   PERFIL ATLETA: Peso ${weight}kg, Altura ${height}cm, IMC ${imc}, %Grasa 8.5%.
-  CONTEXTO ACTUAL: Lleva ${totalKm} esta semana. Faltan ${daysLeft} días para el Maratón de Valencia (07/12).
-  TAREA: Diseña un plan semanal Real Food personalizado. Si el volumen de km es alto, aumenta carbohidratos complejos.
-  Devuelve un objeto JSON con dos claves obligatorias: 
-  "plan" (array de 7 objetos con {dia, desayuno, comida, cena}) 
-  "compra" (array de categorías con {categoria, items: [array de strings]}).`;
+  CONTEXTO ACTUAL DE ENTRENAMIENTO: Ha acumulado un volumen de ${totalKm} esta semana. Faltan ${daysLeft} días para el Maratón de Valencia (07/12).
+  
+  PREFERENCIAS ALIMENTARIAS Y RESTRICCIONES:
+  - Tipo de Dieta: ${preferences.type || 'omnivora'}
+  - Ingredientes terminantemente excluidos (ALERGIAS / EVITAR): ${preferences.avoid || 'Ninguno'}
+  - Ingredientes y proteínas preferidas: ${preferences.favorites || 'Ninguno'}
+  ${historyText}
+
+  TAREA CRÍTICA (IA ADAPTATIVA Y AUTODIDACTA):
+  Analiza la telemetría reciente del atleta para adaptar y optimizar de forma inteligente y autodidacta su plan de alimentación semanal:
+  1. Si en el historial se reporta un nivel de energía menor de 8/10 en tiradas largas o entrenamientos de carrera, aumenta estratégicamente las porciones de carbohidratos complejos (arroz integral, avena, batata, quinoa) en las cenas del día previo y los desayunos de ese día.
+  2. Si reporta pesadez o malas digestiones (menor de 8/10), evita terminantemente grasas pesadas, lácteos enteros o exceso de fibra de difícil digestión en las ingestas previas a correr.
+  3. Si el peso corporal fluctúa por debajo de su peso óptimo de carrera, aumenta moderadamente el aporte calórico con grasas saludables (aguacate, frutos secos, aceite de oliva virgen extra) y proteínas de calidad.
+  4. Diseña recetas sencillas y prácticas si la adherencia del atleta en los registros recientes fue baja o media.
+  5. Asegura un cumplimiento absoluto de su tipo de dieta y excluye rigurosamente los ingredientes a evitar.
+
+  Devuelve un objeto JSON estructurado con dos claves obligatorias:
+  "plan" (un array de 7 objetos, cada uno con {dia, desayuno, comida, cena})
+  "compra" (un array de categorías de ingredientes, cada una con {categoria, items: [array de strings]}).`;
   
   const result = await callGemini(prompt);
   if(result && result.plan && result.compra) {
@@ -217,20 +382,6 @@ function renderNutritionTable(data) {
   `).join('');
 }
 
-// ===================== TRAINING =====================
-async function generateWeeklyTrainingIA() {
-  const btn = document.getElementById('btn-gen-training');
-  btn.classList.add('loading');
-  const prompt = `Planifica 3 rutinas de fuerza (Martes, Miércoles, Sábado). Devuelve un JSON con esos días como claves, cada una con un array de 5 objetos {name, meta}.`;
-  const result = await callGemini(prompt);
-  if(result) {
-    Object.keys(result).forEach(day => ROUTINES[day] = result[day]);
-    localStorage.setItem('custom_routines', JSON.stringify(ROUTINES));
-    renderWeeklyTraining();
-  }
-  btn.classList.remove('loading');
-}
-
 async function generateWeeklyTrainingIA() {
   const btn = document.getElementById('btn-gen-training');
   btn.classList.add('loading');
@@ -239,11 +390,25 @@ async function generateWeeklyTrainingIA() {
   const best5k = "21:59";
   const daysLeft = document.getElementById('days-counter').textContent;
 
+  const coachEvents = JSON.parse(localStorage.getItem('coach_events') || '[]');
+  const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  
+  let coachInfo = "";
+  if (coachEvents.length > 0) {
+    coachInfo = "IMPORTANTE: El entrenador humano del atleta ya le ha asignado los siguientes entrenamientos inamovibles esta semana:\\n";
+    coachEvents.forEach(e => {
+      const d = new Date(e.date).getDay();
+      coachInfo += `- ${dayNames[d]}: ${e.summary}\\n`;
+    });
+    coachInfo += "TAREA CRÍTICA: Debes incluir EXACTAMENTE esos días de entrenamiento humano en tu respuesta (manteniendo el día y la descripción). Para los días restantes, GENERA sesiones complementarias (Fuerza, Descanso activo o Híbrido) que sirvan de apoyo a esos días fuertes. NO modifiques los días del entrenador.";
+  } else {
+    coachInfo = "TAREA: Genera un plan de 7 días que combine sesiones de carrera (Running) y Fuerza (Fuerza/Core).";
+  }
+
   const prompt = `Actúa como Entrenador de Maratón Nivel Pro. 
   ATLETA: Víctor. Estado actual: ${totalKm} acumulados esta semana. Mejor 5K: ${best5k}.
   META: Maratón Valencia en ${daysLeft} días.
-  TAREA: Genera un plan de 7 días que combine sesiones de carrera (Running) y Fuerza (Fuerza/Core).
-  Enfócate en la especificidad: si faltan menos de 30 días, prioriza ritmos de maratón. Si faltan más, prioriza base y fuerza.
+  ${coachInfo}
   Devuelve un array JSON de 7 objetos: {dia, tipo, sesion}. "tipo" debe ser 'Running', 'Fuerza', 'Hibrido' o 'Descanso'.`;
   
   const result = await callGemini(prompt);
@@ -433,39 +598,170 @@ function toggleSupp(id) {
   suppState[id] = !suppState[id];
   localStorage.setItem('supp_done_today', JSON.stringify(suppState));
   renderDashboardSupps();
+  renderSmartSupplementBanner();
 }
 
-function requestNotifPermission() {
+function renderSmartSupplementBanner() {
+  const banner = document.getElementById('supp-smart-banner');
+  if (!banner) return;
+  const hour = new Date().getHours();
+  const suppState = JSON.parse(localStorage.getItem('supp_done_today') || '{}');
+
+  let text = '';
+  if (hour < 13) {
+    const done = suppState['omega'] && suppState['crea'];
+    text = done ? '✅ <b>Mañana:</b> Omega-3 y Creatina ya tomados.' : '🌅 <b>Ahora (Mañana):</b> Toca tomar Omega-3 y Creatina con el desayuno.';
+  } else if (hour < 21) {
+    const done = suppState['whey'];
+    text = done ? '✅ <b>Tarde:</b> Proteína post-entreno completada.' : '⚡ <b>Post-Entreno:</b> Recuerda tomar la Whey Protein tras entrenar.';
+  } else {
+    const done = suppState['mag'];
+    text = done ? '✅ <b>Noche:</b> Magnesio listo para descansar.' : '🌙 <b>Noche:</b> Toca Magnesio antes de dormir para relajación muscular.';
+  }
+  banner.innerHTML = text;
+}
+
+function downloadSupplementAlarmsICS() {
+  const icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//VIROL 42.2//Suplementacion//ES',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    'SUMMARY:VIROL: Omega-3 + Creatina (Desayuno)',
+    'DESCRIPTION:Toma matutina con el desayuno: Omega-3 y Creatina.',
+    'DTSTART:20260101T083000',
+    'DTEND:20260101T084500',
+    'RRULE:FREQ=DAILY',
+    'BEGIN:VALARM',
+    'TRIGGER:-PT0M',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Recordatorio: Omega-3 y Creatina',
+    'END:VALARM',
+    'END:VEVENT',
+    'BEGIN:VEVENT',
+    'SUMMARY:VIROL: Whey Protein (Post-Entreno)',
+    'DESCRIPTION:Toma post-entrenamiento para recuperacion muscular.',
+    'DTSTART:20260101T203000',
+    'DTEND:20260101T204500',
+    'RRULE:FREQ=DAILY',
+    'BEGIN:VALARM',
+    'TRIGGER:-PT0M',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Recordatorio: Proteina post-entreno',
+    'END:VALARM',
+    'END:VEVENT',
+    'BEGIN:VEVENT',
+    'SUMMARY:VIROL: Magnesio (Noche)',
+    'DESCRIPTION:Toma antes de dormir para descanso muscular y sueno.',
+    'DTSTART:20260101T213000',
+    'DTEND:20260101T214500',
+    'RRULE:FREQ=DAILY',
+    'BEGIN:VALARM',
+    'TRIGGER:-PT0M',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Recordatorio: Magnesio nocturno',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', 'VIROL_Alarmas_Suplementos.ics');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  alert('¡Archivo de alarmas generado! Ábrelo en tu móvil para activar los recordatorios diarios en tu calendario.');
+}
+
+function enablePwaNotifications() {
   if (!('Notification' in window)) {
-    alert('Tu navegador no soporta notificaciones.');
+    alert('Tu navegador no soporta notificaciones directas. Usa el botón "Alarmas Móvil" para añadirlas a tu calendario.');
     return;
   }
   Notification.requestPermission().then(perm => {
+    const btn = document.getElementById('btn-pwa-notif');
     if (perm === 'granted') {
-      scheduleSupplementNotifications();
-      document.getElementById('supp-notif-tip').style.display = 'none';
-      alert('¡Notificaciones activadas! Recibirás un aviso en cada toma.');
+      if (btn) btn.innerHTML = '✓ Avisos Activos';
+      if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification('VIROL 42.2', {
+            body: '¡Avisos de suplementación y telemetría activados!',
+            icon: './virol_logo.png'
+          });
+        });
+      }
+      alert('¡Notificaciones PWA activadas!');
     } else {
-      document.getElementById('supp-notif-tip').style.display = 'block';
+      alert('Permiso de notificaciones no concedido.');
     }
   });
 }
 
-function scheduleSupplementNotifications() {
-  SUPPLEMENTS.forEach(s => {
-    const [h, m] = s.time.split(':').map(Number);
-    const now = new Date();
-    const notifTime = new Date();
-    notifTime.setHours(h, m, 0, 0);
-    let delay = notifTime - now;
-    if (delay < 0) return; // Ya pasó esa hora hoy
-    setTimeout(() => {
-      new Notification('VIROL 42.2 — Suplementación', {
-        body: s.notifMsg,
-        icon: './virol_app_icon_1778517319688.png'
-      });
-    }, delay);
-  });
+function toggleBioModal(show) {
+  const modal = document.getElementById('modal-edit-bio');
+  if (!modal) return;
+  if (show) {
+    const pesoEl = document.getElementById('bio-peso');
+    const alturaEl = document.getElementById('bio-altura');
+    const grasaEl = document.getElementById('bio-grasa');
+    
+    const pesoInput = document.getElementById('edit-bio-peso');
+    const alturaInput = document.getElementById('edit-bio-altura');
+    const grasaInput = document.getElementById('edit-bio-grasa');
+
+    if (pesoInput && pesoEl) pesoInput.value = parseFloat(pesoEl.innerText) || 70;
+    if (alturaInput && alturaEl) alturaInput.value = parseFloat(alturaEl.innerText) || 178;
+    if (grasaInput && grasaEl) grasaInput.value = parseFloat(grasaEl.innerText) || 8.5;
+  }
+  modal.classList.toggle('active', show);
+}
+
+function saveBioProfile() {
+  const peso = parseFloat(document.getElementById('edit-bio-peso').value);
+  const altura = parseFloat(document.getElementById('edit-bio-altura').value);
+  const grasa = parseFloat(document.getElementById('edit-bio-grasa').value);
+
+  if (isNaN(peso) || peso <= 0 || isNaN(altura) || altura <= 0) {
+    alert('Por favor introduce valores válidos.');
+    return;
+  }
+
+  const profile = { peso, altura, grasa: isNaN(grasa) ? 8.5 : grasa };
+  localStorage.setItem('bio_profile', JSON.stringify(profile));
+
+  const bioPesoEl = document.getElementById('bio-peso');
+  const bioAlturaEl = document.getElementById('bio-altura');
+  const bioGrasaEl = document.getElementById('bio-grasa');
+
+  if (bioPesoEl) bioPesoEl.innerText = peso;
+  if (bioAlturaEl) bioAlturaEl.innerText = altura;
+  if (bioGrasaEl) bioGrasaEl.innerText = profile.grasa + '%';
+
+  updateBioProfile();
+  toggleBioModal(false);
+  alert('¡Perfil antropométrico actualizado!');
+}
+
+function loadBioProfile() {
+  const saved = localStorage.getItem('bio_profile');
+  if (saved) {
+    try {
+      const profile = JSON.parse(saved);
+      const bioPesoEl = document.getElementById('bio-peso');
+      const bioAlturaEl = document.getElementById('bio-altura');
+      const bioGrasaEl = document.getElementById('bio-grasa');
+
+      if (bioPesoEl && profile.peso) bioPesoEl.innerText = profile.peso;
+      if (bioAlturaEl && profile.altura) bioAlturaEl.innerText = profile.altura;
+      if (bioGrasaEl && profile.grasa !== undefined) bioGrasaEl.innerText = profile.grasa + '%';
+    } catch(e) {}
+  }
 }
 
 function updateCountdown() {
@@ -578,8 +874,11 @@ async function fetchStravaActivities() {
     if (Array.isArray(data)) {
       STRAVA_DATA = data.map(a => {
         const d = new Date(a.start_date_local);
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
         return {
-          date: d.toLocaleDateString('es-ES'),
+          date: `${day}/${month}/${year}`,
           title: a.name,
           dist: (a.distance / 1000).toFixed(2) + ' km',
           time: Math.floor(a.moving_time / 60) + ':' + (a.moving_time % 60).toString().padStart(2, '0'),
@@ -805,8 +1104,10 @@ async function syncCalendar() {
   if (!link) return;
 
   try {
-    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(link);
+    // Usar el proxy local del Cloudflare Worker, rápido y seguro sin CORS
+    const proxyUrl = '/api/calendar?url=' + encodeURIComponent(link);
     const response = await fetch(proxyUrl);
+    if (!response.ok) throw new Error('Error al descargar el calendario');
     const icsText = await response.text();
     const events = parseICS(icsText);
     localStorage.setItem('coach_events', JSON.stringify(events));
@@ -838,4 +1139,15 @@ function parseICS(icsText) {
     }
   }
   return events;
+}
+
+// ===================== MANUAL ACTIVITY MODAL =====================
+function toggleManualActivityModal(show) {
+  const modal = document.getElementById('modal-add-activity');
+  if(modal) modal.classList.toggle('active', show);
+}
+
+function submitNewActivity() {
+  addNewActivity();
+  toggleManualActivityModal(false);
 }
