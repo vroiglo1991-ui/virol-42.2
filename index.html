@@ -1,604 +1,696 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VIROL 42.2</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto+Mono:wght@300;400;500&family=Inter:wght@400;600;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
-<link rel="manifest" href="manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="VIROL 42.2">
-<link rel="icon" type="image/png" href="virol_logo.png">
-<link rel="apple-touch-icon" href="virol_logo.png">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0E121B">
+  <meta name="description" content="Sistema integrado de entrenamiento Pull-Push-Legs, 44 km running y nutrición Mercadona para Víctor (73 kg) hacia la Maratón de Valencia 2026">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="img/victor.png">
+  
+  <title>VALENCIA 42K PRO // VÍCTOR 73KG</title>
+  
+  <!-- Brutalist Google Fonts: Bebas Neue, Space Grotesk, Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;700;800;900&family=Space+Grotesk:wght@600;700;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-<div id="app">
+<body class="brutalist-theme">
 
-<!-- MOBILE OVERLAY -->
-<div class="mobile-overlay" id="mobile-overlay" onclick="toggleMenu()"></div>
-
-<!-- SIDEBAR -->
-<aside class="sidebar" id="sidebar">
-  <div class="sidebar-logo">
-    <div class="logo-text">VIROL<span> 42.2</span></div>
-    <div class="logo-sub">ELITE TELEMETRY</div>
-  </div>
-  <nav class="nav">
-    <div class="nav-section">Principal</div>
-    <button class="nav-item active" onclick="showPage('dashboard',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-      Dashboard
-    </button>
-    <button class="nav-item" onclick="showPage('training',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12l4 6-10 12L2 9l4-6z"/></svg>
-      Entrenamiento
-    </button>
-    <div class="nav-section">Nutrición</div>
-    <button class="nav-item" onclick="showPage('nutrition',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-9m3 10h5M3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/></svg>
-      Real Food Plan
-    </button>
-    <button class="nav-item" onclick="showPage('shopping',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-      Lista Compra
-    </button>
-  </nav>
-  <div class="sidebar-bottom">
-    <div class="marathon-countdown">
-      <div class="countdown-label">Valencia 2026</div>
-      <div class="countdown-days" id="days-counter">—</div>
-      <div class="countdown-label" style="margin-top:2px">Días restantes</div>
+  <div class="app-container">
+    
+    <!-- HEADER HERO BRUTALISTA -->
+    <header class="brutal-header">
       
-      <div class="prog-wrap" style="margin-top:12px">
-        <div class="prog-label">
-          <span>13/04</span>
-          <span>07/12</span>
-        </div>
-        <div class="prog-bar" style="height:4px; background:var(--s3); border-radius:2px; margin-top:4px;">
-          <div id="marathon-progress-fill" style="width:0%; height:100%; background:var(--primary-orange); border-radius:2px; transition:width 1s;"></div>
-        </div>
-      </div>
-    </div>
-    <button class="nav-item" style="margin-top:12px" onclick="toggleModal(true)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 1.5-3.5h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Configuración IA
-    </button>
-  </div>
-</aside>
-
-<!-- TOPBAR -->
-<header class="topbar">
-  <div class="topbar-logo-mobile">VIROL<span> 42.2</span></div>
-  <div class="topbar-right">
-    <!-- THEME TOGGLE -->
-    <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar Modo">
-      <span id="theme-icon-moon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
-      </span>
-      <span id="theme-icon-sun" style="display:none">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="5"/>
-          <line x1="12" y1="1" x2="12" y2="3"/>
-          <line x1="12" y1="21" x2="12" y2="23"/>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-          <line x1="1" y1="12" x2="3" y2="12"/>
-          <line x1="21" y1="12" x2="23" y2="12"/>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-        </svg>
-      </span>
-    </button>
-    <div class="athlete-chip">
-      <div class="athlete-av-initials">VR</div>
-      <img src="img/victor.jpg.png" alt="VR" class="athlete-av-img">
-      <div class="athlete-name topbar-name-desktop">Víctor</div>
-    </div>
-  </div>
-</header>
-
-<!-- MAIN CONTENT -->
-<main class="main">
-
-  <div class="page active" id="page-dashboard">
-    <div class="card card-widget" style="border-left: 3px solid var(--primary-orange);">
-      <div class="card-header" style="margin-bottom:8px">
-        <div class="card-title title-telemetry">AI Coach Insight</div>
-        <button class="btn-ai" id="btn-coach-ai" onclick="generateCoachInsight()" style="padding:6px 12px; font-size:10px;">Analizar Estado</button>
-      </div>
-      <div id="coach-insight-text" style="font-family: var(--font-data); font-size: 13px; color: var(--muted); line-height: 1.5;">
-        Pulsa para que la IA analice tu fatiga (RPE), volumen actual y perfil antropométrico.
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">Semana de Entrenamiento</div><div class="card-badge" id="current-day-label">Lunes</div></div>
-      <div class="calendar-scroll-wrap">
-        <div class="calendar-grid" id="week-calendar">
-          <!-- Filled by JS -->
-        </div>
-      </div>
-    </div>
-
-    <div class="grid3">
-      <div class="card card-widget">
-        <div class="card-header">
-          <div class="card-title title-telemetry">Perfil Antropométrico</div>
-          <button class="btn-ai" onclick="toggleBioModal(true)" style="padding:4px 8px; font-size:10px; background:var(--s3); color:var(--text)">Editar</button>
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 5px;">
-          <div>
-            <div class="label-tech">Peso (kg)</div>
-            <div class="data-value" id="bio-peso">70</div>
+      <!-- TOP STATUS ROW: USER BADGE + CONTROLS -->
+      <div class="header-top">
+        <div class="user-badge">
+          <img src="img/victor.png" alt="Víctor" class="user-avatar">
+          <div class="user-info-text">
+            <span class="badge-name">VÍCTOR</span>
+            <span class="badge-metrics">73 KG • 178 CM</span>
           </div>
-          <div>
-            <div class="label-tech">Altura (cm)</div>
-            <div class="data-value" id="bio-altura">178</div>
-          </div>
-          <div>
-            <div class="label-tech">IMC</div>
-            <div class="data-value" id="bio-imc">-</div>
-          </div>
-          <div>
-            <div class="label-tech">% Grasa</div>
-            <div class="data-value" id="bio-grasa">8.5%</div>
-          </div>
+          <span class="pulse-dot"></span>
         </div>
-      </div>
-      <div class="card card-widget">
-        <div class="card-header"><div class="card-title title-telemetry">Siguiente Sesión</div></div>
-        <div id="next-session-card"></div>
-      </div>
-      <div class="card card-widget">
-        <div class="card-header"><div class="card-title title-telemetry">Suplementación</div><span class="card-badge" id="supp-done-count">0/4</span></div>
-        <div id="supp-smart-banner" style="font-size:11px; padding:6px 10px; border-radius:6px; background:var(--s2); border:1px solid var(--border2); margin-bottom:10px; color:var(--primary-orange); display:flex; align-items:center; gap:6px;">
-          ⚡ <b>Ahora:</b> Cargando recordatorio...
-        </div>
-        <div id="dash-supps"></div>
-        <div style="display:flex; gap:8px; margin-top:12px;">
-          <button class="btn-ai" onclick="downloadSupplementAlarmsICS()" style="flex:1; justify-content:center; font-size:10px; padding:8px 6px; background:var(--s3); color:var(--text)" title="Exportar alarmas a Apple / Google Calendar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Alarmas Móvil
+
+        <div class="header-controls">
+          <!-- AUDIO CHIME TOGGLE -->
+          <button class="icon-toggle-btn" id="btn-sound-toggle" title="Activar/Desactivar sonido táctil">
+            <span id="sound-icon">🔊</span>
           </button>
-          <button class="btn-ai" id="btn-pwa-notif" onclick="enablePwaNotifications()" style="flex:1; justify-content:center; font-size:10px; padding:8px 6px; background:var(--orange-glow); color:var(--primary-orange)" title="Activar avisos PWA">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="margin-right:4px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            Avisos PWA
+
+          <!-- THEME SELECTOR: AUTO / DÍA / NOCHE -->
+          <button class="theme-toggle-btn" id="btn-theme-toggle" title="Cambiar modo de visualización">
+            <span id="theme-icon">⚙️</span>
+            <span id="theme-label">AUTO</span>
           </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">Alertas y Logros</div></div>
-      <div class="alert warn" style="background:rgba(255,159,67,0.1); border-left:4px solid var(--orange); padding:12px; border-radius:8px; margin-bottom:10px; font-size:13px">
-        ⚠ Hoy entreno a las 19:00 — Priorizar hidratos complejos a mediodía.
-      </div>
-      <div class="alert success" style="background:var(--lime-glow); border-left:4px solid var(--lime); padding:12px; border-radius:8px; margin-bottom:10px; font-size:13px; color:var(--text)">
-        🏆 <b>¡Gran resultado ayer!</b> Redolat 5K en <b>21:59</b> (Ritmo: 4:20 min/km). ¡Sigue así!
-      </div>
-      <div class="alert info" style="background:rgba(79,195,247,0.1); border-left:4px solid var(--blue); padding:12px; border-radius:8px; font-size:13px">
-        📅 Faltan <span id="days-alert">—</span> días para la gran cita en Valencia.
-      </div>
-    </div>
-
-    <div class="card" style="border-color:var(--orange)">
-      <div class="card-header">
-        <div class="card-title title-telemetry">Predicciones de Competición (IA)</div>
-        <div class="label-tech" style="font-size:9px">Basado en tu mejor 5K</div>
-      </div>
-      <div class="grid4" style="gap:15px; margin-top:10px">
-        <div class="stat-card" style="background:var(--s2)">
-          <div class="label-tech" style="color:var(--text-sub)">10K Est.</div>
-          <div class="stat-val" id="est-10k" style="font-size:20px; font-family:var(--font-tech)">--:--</div>
-        </div>
-        <div class="stat-card" style="background:var(--s2)">
-          <div class="label-tech" style="color:var(--text-sub)">21.1K (Media)</div>
-          <div class="stat-val" id="est-21k" style="font-size:20px; font-family:var(--font-tech)">--:--</div>
-        </div>
-        <div class="stat-card" style="background:var(--s2); border: 1px solid var(--orange)">
-          <div class="label-tech" style="color:var(--orange)">42.2K (Maratón)</div>
-          <div class="stat-val" id="est-42k" style="font-size:20px; font-family:var(--font-tech); color:var(--orange)">--:--</div>
-        </div>
-        <div class="stat-card" style="background:var(--s2)">
-          <div class="label-tech" style="color:var(--text-sub)">Ritmo Maratón</div>
-          <div class="stat-val" id="est-pace" style="font-size:20px; font-family:var(--font-tech)">--:--</div>
-        </div>
-      </div>
-      <div style="font-size:10px; color:var(--muted); margin-top:15px; text-align:center; font-family:var(--font-tech)">
-        PROYECCIÓN CALCULADA MEDIANTE FÓRMULA RIEGEL SEGÚN ESTADO DE FORMA ACTUAL
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Dashboard de Rendimiento (Strava)</div>
-        <div style="display:flex; gap:10px;">
-          <button class="btn-ai" onclick="toggleManualActivityModal(true)" style="padding:4px 10px; font-size:10px; height:32px; background:var(--s3); color:var(--text)">
-            + Manual
-          </button>
-          <select id="activity-filter" class="input-ai" style="margin:0; width:auto; padding:4px 10px; height:32px">
-            <option value="all">Todas las sesiones</option>
-            <option value="run">Solo Carreras</option>
-            <option value="race">Competición</option>
-          </select>
-        </div>
-      </div>
-      
-      <!-- KPIs -->
-      <div class="grid4" style="margin-bottom:20px">
-        <div class="stat-card">
-          <div class="stat-label">Distancia Total</div>
-          <div class="stat-val" id="kpi-dist">0 km</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Ritmo Medio</div>
-          <div class="stat-val" id="kpi-pace">0:00</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Elevación Acum.</div>
-          <div class="stat-val" id="kpi-elev">0 m</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Mejor 5K</div>
-          <div class="stat-val" style="color:var(--lime)">21:59</div>
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="card" style="background:var(--s2); border:none">
-          <div class="card-title" style="margin-bottom:15px">Distancia por Sesión (km)</div>
-          <div style="position:relative; height:180px; width:100%"><canvas id="chart-distance"></canvas></div>
-        </div>
-        <div class="card" style="background:var(--s2); border:none">
-          <div class="card-title" style="margin-bottom:15px">Distribución por Esfuerzo (RPE)</div>
-          <div style="position:relative; height:180px; width:100%"><canvas id="chart-types"></canvas></div>
-        </div>
-      </div>
-
-      <div style="margin-top:20px">
-        <table class="activity-table">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Actividad</th>
-              <th class="hide-xs">Dist.</th>
-              <th>Ritmo</th>
-              <th class="hide-xs">Sns.</th>
-            </tr>
-          </thead>
-          <tbody id="strava-activities-body"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ TRAINING ============ -->
-  <div class="page" id="page-training">
-    <div class="card" id="routine-header">
-      <div class="card-header" style="flex-wrap: wrap; gap: 10px;">
-        <div class="card-title" id="routine-title" style="flex: 1 1 100%;">Plan de Entrenamiento Semanal</div>
-        <div style="display:flex; gap:10px; width:100%; justify-content: flex-end;">
-          <button class="btn-ai" id="btn-sync-valence" onclick="syncCalendar()" style="background:var(--blue); color:white; font-size:11px">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="margin-right:6px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Sync Valence Fit (iCal)
-          </button>
-          <button class="btn-ai" id="btn-gen-training" onclick="generateWeeklyTrainingIA()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-            Planificar Semana
-          </button>
-        </div>
-      </div>
-      <div id="weekly-routines-container">
-        <!-- Rendered by JS -->
-        <div style="text-align:center;padding:40px;color:var(--muted)">Pulsa para generar tus 3 rutinas de fuerza de la semana.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ NUTRITION ============ -->
-  <div class="page" id="page-nutrition">
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Planificador Semanal Real Food</div>
-        <button class="btn-ai" id="btn-gen-nutrition" onclick="generateWeeklyNutritionIA()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-          Generar Semana Completa
-        </button>
-      </div>
-      <div id="nutrition-cards-wrap">
-        <!-- Rendered by JS as cards on mobile, table on desktop -->
-        <div id="nutrition-body-container">
-          <table id="nutrition-table">
-            <thead>
-              <tr>
-                <th>Día</th>
-                <th>Desayuno</th>
-                <th>Comida</th>
-                <th>Cena</th>
-              </tr>
-            </thead>
-            <tbody id="nutrition-body">
-              <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted)">Genera tu plan semanal para ver la tabla de comidas.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    </div>
-
-    <!-- REGISTRO DIARIO DE RENDIMIENTO Y SALUD -->
-    <div class="card" style="margin-top: 20px; border-left: 3px solid var(--lime);">
-      <div class="card-header">
-        <div class="card-title title-telemetry">Registro Diario de Salud y Adherencia</div>
-        <div class="label-tech" style="font-size: 9px; color: var(--lime);">TELEMETRÍA DIARIA</div>
-      </div>
-      <p style="font-size:12px; color:var(--muted); margin-bottom:15px;">
-        Registra tu peso, sensaciones físicas e ingestas diarias. La IA analizará este historial de forma autodidacta para optimizar y personalizar tu próximo plan nutricional.
-      </p>
-
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block;">Peso Corporal (kg)</label>
-          <input type="number" id="daily-weight" class="input-ai" step="0.1" placeholder="Ej: 70.2">
-        </div>
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block;">% Grasa Corporal (opcional)</label>
-          <input type="number" id="daily-fat" class="input-ai" step="0.1" placeholder="Ej: 8.5">
-        </div>
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block;">Nivel de Energía</label>
-          <select id="daily-energy" class="input-ai">
-            <option value="10">10/10 — Pletórico / Sin fatiga</option>
-            <option value="8" selected>8/10 — Buena energía / Normal</option>
-            <option value="6">6/10 — Fatiga moderada / Pesadez</option>
-            <option value="4">4/10 — Agotado / Falta de fuerzas</option>
-            <option value="2">2/10 — Agotamiento extremo / Pájara</option>
-          </select>
-        </div>
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block;">Estado Digestivo / Pesadez</label>
-          <select id="daily-digestion" class="input-ai">
-            <option value="10" selected>10/10 — Digestión perfecta / Ligero</option>
-            <option value="8">8/10 — Buenas sensaciones</option>
-            <option value="6">6/10 — Digestión lenta / Hinchazón</option>
-            <option value="4">4/10 — Malestar estomacal / Náuseas</option>
-          </select>
-        </div>
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block;">Adherencia al Menú Planificado</label>
-          <select id="daily-adherence" class="input-ai">
-            <option value="alta" selected>Alta — Seguí el plan al 100%</option>
-            <option value="media">Media — Hice pequeños cambios</option>
-            <option value="baja">Baja — Salté comidas / Comí fuera</option>
-          </select>
-        </div>
-      </div>
-
-      <div style="margin-top:15px;">
-        <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block;">Notas Dietéticas y Sensaciones (opcional)</label>
-        <textarea id="daily-notes" class="input-ai" style="height:60px; resize:vertical; padding:10px;" placeholder="Ej: Me costó comer los hidratos por la noche, noté calambres en el entreno largo, etc."></textarea>
-      </div>
-
-      <button class="btn-ai" onclick="saveDailyLog()" style="margin-top:15px; width:100%; justify-content:center; background:var(--lime-glow); color:var(--lime); font-weight:700;">
-        Guardar Registro de Hoy
-      </button>
-
-      <!-- HISTORIAL VISUAL DE METRICAS -->
-      <div style="margin-top: 25px; border-top: 1px solid var(--border2); padding-top: 15px;">
-        <div class="card-title" style="font-size: 13px; margin-bottom: 10px;">Evolución y Registros Recientes (Últimos 5 días)</div>
-        <div style="overflow-x:auto;">
-          <table class="activity-table" style="font-size:12px;">
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Peso</th>
-                <th>Energía</th>
-                <th>Digestión</th>
-                <th>Adherencia</th>
-                <th>Notas</th>
-              </tr>
-            </thead>
-            <tbody id="daily-log-table-body">
-              <tr>
-                <td colspan="6" style="text-align:center;color:var(--muted);padding:15px;">No hay registros grabados en los últimos días.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ SHOPPING ============ -->
-  <div class="page" id="page-shopping">
-    <div class="card">
-      <div class="card-header"><div class="card-title title-telemetry">Lista de la Compra (Real Food)</div></div>
-      <p style="font-size:12px; color:var(--muted); margin-bottom:20px;">Esta lista se genera automáticamente con los ingredientes exactos necesarios para tu plan nutricional semanal.</p>
-      <div id="grocery-list">
-        <div style="text-align:center;padding:40px;color:var(--muted)">Ve a la sección "Nutrición" y genera un plan semanal para rellenar esta lista.</div>
-      </div>
-    </div>
-  </div>
-
-<!-- MODAL SETTINGS -->
-<div class="modal" id="modal-settings">
-    <div class="modal-content">
-      <div class="card-title title-telemetry">Configuración Avanzada</div>
-      
-      <div style="margin: 15px 0; padding: 15px; background: var(--s2); border-radius: var(--radius-sm); border: 1px solid var(--border2);">
-        <div class="label-tech" style="margin-bottom:8px">Sincronización Strava</div>
-        <button id="btn-strava-connect" class="btn-ai" onclick="connectStrava()" style="width:100%; justify-content:center; background:#FC6100">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="margin-right:8px"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.67h4.171L10.379 0 0 20.405h4.171"/></svg>
-          Conectar con Strava
-        </button>
-        <div id="strava-status" style="font-size:10px; color:var(--muted); margin-top:8px; text-align:center">Estado: No vinculado</div>
-      </div>
-
-      <div style="margin: 15px 0; padding: 15px; background: var(--s2); border-radius: var(--radius-sm); border: 1px solid var(--border2);">
-        <div class="label-tech" style="margin-bottom:8px">Sincronización Entrenador (iCal)</div>
-        <input type="text" id="ical-link-input" class="input-ai" placeholder="Pega aquí tu enlace .ics de Google..." style="margin-bottom:10px">
-        <button class="btn-ai" onclick="saveIcalLink()" style="width:100%; justify-content:center; background:var(--blue)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="margin-right:8px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Sincronizar Calendario
-        </button>
-      </div>
-
-      <div style="margin: 15px 0; padding: 15px; background: var(--s2); border-radius: var(--radius-sm); border: 1px solid var(--border2);">
-        <div class="label-tech" style="margin-bottom:8px">Preferencias Alimentarias de la IA</div>
-        <div style="display:grid; grid-template-columns: 1fr; gap: 8px;">
-          <div>
-            <label class="label-tech" style="font-size:9px; display:block; margin-bottom:2px">Tipo de Dieta</label>
-            <select id="pref-diet-type" class="input-ai" style="margin:0; width:100%;" onchange="saveDietaryPreferences()">
-              <option value="omnivora">Omnívora (De todo)</option>
-              <option value="vegetariana">Vegetariana</option>
-              <option value="vegana">Vegana</option>
-              <option value="sin_gluten">Sin Gluten</option>
-              <option value="sin_lactosa">Sin Lactosa</option>
-            </select>
-          </div>
-          <div>
-            <label class="label-tech" style="font-size:9px; display:block; margin-bottom:2px">Ingredientes a Evitar (Alergias / Gustos)</label>
-            <input type="text" id="pref-diet-avoid" class="input-ai" placeholder="Ej: cebolla, marisco, lactosa" style="margin:0;" onchange="saveDietaryPreferences()">
-          </div>
-          <div>
-            <label class="label-tech" style="font-size:9px; display:block; margin-bottom:2px">Ingredientes Favoritos / Proteínas</label>
-            <input type="text" id="pref-diet-favorites" class="input-ai" placeholder="Ej: pollo, arroz integral, aguacate" style="margin:0;" onchange="saveDietaryPreferences()">
-          </div>
-        </div>
-      </div>
-
-      <div class="label-tech">Gemini API Key</div>
-      <input type="password" id="api-key-input" class="input-ai" placeholder="Introduce tu clave de Google AI...">
-      <div style="display:flex; gap:10px; margin-top:20px">
-        <button class="btn-ai" onclick="saveApiKey()" style="flex:1; justify-content:center">Guardar</button>
-        <button class="btn-ai" onclick="toggleModal(false)" style="flex:1; justify-content:center; background:var(--s3); color:var(--text)">Cerrar</button>
-      </div>
-    </div>
-</div>
-
-<!-- MODAL AÑADIR ACTIVIDAD -->
-<div class="modal" id="modal-add-activity">
-    <div class="modal-content">
-      <div class="card-title title-telemetry">Añadir Entrenamiento</div>
-      <p style="font-size:11px; color:var(--muted); margin-bottom:15px">Registra tu actividad manualmente para mantener tus estadísticas actualizadas.</p>
-      
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block">Fecha</label>
-          <input type="date" id="new-date" class="input-ai">
-        </div>
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block">Título</label>
-          <input type="text" id="new-title" class="input-ai" placeholder="Ej: Rodaje 45'">
-        </div>
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block">Distancia (km)</label>
-          <input type="number" id="new-dist" class="input-ai" step="0.01" placeholder="Ej: 10.5">
-        </div>
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block">Tiempo (MM:SS)</label>
-          <input type="text" id="new-time" class="input-ai" placeholder="Ej: 45:30">
-        </div>
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block">Desnivel (m)</label>
-          <input type="number" id="new-elev" class="input-ai" placeholder="Ej: 120">
-        </div>
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block">Sensación (1-10)</label>
-          <input type="number" id="new-sense" class="input-ai" min="1" max="10" placeholder="Ej: 8">
-        </div>
-      </div>
-      
-      <div style="display:flex; gap:10px; margin-top:20px">
-        <button class="btn-ai" onclick="submitNewActivity()" style="flex:1; justify-content:center; background:var(--primary-orange); color:black">Guardar</button>
-        <button class="btn-ai" onclick="toggleManualActivityModal(false)" style="flex:1; justify-content:center; background:var(--s3); color:var(--text)">Cancelar</button>
-<!-- MODAL EDITAR PERFIL ANTROPOMÉTRICO -->
-<div class="modal" id="modal-edit-bio">
-    <div class="modal-content">
-      <div class="card-title title-telemetry">Perfil Antropométrico</div>
-      <p style="font-size:11px; color:var(--muted); margin-bottom:15px">Actualiza tus datos para recalcular tu IMC y adaptar tus planes de entrenamiento y nutrición.</p>
-      
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block">Peso (kg)</label>
-          <input type="number" id="edit-bio-peso" class="input-ai" step="0.1" placeholder="Ej: 70.0">
-        </div>
-        <div>
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block">Altura (cm)</label>
-          <input type="number" id="edit-bio-altura" class="input-ai" step="1" placeholder="Ej: 178">
-        </div>
-        <div style="grid-column: 1 / -1;">
-          <label class="label-tech" style="font-size:10px; margin-bottom:4px; display:block">% Grasa Corporal</label>
-          <input type="number" id="edit-bio-grasa" class="input-ai" step="0.1" placeholder="Ej: 8.5">
-        </div>
-      </div>
-      
-      <div style="display:flex; gap:10px; margin-top:20px">
-        <button class="btn-ai" onclick="saveBioProfile()" style="flex:1; justify-content:center; background:var(--primary-orange); color:black">Guardar Cambios</button>
-        <button class="btn-ai" onclick="toggleBioModal(false)" style="flex:1; justify-content:center; background:var(--s3); color:var(--text)">Cancelar</button>
-      </div>
-    </div>
-</div>
-
-</main>
-</div>
-
-<script src="js/script.js"></script>
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then(reg => {
-          console.log('SW Registered');
-          // Comprobar actualizaciones automáticamente al cargar
-          reg.update();
           
-          reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('Nueva versión detectada. Actualizando...');
-                  window.location.reload();
-                }
-              });
-            }
-          });
-        })
-        .catch(err => console.log('SW Registration failed', err));
-    });
-  }
-</script>
+          <div class="system-status">
+            <span class="tag-volt">MODO PRO // 73 KG</span>
+          </div>
+        </div>
+      </div>
 
-<!-- BOTTOM NAV (Mobile Only) -->
-<nav class="bottom-nav" id="bottom-nav">
-  <button class="bottom-nav-item active" id="bnav-dashboard" onclick="showPage('dashboard', null, this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-    <span>Inicio</span>
-  </button>
-  <button class="bottom-nav-item" id="bnav-training" onclick="showPage('training', null, this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-    <span>Entreno</span>
-  </button>
-  <button class="bottom-nav-item" id="bnav-nutrition" onclick="showPage('nutrition', null, this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-    <span>Nutrición</span>
-  </button>
-  <button class="bottom-nav-item" id="bnav-shopping" onclick="showPage('shopping', null, this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-    <span>Compra</span>
-  </button>
-  <button class="bottom-nav-item" id="bnav-settings" onclick="toggleModal(true)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9"/></svg>
-    <span>Config</span>
-  </button>
-</nav>
+      <!-- TITLE HERO -->
+      <div class="hero-title-box">
+        <h1 class="main-title">VALENCIA <span>42K</span> PRO</h1>
+        <p class="sub-lead">SISTEMA DE ENTRENAMIENTO & NUTRICIÓN // 44 KM + PULL PUSH LEGS</p>
+      </div>
 
+      <!-- COUNTDOWN TICKERS (VALENCIA MEDIA & MARATÓN) -->
+      <div class="countdown-grid">
+        <div class="countdown-card card-orange">
+          <div class="card-glitch-badge">OBJETIVO 1</div>
+          <span class="countdown-label">MEDIA MARATÓN VALENCIA</span>
+          <div class="countdown-value" id="cd-half">-- <span class="unit">DÍAS</span></div>
+          <div class="countdown-date">25 OCT 2026 • 21.097 KM</div>
+        </div>
+
+        <div class="countdown-card card-volt">
+          <div class="card-glitch-badge">LA GRAN META</div>
+          <span class="countdown-label">MARATÓN DE VALENCIA</span>
+          <div class="countdown-value" id="cd-full">-- <span class="unit">DÍAS</span></div>
+          <div class="countdown-date">06 DIC 2026 • 42.195 KM</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- NAVIGATION TABS (BRUTALIST CHUNKY BUTTONS) -->
+    <nav class="brutal-nav">
+      <button class="nav-btn active" data-tab="tab-today">
+        <span class="btn-num">01</span>
+        <span class="btn-label">HOY</span>
+      </button>
+      <button class="nav-btn" data-tab="tab-week">
+        <span class="btn-num">02</span>
+        <span class="btn-label">PLAN 7 DÍAS</span>
+      </button>
+      <button class="nav-btn" data-tab="tab-nutrition">
+        <span class="btn-num">03</span>
+        <span class="btn-label">DIETA 73KG</span>
+      </button>
+      <button class="nav-btn" data-tab="tab-market">
+        <span class="btn-num">04</span>
+        <span class="btn-label">MERCADONA</span>
+      </button>
+      <button class="nav-btn" data-tab="tab-alarms">
+        <span class="btn-num">05</span>
+        <span class="btn-label">AVISOS</span>
+      </button>
+    </nav>
+
+    <!-- MAIN CONTENT AREAS -->
+    <main class="content-wrapper">
+
+      <!-- ================= TAB 1: HOY ================= -->
+      <section id="tab-today" class="tab-pane active">
+        
+        <!-- DAY PICKER STRIP -->
+        <div class="day-picker-container">
+          <div class="day-picker-label">DÍA SELECCIONADO:</div>
+          <div class="day-pills" id="day-pills">
+            <button class="day-pill" data-day="1">LUN</button>
+            <button class="day-pill" data-day="2">MAR</button>
+            <button class="day-pill" data-day="3">MIÉ</button>
+            <button class="day-pill" data-day="4">JUE</button>
+            <button class="day-pill" data-day="5">VIE</button>
+            <button class="day-pill" data-day="6">SÁB</button>
+            <button class="day-pill" data-day="0">DOM</button>
+          </div>
+        </div>
+
+        <!-- TODAY MISSION CARD -->
+        <div class="mission-card" id="mission-card">
+          <div class="mission-header">
+            <span class="mission-tag" id="mission-type-badge">CARGANDO...</span>
+            <span class="mission-intensity" id="mission-intensity">ALTA INTENSIDAD</span>
+          </div>
+          <h2 class="mission-title" id="mission-title">CARGANDO ENTRENAMIENTO...</h2>
+          <div class="mission-meta" id="mission-meta">
+            <span>OBJETIVO: RENDIMIENTO Y FUERZA</span>
+          </div>
+          
+          <div class="mission-breakdown" id="mission-breakdown">
+            <!-- Dynamic workout breakdown -->
+          </div>
+
+          <div class="mission-action-bar">
+            <button class="action-btn-large btn-complete-workout" id="btn-toggle-workout">
+              <span class="check-box-square"></span>
+              <span class="txt">MARCAR ENTRENO COMPLETADO</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- DAILY PROGRESS HUD (METERS & STATS) -->
+        <div class="stats-banner">
+          <div class="stat-box">
+            <span class="stat-title">PROGRESO DEL DÍA (VÍCTOR)</span>
+            <span class="stat-big-num" id="daily-progress-percent">0%</span>
+            <div class="stat-progress-bar">
+              <div class="stat-bar-fill" id="daily-bar-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="stat-box box-sleep">
+            <span class="stat-title">DESCANSO / SUEÑO</span>
+            <div class="sleep-input-row">
+              <input type="number" id="sleep-hours" min="4" max="12" step="0.5" value="8" class="brutal-input-small">
+              <span class="sleep-txt">HORAS DORMIDAS</span>
+            </div>
+            <span class="stat-note">Objetivo 7-8h completas</span>
+          </div>
+        </div>
+
+        <!-- DAILY CHECKLIST: SUPLEMENTOS & COMIDAS -->
+        <div class="checklist-grid">
+          
+          <!-- SUPLEMENTACIÓN BLINDADA -->
+          <div class="checklist-card card-cyan">
+            <div class="chk-header">
+              <h3 class="chk-title">⚡ SUPLEMENTACIÓN</h3>
+              <span class="chk-pill">CLAVE MASA & RECUPERACIÓN</span>
+            </div>
+            <div class="chk-list" id="supplements-checklist">
+              <label class="chk-item">
+                <input type="checkbox" data-chk="supp_creatina">
+                <span class="custom-checkbox"></span>
+                <div class="chk-content">
+                  <span class="chk-name">CREATINA MONOHIDRATO (5 G)</span>
+                  <span class="chk-desc">Mañana con agua o desayuno • Retención fuerza</span>
+                </div>
+              </label>
+
+              <label class="chk-item">
+                <input type="checkbox" data-chk="supp_omega3">
+                <span class="custom-checkbox"></span>
+                <div class="chk-content">
+                  <span class="chk-name">OMEGA 3 (2 PERLAS)</span>
+                  <span class="chk-desc">Con comida • Antiinflamatorio articular</span>
+                </div>
+              </label>
+
+              <label class="chk-item">
+                <input type="checkbox" data-chk="supp_whey">
+                <span class="custom-checkbox"></span>
+                <div class="chk-content">
+                  <span class="chk-name">PROTEÍNA WHEY (30 G)</span>
+                  <span class="chk-desc">Post-entreno / Merienda • Síntesis proteica</span>
+                </div>
+              </label>
+
+              <label class="chk-item highlight-mag">
+                <input type="checkbox" data-chk="supp_magnesio">
+                <span class="custom-checkbox"></span>
+                <div class="chk-content">
+                  <span class="chk-name">MAGNESIO (1 DOSIS NOCTURNA)</span>
+                  <span class="chk-desc">45 min antes de dormir • Sueño profundo REM</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- CHECKLIST COMIDAS AL GRAMO (73KG) -->
+          <div class="checklist-card card-dark">
+            <div class="chk-header">
+              <h3 class="chk-title">🥩 COMIDAS AL GRAMO (73 KG)</h3>
+              <span class="chk-pill tag-volt">~2.850 KCAL • 150G PRO</span>
+            </div>
+            <div class="chk-list" id="meals-checklist">
+              <label class="chk-item">
+                <input type="checkbox" data-chk="meal_desayuno">
+                <span class="custom-checkbox"></span>
+                <div class="chk-content">
+                  <span class="chk-name">DESAYUNO POTENTE</span>
+                  <span class="chk-desc">120g Pan rústico + 12ml AOVE + 70g Pavo/Jamón + 35g Queso + 1 Plátano</span>
+                </div>
+              </label>
+
+              <label class="chk-item">
+                <input type="checkbox" data-chk="meal_snack">
+                <span class="custom-checkbox"></span>
+                <div class="chk-content">
+                  <span class="chk-name">MEDIA MAÑANA / PRE-RUN</span>
+                  <span class="chk-desc">4 Tortitas de arroz (~35g) + 1 lata de Atún o 50g pavo</span>
+                </div>
+              </label>
+
+              <label class="chk-item">
+                <input type="checkbox" data-chk="meal_comida">
+                <span class="custom-checkbox"></span>
+                <div class="chk-content">
+                  <span class="chk-name">COMIDA RECARGA GLUCÓGENO</span>
+                  <span class="chk-desc">120g Arroz/Pasta (o 400g patata) + 180g Lomo o Picada + Gazpacho + Olivas</span>
+                </div>
+              </label>
+
+              <label class="chk-item">
+                <input type="checkbox" data-chk="meal_merienda">
+                <span class="custom-checkbox"></span>
+                <div class="chk-content">
+                  <span class="chk-name">MERIENDA ANABÓLICA</span>
+                  <span class="chk-desc">30g Whey + 1 Plátano grande (~120g) o 3 tortitas</span>
+                </div>
+              </label>
+
+              <label class="chk-item">
+                <input type="checkbox" data-chk="meal_cena">
+                <span class="custom-checkbox"></span>
+                <div class="chk-content">
+                  <span class="chk-name">CENA REPARACIÓN NOCHE</span>
+                  <span class="chk-desc">300g Patata o 90g Rústico + 2 latas Atún o 160g Lomo + Gazpacho + 25g Queso</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: PLAN 7 DÍAS ================= -->
+      <section id="tab-week" class="tab-pane">
+        <div class="section-intro">
+          <div class="week-intro-flex">
+            <div>
+              <h2 class="sec-title">PLAN SEMANAL DE ENTRENAMIENTO</h2>
+              <p class="sec-sub">PULL-PUSH-LEGS + 42-46 KM RUNNING + SÁBADO DE DESCANSO TOTAL</p>
+            </div>
+            <button class="btn-archive-week" id="btn-archive-week">
+              <span>💾 ARCHIVAR SEMANA</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- RUNNING VOLUME HUD -->
+        <div class="volume-hud">
+          <div class="hud-left">
+            <span class="hud-label">VOLUMEN SEMANAL DE CARRERA (VÍCTOR)</span>
+            <div class="hud-numbers">
+              <span class="hud-current" id="week-km-done">0</span>
+              <span class="hud-slash">/</span>
+              <span class="hud-target">44 KM</span>
+            </div>
+          </div>
+          <div class="hud-right">
+            <div class="hud-blocks" id="km-blocks">
+              <!-- Render 10 blocks representing progress -->
+            </div>
+            <span class="hud-info">Pacing óptimo hacia Maratón Valencia</span>
+          </div>
+        </div>
+
+        <!-- 7 DAYS SCHEDULE CARDS -->
+        <div class="schedule-grid">
+          
+          <!-- LUNES -->
+          <div class="day-card card-pull" data-day-index="1">
+            <div class="day-card-header">
+              <span class="day-name">LUNES</span>
+              <span class="day-discipline tag-blue">GYM // PULL</span>
+            </div>
+            <h3 class="day-title">TRACCIÓN & ESPALDA DE HIERRO</h3>
+            <p class="day-desc">Dominadas o jalón al pecho (4x8), Remo con barra/mancuernas (4x10), Pájaros/deltoides posterior (3x12), Curl bíceps (3x10), Rueda abdominal (3x15).</p>
+            <div class="day-footer">
+              <span class="tag-status">Piernas descansadas</span>
+              <span class="day-intensity">Fuerza Tren Superior</span>
+            </div>
+          </div>
+
+          <!-- MARTES -->
+          <div class="day-card card-run" data-day-index="2">
+            <div class="day-card-header">
+              <span class="day-name">MARTES</span>
+              <span class="day-discipline tag-volt">RUN // 12 KM Z2</span>
+            </div>
+            <h3 class="day-title">RODAJE BASE AERÓBICA</h3>
+            <p class="day-desc">12 km continuos a ritmo cómodo conversacional (Zona 2). Construye capilares y enseña al cuerpo a quemar grasas preservando glucógeno. Técnica de carrera 5 min al final.</p>
+            <div class="day-footer">
+              <span class="tag-status">12.0 KM</span>
+              <span class="day-intensity">Aeróbico Cómodo</span>
+            </div>
+          </div>
+
+          <!-- MIÉRCOLES -->
+          <div class="day-card card-push" data-day-index="3">
+            <div class="day-card-header">
+              <span class="day-name">MIÉRCOLES</span>
+              <span class="day-discipline tag-blue">GYM // PUSH</span>
+            </div>
+            <h3 class="day-title">EMPUJE & POTENCIA TORÁCICA</h3>
+            <p class="day-desc">Press banca con barra o mancuernas pesadas (4x8), Press militar de pie (3x8), Aperturas con mancuernas (3x12), Fondos en paralelas / tríceps polea (4x10), Plancha frontal (3x1 min).</p>
+            <div class="day-footer">
+              <span class="tag-status">Sin impacto en piernas</span>
+              <span class="day-intensity">Fuerza Tren Superior</span>
+            </div>
+          </div>
+
+          <!-- JUEVES -->
+          <div class="day-card card-quality" data-day-index="4">
+            <div class="day-card-header">
+              <span class="day-name">JUEVES</span>
+              <span class="day-discipline tag-orange">RUN // 12 KM CALIDAD</span>
+            </div>
+            <h3 class="day-title">SERIES / RITMO MEDIA MARATÓN</h3>
+            <p class="day-desc">2 km calentamiento suave + 8 km ritmo exigente de competición (cambios de ritmo o bloques a ritmo objetivo) + 2 km trote regenerativo de enfriamiento.</p>
+            <div class="day-footer">
+              <span class="tag-status">12.0 KM</span>
+              <span class="day-intensity">Exigencia Cardíaca</span>
+            </div>
+          </div>
+
+          <!-- VIERNES -->
+          <div class="day-card card-legs" data-day-index="5">
+            <div class="day-card-header">
+              <span class="day-name">VIERNES</span>
+              <span class="day-discipline tag-purple">GYM // LEGS CORREDOR</span>
+            </div>
+            <h3 class="day-title">PIERNA FUNCIONAL DE HIERRO</h3>
+            <p class="day-desc">Sentadilla búlgara pesada (3x8/pierna), Peso muerto rumano para isquios (3x8), Elevaciones de gemelos/sóleos de pie y sentado (4x15 - armadura anti-calambres), Glúteo medio con banda.</p>
+            <div class="day-footer">
+              <span class="tag-status">Fuerza útil</span>
+              <span class="day-intensity">Sin ir al fallo extremo</span>
+            </div>
+          </div>
+
+          <!-- SÁBADO -->
+          <div class="day-card card-rest" data-day-index="6">
+            <div class="day-card-header">
+              <span class="day-name">SÁBADO</span>
+              <span class="day-discipline tag-rest">🛑 DESCANSO TOTAL</span>
+            </div>
+            <h3 class="day-title">RECUPERACIÓN SAGRADA 100%</h3>
+            <p class="day-desc">CERO ENTRENAMIENTO. Asimilación muscular de la sesión de piernas del viernes. Carga de carbohidratos, siesta regenerativa, paseo tranquilo si apetece. Cero estrés.</p>
+            <div class="day-footer">
+              <span class="tag-status">0 KM • REGENERACIÓN</span>
+              <span class="day-intensity">Crecimiento Muscular</span>
+            </div>
+          </div>
+
+          <!-- DOMINGO -->
+          <div class="day-card card-longrun" data-day-index="0">
+            <div class="day-card-header">
+              <span class="day-name">DOMINGO</span>
+              <span class="day-discipline tag-orange">RUN // 18-22 KM</span>
+            </div>
+            <h3 class="day-title">LA SESIÓN REINA // TIRADA LARGA</h3>
+            <p class="day-desc">18 a 22 km continuos. Sales con las piernas descansadas del sábado y reservas de glucógeno a tope. La prueba de fuego que forja al maratoniano en el asfalto de Valencia.</p>
+            <div class="day-footer">
+              <span class="tag-status">20.0 KM PROMEDIO</span>
+              <span class="day-intensity">Fondo Maratón</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- WEEKLY ARCHIVE HISTORY -->
+        <div class="history-section" id="history-container">
+          <h3 class="history-title">📈 HISTORIAL DE SEMANAS ACUMULADAS</h3>
+          <div class="history-list" id="history-list">
+            <div class="history-empty">Aún no has archivado semanas. Al terminar el domingo, pulsa 'ARCHIVAR SEMANA'.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: DIETA 73KG ================= -->
+      <section id="tab-nutrition" class="tab-pane">
+        <div class="section-intro">
+          <h2 class="sec-title">COMBUSTIBLE Y NUTRICIÓN (VÍCTOR 73 KG)</h2>
+          <p class="sec-sub">CALCULADO AL GRAMO PARA MANTENER FUERZA Y RENDIR AL MÁXIMO</p>
+        </div>
+
+        <!-- MACROS TARGET HUD -->
+        <div class="macros-hud-grid">
+          <div class="macro-hud-card card-volt">
+            <span class="m-label">CALORÍAS TOTALES</span>
+            <span class="m-val">~2.850</span>
+            <span class="m-sub">KCAL / DÍA</span>
+          </div>
+          <div class="macro-hud-card card-orange">
+            <span class="m-label">PROTEÍNA PURA</span>
+            <span class="m-val">150 G</span>
+            <span class="m-sub">2.0 G / KG (RETENCIÓN MUSCULAR)</span>
+          </div>
+          <div class="macro-hud-card card-cyan">
+            <span class="m-label">CARBOHIDRATOS</span>
+            <span class="m-val">400 G</span>
+            <span class="m-sub">GLUCÓGENO INTRAMUSCULAR</span>
+          </div>
+          <div class="macro-hud-card card-dark">
+            <span class="m-label">GRASAS SALUDABLES</span>
+            <span class="m-val">72 G</span>
+            <span class="m-sub">AOVE, QUESO, OLIVAS, OMEGA 3</span>
+          </div>
+        </div>
+
+        <!-- MEALS EXPANDED CARDS -->
+        <div class="meals-expanded-list">
+          
+          <div class="meal-detail-box">
+            <div class="meal-badge">08:00 - 09:00</div>
+            <div class="meal-body">
+              <h3 class="meal-name">DESAYUNO // CARGA MATINAL</h3>
+              <ul class="gram-list">
+                <li><span class="gram-qty">100–120 g</span> <strong>Pan Rústico tostado</strong> (2 rebanadas generosas)</li>
+                <li><span class="gram-qty">12–15 ml</span> <strong>Aceite de Oliva Virgen Extra</strong> (1 cda sopera)</li>
+                <li><span class="gram-qty">70 g</span> <strong>Pechuga de pavo o Jamón serrano</strong></li>
+                <li><span class="gram-qty">35 g</span> <strong>Queso tierno/semicurado de Mercadona</strong></li>
+                <li><span class="gram-qty">1 Plátano</span> <strong>Plátano maduro (~120 g)</strong></li>
+                <li class="supp-bullet"><span class="gram-qty">5 g + 2 perlas</span> <strong>Creatina con agua + 2 perlas Omega 3</strong></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="meal-detail-box">
+            <div class="meal-badge">11:30 - 12:30</div>
+            <div class="meal-body">
+              <h3 class="meal-name">MEDIA MAÑANA // SNACK PREPARADOR</h3>
+              <ul class="gram-list">
+                <li><span class="gram-qty">4 uds (~35 g)</span> <strong>Tortitas de arroz de Mercadona</strong></li>
+                <li><span class="gram-qty">1 lata (~60 g)</span> <strong>Atún claro al natural o 50g pavo</strong></li>
+                <li><span class="gram-qty">500 ml</span> <strong>Agua mineral (iniciar hidratación)</strong></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="meal-detail-box">
+            <div class="meal-badge">14:00 - 15:00</div>
+            <div class="meal-body">
+              <h3 class="meal-name">COMIDA // COMBUSTIBLE PRINCIPAL</h3>
+              <ul class="gram-list">
+                <li><span class="gram-qty">120 g crudo</span> <strong>Arroz o Pasta</strong> (~300g cocido) <em>O</em> <span class="gram-qty">400 g</span> <strong>Patatas cocidas/asadas</strong></li>
+                <li><span class="gram-qty">180 g</span> <strong>Lomo de cerdo a la plancha</strong> <em>O</em> <span class="gram-qty">180 g</span> <strong>Carne picada magra</strong></li>
+                <li><span class="gram-qty">200–250 ml</span> <strong>Gazpacho tradicional de Mercadona</strong></li>
+                <li><span class="gram-qty">10–12 uds</span> <strong>Olivas / aceitunas de Mercadona</strong></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="meal-detail-box">
+            <div class="meal-badge">18:00 - 19:00</div>
+            <div class="meal-body">
+              <h3 class="meal-name">MERIENDA // RECUPERACIÓN ANABÓLICA</h3>
+              <ul class="gram-list">
+                <li><span class="gram-qty">1 cacito (30 g)</span> <strong>Proteína Whey en polvo</strong> (24g proteína pura)</li>
+                <li><span class="gram-qty">1 Plátano</span> <strong>Plátano grande (~120 g)</strong> <em>O</em> <span class="gram-qty">4 tortitas</span> <strong>de arroz</strong></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="meal-detail-box">
+            <div class="meal-badge">21:30 - 22:30</div>
+            <div class="meal-body">
+              <h3 class="meal-name">CENA // REPARACIÓN NOCTURNA LIGERA</h3>
+              <ul class="gram-list">
+                <li><span class="gram-qty">300 g</span> <strong>Patata cocida / puré</strong> <em>O</em> <span class="gram-qty">90 g</span> <strong>Pan rústico</strong></li>
+                <li><span class="gram-qty">2 latas (~120 g)</span> <strong>Atún claro</strong> <em>O</em> <span class="gram-qty">160 g</span> <strong>Lomo o Pavo</strong></li>
+                <li><span class="gram-qty">25 g</span> <strong>Queso Mercadona</strong></li>
+                <li><span class="gram-qty">200 ml</span> <strong>Gazpacho tradicional</strong></li>
+                <li class="supp-bullet"><span class="gram-qty">1 dosis</span> <strong>Magnesio 45 min antes de dormir (relajación neuromuscular)</strong></li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= TAB 4: MERCADONA ================= -->
+      <section id="tab-market" class="tab-pane">
+        <div class="section-intro">
+          <div class="market-intro-flex">
+            <div>
+              <h2 class="sec-title">CESTA DE LA COMPRA MERCADONA</h2>
+              <p class="sec-sub">CANTIDADES EN KG Y UNIDADES PARA 1 SEMANA (VÍCTOR 73 KG)</p>
+            </div>
+            <button class="btn-copy-list" id="btn-copy-market">
+              <span>📋 COPIAR LISTA</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="market-categories">
+          
+          <!-- CARNES Y PESCADOS -->
+          <div class="market-card">
+            <div class="market-card-head">
+              <h3>🥩 CARNES & PESCADOS</h3>
+              <span class="m-count">~3.5 KG TOTAL</span>
+            </div>
+            <div class="market-checklist">
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Lomo de cerdo</span><span class="m-weight">1.5 kg</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Carne picada vacuno/cerdo</span><span class="m-weight">1.0 kg</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Latas de atún claro</span><span class="m-weight">8 a 10 latas</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Pechuga de pavo (fiambre)</span><span class="m-weight">400 g</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Jamón serrano</span><span class="m-weight">250 g</span></label>
+            </div>
+          </div>
+
+          <!-- HIDRATOS DE CARBONO -->
+          <div class="market-card">
+            <div class="market-card-head">
+              <h3>🥔 CARBOHIDRATOS BASE</h3>
+              <span class="m-count">COMBUSTIBLE MARATÓN</span>
+            </div>
+            <div class="market-checklist">
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Patatas (malla)</span><span class="m-weight">3.0 kg</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Pan Rústico Mercadona</span><span class="m-weight">2 hogazas</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Arroz (redondo o vaporizado)</span><span class="m-weight">1 paquete (1 kg)</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Pasta (macarrones/espaguetis)</span><span class="m-weight">1 paquete (1 kg)</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Tortitas de arroz</span><span class="m-weight">2 paquetes</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Plátanos de Canarias</span><span class="m-weight">2 racimos (~2.0 kg)</span></label>
+            </div>
+          </div>
+
+          <!-- FRESCOS & LÁCTEOS -->
+          <div class="market-card">
+            <div class="market-card-head">
+              <h3>🧀 LÁCTEOS, GRASAS & EXTRAS</h3>
+              <span class="m-count">RECUPERACIÓN</span>
+            </div>
+            <div class="market-checklist">
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Queso semicurado o tierno</span><span class="m-weight">1 cuña (350 g)</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Gazpacho tradicional</span><span class="m-weight">3 bricks de 1L</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Bote de olivas rellenas o con hueso</span><span class="m-weight">1 tarro (300 g)</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Aceite de Oliva Virgen Extra</span><span class="m-weight">1 botella</span></label>
+            </div>
+          </div>
+
+          <!-- SUPLEMENTACIÓN CHECK -->
+          <div class="market-card card-supp-check">
+            <div class="market-card-head">
+              <h3>💊 ARMERÍA DE SUPLEMENTOS</h3>
+              <span class="m-count">DISPENSADOR</span>
+            </div>
+            <div class="market-checklist">
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Creatina Monohidrato</span><span class="m-weight">5 g diarios</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Proteína Whey en polvo</span><span class="m-weight">30 g diarios</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Omega 3 concentrado</span><span class="m-weight">2 perlas/día</span></label>
+              <label class="m-item"><input type="checkbox"><span class="m-box"></span><span class="m-name">Magnesio (citrato/bisglicinato)</span><span class="m-weight">1 dosis noche</span></label>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= TAB 5: AVISOS & RECORDATORIOS ================= -->
+      <section id="tab-alarms" class="tab-pane">
+        <div class="section-intro">
+          <div class="alarms-intro-flex">
+            <div>
+              <h2 class="sec-title">AVISOS Y RECORDATORIOS DIARIOS</h2>
+              <p class="sec-sub">NOTIFICACIONES PARA AUTOMATIZAR TU DISCIPLINA</p>
+            </div>
+            <button class="btn-test-alarm" id="btn-test-notification">
+              <span>🔔 PROBAR AVISO SONORO</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="alarms-grid">
+          
+          <div class="alarm-card">
+            <div class="alarm-time">08:30</div>
+            <div class="alarm-info">
+              <h3 class="alarm-title">⚡ CREATINA & OMEGA 3</h3>
+              <p class="alarm-desc">Tomar 5 g de creatina disuelta en agua y 2 perlas de Omega 3 con el desayuno.</p>
+            </div>
+            <label class="alarm-toggle">
+              <input type="checkbox" id="alarm-creatina" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="alarm-card">
+            <div class="alarm-time">13:00</div>
+            <div class="alarm-info">
+              <h3 class="alarm-title">💧 CHEQUEO DE HIDRATACIÓN</h3>
+              <p class="alarm-desc">Asegurar haber bebido mínimo 1.5 L de agua antes de la comida principal.</p>
+            </div>
+            <label class="alarm-toggle">
+              <input type="checkbox" id="alarm-hidratacion" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="alarm-card">
+            <div class="alarm-time">17:30</div>
+            <div class="alarm-info">
+              <h3 class="alarm-title">🍌 MERIENDA ANABÓLICA // WHEY</h3>
+              <p class="alarm-desc">Batido de 30 g de proteína con agua o leche + 1 plátano maduro o tortitas.</p>
+            </div>
+            <label class="alarm-toggle">
+              <input type="checkbox" id="alarm-whey" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="alarm-card card-night-alarm">
+            <div class="alarm-time">22:30</div>
+            <div class="alarm-info">
+              <h3 class="alarm-title">🌙 MAGNESIO & SUEÑO PROFUNDO</h3>
+              <p class="alarm-desc">Toma 1 dosis de magnesio 45 min antes de acostarte. ¡Hora de dormir 7-8 horas completas!</p>
+            </div>
+            <label class="alarm-toggle">
+              <input type="checkbox" id="alarm-magnesio" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+        </div>
+
+        <div class="pwa-install-banner" id="pwa-install-banner">
+          <div class="pwa-info">
+            <span class="pwa-badge">APLICACIÓN MÓVIL DISPONIBLE</span>
+            <h4>LLEVA VALENCIA 42K EN TU PANTALLA DE INICIO</h4>
+            <p>Puedes instalar esta web como app nativa: abre el menú de tu navegador móvil y selecciona <strong>"Añadir a la pantalla de inicio"</strong>. Funcionará 100% offline y a pantalla completa.</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- MOTIVATIONAL SLOGAN BANNER -->
+    <div class="slogan-pre-footer">
+      <div class="slogan-badge">NIKE // ROAD TO VALENCIA 2026</div>
+      <h2 class="slogan-quote">JUST DO IT.</h2>
+      <p class="slogan-meta">VÍCTOR // 73 KG • 42.195 KM • 06 DIC 2026</p>
+    </div>
+
+    <!-- FOOTER BRUTALISTA -->
+    <footer class="brutal-footer">
+      <div class="footer-tag">
+        <span>VÍCTOR // VALENCIA CIUDAD DEL RUNNING 2026 // LA DISCIPLINA CREA CAMPEONES</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- FLOATING NOTIFICATION / TOAST -->
+  <div id="toast" class="brutal-toast">
+    <span class="toast-icon">⚡</span>
+    <span id="toast-msg">MENSAJE</span>
+  </div>
+
+  <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,7 +1,0 @@
-name = "virol"
-main = "cloudflare-worker.js"
-compatibility_date = "2024-05-22"
-
-[assets]
-directory = "./"
-binding = "ASSETS"
