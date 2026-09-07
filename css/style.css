@@ -93,8 +93,51 @@ body.brutalist-theme {
 /* CONTAINER */
 .app-container {
   max-width: 880px;
+  width: 100%;
   margin: 0 auto;
   padding: 1.25rem 1rem 4rem 1rem;
+}
+
+/* DESKTOP FULL-WIDTH ADAPTATION */
+@media (min-width: 992px) {
+  .app-container {
+    max-width: 100%;
+    padding: 1.5rem clamp(1.5rem, 3vw, 3.5rem) 4rem clamp(1.5rem, 3vw, 3.5rem);
+  }
+
+  .sub-lead {
+    max-width: none;
+  }
+
+  /* Plan 7 Días: 2 columnas en pantalla de ordenador */
+  .schedule-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  /* Dieta: Desglose de comidas en columnas ordenadas */
+  .meals-expanded-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 16px;
+  }
+
+  /* Avisos: Cuadrícula en lugar de lista vertical única */
+  .alarms-grid {
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1380px) {
+  /* En monitores de escritorio anchos: 3 columnas en el plan semanal y 4 en Mercadona */
+  .schedule-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .market-categories {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 /* HEADER HERO */
