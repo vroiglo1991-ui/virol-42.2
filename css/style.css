@@ -59,6 +59,27 @@
   transition: background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease;
 }
 
+/* STRICT GLOBAL SVG CONSTRAINTS (PREVENT GIANT ICONS) */
+svg.svg-ico, .svg-ico {
+  width: 18px !important;
+  height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+}
+
+.chk-title, .sec-title, .history-title, .market-card-head h3 {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.chk-title .svg-ico, .market-card-head .svg-ico {
+  color: var(--c-volt) !important;
+}
+
 body.brutalist-theme {
   background-color: var(--bg-pitch);
   color: var(--text-main);
@@ -790,23 +811,27 @@ body.brutalist-theme {
   margin-bottom: 1rem;
   padding-bottom: 8px;
   border-bottom: 2px solid var(--border-light);
+  gap: 8px;
 }
 
 .chk-title {
   font-family: var(--font-sub);
   font-weight: 900;
-  font-size: 0.95rem;
-  letter-spacing: 0.04em;
+  font-size: 0.86rem;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
 .chk-pill {
   font-family: var(--font-sub);
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 800;
   padding: 3px 6px;
   background: var(--bg-step);
   border: 1px solid var(--border-card);
   color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .chk-list {
