@@ -35,6 +35,39 @@
       color: var(--c-volt) !important;
     }
 
+    /* EXPANDIR INTERFAZ AL ANCHO COMPLETO EN ORDENADOR (>= 900PX) */
+    @media (min-width: 900px) {
+      .app-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 1.5rem clamp(1.5rem, 3vw, 3.5rem) 4rem clamp(1.5rem, 3vw, 3.5rem) !important;
+      }
+      .sub-lead {
+        max-width: none !important;
+      }
+      .schedule-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+      }
+      .meals-expanded-list {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)) !important;
+        gap: 16px !important;
+      }
+      .alarms-grid {
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)) !important;
+        gap: 16px !important;
+      }
+    }
+    @media (min-width: 1380px) {
+      .schedule-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+      }
+      .market-categories {
+        grid-template-columns: repeat(4, 1fr) !important;
+      }
+    }
+
     /* HEADER RESPONSIVE: COMPACT CONTROLS FOR SCREENS < 720PX */
     @media (max-width: 719px) {
       .header-top {
