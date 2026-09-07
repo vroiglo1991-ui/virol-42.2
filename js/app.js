@@ -550,7 +550,8 @@ function renderMission(dayIndex) {
   if (meta) meta.innerHTML = `<span>${plan.meta}</span>`;
 
   const coachTag = document.getElementById('mission-coach-tag');
-  const isRunning = (plan.km > 0) || (plan.discipline && plan.discipline.includes('RUN')) || (plan.typeBadge && plan.typeBadge.includes('RUN'));
+  const disc = ((plan.discipline || '') + ' ' + (plan.typeBadge || '') + ' ' + (plan.title || '')).toUpperCase();
+  const isRunning = Number(plan.km) > 0 || disc.includes('RUN') || disc.includes('CARRERA') || disc.includes('RODAJE') || disc.includes('SERIES') || disc.includes('TIRADA') || dayIndex === 2 || dayIndex === 4 || dayIndex === 0;
   if (coachTag) {
     coachTag.style.display = isRunning ? 'inline-flex' : 'none';
   }
@@ -704,7 +705,8 @@ function renderScheduleCards() {
     const w = workouts[d] || DEFAULT_WORKOUTS[d];
     if (!w) return '';
     const stepsSummary = (w.steps || []).map(s => `${s.name} (${s.reps})`).join(', ');
-    const isRunning = (w.km > 0) || (w.discipline && w.discipline.includes('RUN'));
+    const disc = ((w.discipline || '') + ' ' + (w.title || '')).toUpperCase();
+    const isRunning = Number(w.km) > 0 || disc.includes('RUN') || disc.includes('CARRERA') || disc.includes('RODAJE') || disc.includes('SERIES') || disc.includes('TIRADA') || d === 2 || d === 4 || d === 0;
     return `
       <div class="day-card ${cardClasses[d] || 'card-pull'}" data-day-index="${d}">
         <div class="day-card-header">

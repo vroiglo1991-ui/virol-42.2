@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;700;800;900&family=Space+Grotesk:wght@600;700;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/style.css?v=13">
+  <link rel="stylesheet" href="css/style.css?v=15">
   <style>
     /* HOVER SEGURO Y LEGIBLE: FONDO OSCURO + BORDE E ICONO AMARILLO NEÓN */
     .btn-customize-plan:hover {
@@ -83,12 +83,8 @@
         min-width: 0 !important;
       }
       .user-avatar {
-        width: 30px !important;
-        height: 30px !important;
-      }
-      .coach-avatar {
-        width: 26px !important;
-        height: 26px !important;
+        width: 34px !important;
+        height: 34px !important;
       }
       .badge-name {
         font-size: 0.82rem !important;
@@ -143,10 +139,7 @@
       <!-- TOP STATUS ROW: USER BADGE + CONTROLS -->
       <div class="header-top">
         <div class="user-badge" id="btn-open-profile-editor" style="cursor:pointer;" title="Haz clic para modificar tus datos (Nombre, Peso, Altura, Objetivo)">
-          <div class="user-avatar-group">
-            <img src="img/victor.png" alt="Víctor" class="user-avatar">
-            <img src="img/valence_fit.png" alt="Valence Fit" class="coach-avatar" title="Entrenador: Josemi (Valence Fit)">
-          </div>
+          <img src="img/victor.png" alt="Víctor" class="user-avatar">
           <div class="user-info-text">
             <span class="badge-name" id="user-display-name">VÍCTOR</span>
             <span class="badge-metrics" id="user-display-metrics">73 KG • 178 CM</span>
@@ -490,7 +483,10 @@
           <div class="day-card card-run" data-day-index="2">
             <div class="day-card-header">
               <span class="day-name">MARTES</span>
-              <span class="day-discipline tag-volt">RUN // 12 KM Z2</span>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <span class="tag-valence" title="Entrenador: Josemi (Valence Fit)"><img src="img/valence_fit.png" alt="Valence Fit"> VALENCE FIT</span>
+                <span class="day-discipline tag-volt">RUN // 12 KM Z2</span>
+              </div>
             </div>
             <h3 class="day-title">RODAJE BASE AERÓBICA</h3>
             <p class="day-desc">12 km continuos a ritmo cómodo conversacional (Zona 2). Construye capilares y enseña al cuerpo a quemar grasas preservando glucógeno. Técnica de carrera 5 min al final.</p>
@@ -518,7 +514,10 @@
           <div class="day-card card-quality" data-day-index="4">
             <div class="day-card-header">
               <span class="day-name">JUEVES</span>
-              <span class="day-discipline tag-orange">RUN // 12 KM CALIDAD</span>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <span class="tag-valence" title="Entrenador: Josemi (Valence Fit)"><img src="img/valence_fit.png" alt="Valence Fit"> VALENCE FIT</span>
+                <span class="day-discipline tag-orange">RUN // 12 KM CALIDAD</span>
+              </div>
             </div>
             <h3 class="day-title">SERIES / RITMO MEDIA MARATÓN</h3>
             <p class="day-desc">2 km calentamiento suave + 8 km ritmo exigente de competición (cambios de ritmo o bloques a ritmo objetivo) + 2 km trote regenerativo de enfriamiento.</p>
@@ -563,7 +562,10 @@
           <div class="day-card card-longrun" data-day-index="0">
             <div class="day-card-header">
               <span class="day-name">DOMINGO</span>
-              <span class="day-discipline tag-orange">RUN // 18-22 KM</span>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <span class="tag-valence" title="Entrenador: Josemi (Valence Fit)"><img src="img/valence_fit.png" alt="Valence Fit"> VALENCE FIT</span>
+                <span class="day-discipline tag-orange">RUN // 18-22 KM</span>
+              </div>
             </div>
             <h3 class="day-title">LA SESIÓN REINA // TIRADA LARGA</h3>
             <p class="day-desc">18 a 22 km continuos. Sales con las piernas descansadas del sábado y reservas de glucógeno a tope. La prueba de fuego que forja al maratoniano en el asfalto de Valencia.</p>
@@ -1000,6 +1002,6 @@
     <span id="toast-msg">MENSAJE</span>
   </div>
 
-  <script src="js/app.js?v=8"></script>
+  <script src="js/app.js?v=15"></script>
 </body>
 </html>
