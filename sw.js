@@ -1,4 +1,4 @@
-const CACHE_NAME = 'virol-42k-v8';
+const CACHE_NAME = 'virol-42k-v11';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -10,10 +10,11 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
@@ -33,10 +34,20 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Network first, fall back to cache for offline support
+  // Network first with cache update, fallback to cache for offline support
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
-    })
+    fetch(event.request)
+      .then(response => {
+        if (response && response.status === 200 && response.type === 'basic') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });

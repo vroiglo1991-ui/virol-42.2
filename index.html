@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;700;800;900&family=Space+Grotesk:wght@600;700;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/style.css?v=8">
+  <link rel="stylesheet" href="css/style.css?v=11">
   <style>
     /* HOVER SEGURO Y LEGIBLE: FONDO OSCURO + BORDE E ICONO AMARILLO NEÓN */
     .btn-customize-plan:hover {
@@ -33,6 +33,66 @@
     .btn-customize-plan:hover .svg-ico {
       stroke: var(--c-volt) !important;
       color: var(--c-volt) !important;
+    }
+
+    /* HEADER RESPONSIVE: COMPACT CONTROLS FOR SCREENS < 720PX */
+    @media (max-width: 719px) {
+      .header-top {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        gap: 6px !important;
+      }
+      .user-badge {
+        padding: 5px 8px 5px 6px !important;
+        gap: 8px !important;
+        flex-shrink: 1 !important;
+        min-width: 0 !important;
+      }
+      .user-avatar {
+        width: 34px !important;
+        height: 34px !important;
+      }
+      .badge-name {
+        font-size: 0.82rem !important;
+      }
+      .badge-metrics {
+        font-size: 0.68rem !important;
+      }
+      .header-controls {
+        display: flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        flex-shrink: 0 !important;
+      }
+      .sync-badge {
+        padding: 6px 8px !important;
+      }
+      .sync-text {
+        display: none !important;
+      }
+      .btn-customize-plan {
+        padding: 6px 8px !important;
+      }
+      .btn-customize-plan span {
+        display: none !important;
+      }
+      .icon-toggle-btn {
+        padding: 6px 8px !important;
+        min-width: 32px !important;
+        display: flex !important;
+      }
+      .theme-toggle-btn {
+        padding: 6px 8px !important;
+        min-width: 32px !important;
+        display: inline-flex !important;
+      }
+      #theme-label {
+        display: none !important;
+      }
+      .tag-volt {
+        display: none !important;
+      }
     }
   </style>
 </head>
