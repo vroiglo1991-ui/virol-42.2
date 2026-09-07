@@ -120,34 +120,153 @@ const WORKOUT_PLANS = {
   }
 };
 
-// 2. STATE MANAGEMENT (LOCALSTORAGE)
+// 2. STATE MANAGEMENT & REALTIME ASYNC CLOUD SYNC
 const STORAGE_KEY = 'valencia_42k_victor_prod_v1';
+const CLOUD_SYNC_URL = 'https://extendsclass.com/api/json-storage/bin/dfddcab';
 
 function getStoredState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (!parsed.days) parsed.days = {};
+      if (!parsed.history) parsed.history = [];
+      if (!parsed.lastUpdated) parsed.lastUpdated = 0;
+      return parsed;
+    }
   } catch (e) {
-    console.error(e);
+    console.error('Error reading localStorage:', e);
   }
   return {
+    version: 1,
+    lastUpdated: 0,
     themeSetting: 'auto',
     soundEnabled: true,
     days: {},
-    history: [],
-    sleepHours: 8
+    history: []
   };
 }
 
-function saveState(state) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (e) {
-    console.error(e);
+let appState = getStoredState();
+let cloudPushTimer = null;
+let isFetchingCloud = false;
+
+function updateSyncStatus(status, text) {
+  const dot = document.getElementById('sync-dot');
+  const textEl = document.getElementById('sync-text');
+  if (!dot || !textEl) return;
+
+  dot.classList.remove('syncing', 'error');
+  if (status === 'syncing') {
+    dot.classList.add('syncing');
+    textEl.innerText = text || 'GUARDANDO...';
+  } else if (status === 'error') {
+    dot.classList.add('error');
+    textEl.innerText = text || 'OFFLINE';
+  } else {
+    textEl.innerText = text || 'NUBE OK';
   }
 }
 
-let appState = getStoredState();
+function saveState(state, triggerCloud = true) {
+  try {
+    state.lastUpdated = Date.now();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (triggerCloud) {
+      scheduleCloudPush();
+    }
+  } catch (e) {
+    console.error('Error saving local state:', e);
+  }
+}
+
+function scheduleCloudPush() {
+  updateSyncStatus('syncing', 'GUARDANDO...');
+  if (cloudPushTimer) clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(() => {
+    pushToCloud();
+  }, 500);
+}
+
+async function pushToCloud() {
+  try {
+    updateSyncStatus('syncing', 'SUBIENDO...');
+    const payload = {
+      version: 1,
+      appName: 'VIROL 42K PRO',
+      athlete: 'Víctor',
+      lastUpdated: appState.lastUpdated || Date.now(),
+      days: appState.days || {},
+      history: appState.history || [],
+      themeSetting: appState.themeSetting || 'auto',
+      soundEnabled: appState.soundEnabled !== false
+    };
+
+    const res = await fetch(CLOUD_SYNC_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      updateSyncStatus('synced', 'NUBE OK');
+    } else {
+      updateSyncStatus('error', 'REINTENTANDO');
+    }
+  } catch (err) {
+    console.warn('Cloud sync push notice (offline?):', err);
+    updateSyncStatus('error', 'OFFLINE');
+  }
+}
+
+async function syncFromCloud(silent = false) {
+  if (isFetchingCloud) return;
+  isFetchingCloud = true;
+  if (!silent) updateSyncStatus('syncing', 'ACTUALIZANDO...');
+
+  try {
+    const res = await fetch(CLOUD_SYNC_URL, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const cloudData = await res.json();
+
+    if (cloudData && typeof cloudData === 'object') {
+      const localUpdated = appState.lastUpdated || 0;
+      const cloudUpdated = cloudData.lastUpdated || 0;
+
+      // Si la nube tiene cambios más recientes (ej. guardados desde el móvil)
+      if (cloudUpdated > localUpdated) {
+        console.log('Nuevos datos recibidos de la nube:', cloudData);
+        appState.days = cloudData.days || {};
+        appState.history = cloudData.history || [];
+        appState.lastUpdated = cloudUpdated;
+        if (cloudData.themeSetting) appState.themeSetting = cloudData.themeSetting;
+        if (typeof cloudData.soundEnabled === 'boolean') appState.soundEnabled = cloudData.soundEnabled;
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+
+        // Refrescar interfaces
+        applyTheme(appState.themeSetting || 'auto');
+        renderMission(selectedDayIndex);
+        renderHistory();
+
+        updateSyncStatus('synced', 'NUBE OK');
+        if (!silent) {
+          showToast('☁️ DATOS ACTUALIZADOS DESDE EL MÓVIL');
+        }
+      } else if (localUpdated > cloudUpdated && (localUpdated - cloudUpdated > 2500)) {
+        // El dispositivo local tiene datos más frescos pendientes de subir
+        pushToCloud();
+      } else {
+        updateSyncStatus('synced', 'NUBE OK');
+      }
+    }
+  } catch (err) {
+    console.warn('Cloud sync pull notice:', err);
+    updateSyncStatus('error', 'OFFLINE');
+  } finally {
+    isFetchingCloud = false;
+  }
+}
 
 // 3. WEB AUDIO SYNTHESIZER (INSTANT TACTILE SOUNDS)
 let audioCtx = null;
@@ -350,6 +469,11 @@ function syncCheckboxes(dayIndex) {
     const chkKey = chk.dataset.chk;
     chk.checked = !!dayData[chkKey];
   });
+
+  const sleepInput = document.getElementById('sleep-hours');
+  if (sleepInput) {
+    sleepInput.value = dayData.sleepHours || 8;
+  }
 }
 
 function updateProgressHUD(dayIndex) {
@@ -714,6 +838,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Alarm interval check
   setInterval(checkAlarms, 30000);
+
+  // Cloud sync manual trigger & background listeners
+  const syncBadge = document.getElementById('sync-status-badge');
+  if (syncBadge) {
+    syncBadge.addEventListener('click', () => {
+      playCheckSound();
+      syncFromCloud(false);
+    });
+  }
+
+  // Automatic sync when switching back to the app from mobile or another tab
+  window.addEventListener('focus', () => syncFromCloud(true));
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) syncFromCloud(true);
+  });
+  window.addEventListener('online', () => syncFromCloud(false));
+
+  // Periodic background check every 12 seconds
+  setInterval(() => syncFromCloud(true), 12000);
+
+  // Initial cloud sync on startup
+  syncFromCloud(false);
 
   // Register PWA Service Worker
   if ('serviceWorker' in navigator) {

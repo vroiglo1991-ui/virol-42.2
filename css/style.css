@@ -150,6 +150,54 @@ body.brutalist-theme {
   gap: 8px;
 }
 
+/* CLOUD REALTIME SYNC BADGE */
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 2px solid var(--border-card);
+  padding: 6px 10px;
+  font-family: var(--font-sub);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  box-shadow: var(--shadow-hard);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s, border-color 0.2s;
+}
+
+.sync-badge:hover {
+  border-color: var(--c-volt);
+}
+
+.sync-badge:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px #000;
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-emerald);
+  box-shadow: 0 0 6px var(--c-emerald);
+  display: inline-block;
+  transition: background-color 0.2s;
+}
+
+.sync-dot.syncing {
+  background: var(--c-orange);
+  box-shadow: 0 0 8px var(--c-orange);
+  animation: pulse-glow 0.8s infinite;
+}
+
+.sync-dot.error {
+  background: var(--c-red);
+  box-shadow: 0 0 6px var(--c-red);
+}
+
 .icon-toggle-btn {
   background: var(--bg-card);
   border: 2px solid var(--border-card);
