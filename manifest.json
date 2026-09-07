@@ -1,7 +1,7 @@
 {
-  "name": "VALENCIA 42K PRO // VÍCTOR",
-  "short_name": "VALENCIA 42K",
-  "description": "Sistema de entrenamiento Pull-Push-Legs, running 44 km y nutrición Mercadona para la Maratón de Valencia 2026",
+  "name": "VIROL // VALENCIA 42K PRO",
+  "short_name": "VIROL 42K",
+  "description": "Sistema de entrenamiento Pull-Push-Legs, running 44 km y nutrición Mercadona para Víctor (73 kg) hacia la Maratón de Valencia 2026",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0E121B",
@@ -9,7 +9,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "img/victor.png",
+      "src": "img/virol_logo.png",
       "sizes": "192x192 512x512",
       "type": "image/png",
       "purpose": "any maskable"

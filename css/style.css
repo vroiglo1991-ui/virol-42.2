@@ -217,6 +217,27 @@ body.brutalist-theme {
   padding: 0.5rem 0;
 }
 
+.brand-mascot-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.virol-mascot-icon {
+  width: 76px;
+  height: 76px;
+  border-radius: 12px;
+  border: 3px solid var(--border-card);
+  box-shadow: var(--shadow-chunky);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.brand-titles {
+  flex: 1;
+}
+
 .pre-badge {
   display: inline-block;
   font-family: var(--font-sub);
@@ -227,7 +248,7 @@ body.brutalist-theme {
   color: var(--c-orange);
   border: 1px solid var(--border-light);
   padding: 3px 8px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   box-shadow: 2px 2px 0px #000;
 }
 
