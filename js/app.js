@@ -3,8 +3,8 @@
  * Víctor // 73 kg • 178 cm
  */
 
-// 1. DATABASE DE ENTRENAMIENTOS (PULL - PUSH - LEGS + 44 KM + DESCANSO)
-const WORKOUT_PLANS = {
+// 1. BASE DE ENTRENAMIENTOS & NUTRICIÓN POR DEFECTO (PERSONALIZABLE)
+const DEFAULT_WORKOUTS = {
   1: { // LUNES
     name: "LUNES",
     discipline: "GYM // PULL",
@@ -88,7 +88,7 @@ const WORKOUT_PLANS = {
   },
   6: { // SÁBADO
     name: "SÁBADO",
-    discipline: "🛑 DESCANSO SAGRADO",
+    discipline: "DESCANSO SAGRADO",
     typeBadge: "RECUPERACIÓN TOTAL • 100%",
     title: "DÍA DE DESCANSO ABSOLUTO",
     intensity: "CERO ENTRENAMIENTO",
@@ -119,6 +119,81 @@ const WORKOUT_PLANS = {
     ]
   }
 };
+
+const DEFAULT_MEALS = {
+  desayuno: {
+    id: "meal_desayuno",
+    name: "DESAYUNO // CARGA MATINAL",
+    time: "08:00 - 09:00",
+    desc: "120g Pan rústico + 12ml AOVE + 70g Pavo/Jamón + 35g Queso + 1 Plátano",
+    items: [
+      { qty: "100–120 g", text: "Pan Rústico tostado (2 rebanadas generosas)" },
+      { qty: "12–15 ml", text: "Aceite de Oliva Virgen Extra (1 cda sopera)" },
+      { qty: "70 g", text: "Pechuga de pavo o Jamón serrano" },
+      { qty: "35 g", text: "Queso tierno/semicurado de Mercadona" },
+      { qty: "1 Plátano", text: "Plátano maduro (~120 g)" },
+      { qty: "5 g + 2 perlas", text: "Creatina con agua + 2 perlas Omega 3" }
+    ]
+  },
+  snack: {
+    id: "meal_snack",
+    name: "MEDIA MAÑANA // PRE-RUN",
+    time: "11:30 - 12:30",
+    desc: "4 Tortitas de arroz (~35g) + 1 lata de Atún o 50g pavo",
+    items: [
+      { qty: "4 uds (~35 g)", text: "Tortitas de arroz de Mercadona" },
+      { qty: "1 lata (~60 g)", text: "Atún claro al natural o 50g pavo" },
+      { qty: "500 ml", text: "Agua mineral (iniciar hidratación)" }
+    ]
+  },
+  comida: {
+    id: "meal_comida",
+    name: "COMIDA // COMBUSTIBLE PRINCIPAL",
+    time: "14:00 - 15:00",
+    desc: "120g Arroz/Pasta (o 400g patata) + 180g Lomo o Picada + Gazpacho + Olivas",
+    items: [
+      { qty: "120 g crudo", text: "Arroz o Pasta (~300g cocido) O 400g Patatas cocidas/asadas" },
+      { qty: "180 g", text: "Lomo de cerdo a la plancha O 180g Carne picada magra" },
+      { qty: "200–250 ml", text: "Gazpacho tradicional de Mercadona" },
+      { qty: "10–12 uds", text: "Olivas / aceitunas de Mercadona" }
+    ]
+  },
+  merienda: {
+    id: "meal_merienda",
+    name: "MERIENDA // RECUPERACIÓN ANABÓLICA",
+    time: "18:00 - 19:00",
+    desc: "30g Whey + 1 Plátano grande (~120g) o 4 tortitas de arroz",
+    items: [
+      { qty: "1 cacito (30 g)", text: "Proteína Whey en polvo (24g proteína pura)" },
+      { qty: "1 Plátano", text: "Plátano grande (~120 g) O 4 tortitas de arroz" }
+    ]
+  },
+  cena: {
+    id: "meal_cena",
+    name: "CENA // REPARACIÓN NOCTURNA LIGERA",
+    time: "21:30 - 22:30",
+    desc: "300g Patata o 90g Rústico + 2 latas Atún o 160g Lomo + Gazpacho + 25g Queso",
+    items: [
+      { qty: "300 g", text: "Patata cocida / puré O 90g Pan rústico" },
+      { qty: "2 latas (~120 g)", text: "Atún claro O 160g Lomo o Pavo" },
+      { qty: "25 g", text: "Queso Mercadona" },
+      { qty: "200 ml", text: "Gazpacho tradicional" },
+      { qty: "1 dosis", text: "Magnesio 45 min antes de dormir (relajación neuromuscular)" }
+    ]
+  }
+};
+
+function getWorkouts() {
+  return appState.customWorkouts || DEFAULT_WORKOUTS;
+}
+
+function getMeals() {
+  return appState.customMeals || DEFAULT_MEALS;
+}
+
+const WORKOUT_PLANS = new Proxy({}, {
+  get: (target, prop) => getWorkouts()[prop]
+});
 
 // 2. STATE MANAGEMENT & REALTIME ASYNC CLOUD SYNC
 const STORAGE_KEY = 'valencia_42k_victor_prod_v1';
@@ -199,7 +274,9 @@ async function pushToCloud() {
       days: appState.days || {},
       history: appState.history || [],
       themeSetting: appState.themeSetting || 'auto',
-      soundEnabled: appState.soundEnabled !== false
+      soundEnabled: appState.soundEnabled !== false,
+      customMeals: appState.customMeals || null,
+      customWorkouts: appState.customWorkouts || null
     };
 
     const res = await fetch(CLOUD_SYNC_URL, {
@@ -241,6 +318,8 @@ async function syncFromCloud(silent = false) {
         appState.lastUpdated = cloudUpdated;
         if (cloudData.themeSetting) appState.themeSetting = cloudData.themeSetting;
         if (typeof cloudData.soundEnabled === 'boolean') appState.soundEnabled = cloudData.soundEnabled;
+        if (cloudData.customMeals) appState.customMeals = cloudData.customMeals;
+        if (cloudData.customWorkouts) appState.customWorkouts = cloudData.customWorkouts;
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
 
@@ -248,6 +327,8 @@ async function syncFromCloud(silent = false) {
         applyTheme(appState.themeSetting || 'auto');
         renderMission(selectedDayIndex);
         renderHistory();
+        renderMealsTab();
+        renderScheduleCards();
 
         updateSyncStatus('synced', 'NUBE OK');
         if (!silent) {
@@ -456,6 +537,7 @@ function renderMission(dayIndex) {
     }
   }
 
+  renderMealChecklist(dayIndex);
   syncCheckboxes(dayIndex);
   updateProgressHUD(dayIndex);
 }
@@ -473,6 +555,302 @@ function syncCheckboxes(dayIndex) {
   const sleepInput = document.getElementById('sleep-hours');
   if (sleepInput) {
     sleepInput.value = dayData.sleepHours || 8;
+  }
+}
+
+function renderMealChecklist(dayIndex) {
+  const container = document.getElementById('meals-checklist');
+  if (!container) return;
+
+  const meals = getMeals();
+  const key = getTodayKey(dayIndex);
+  const dayData = appState.days[key] || {};
+
+  const mealKeys = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
+  container.innerHTML = mealKeys.map(mKey => {
+    const m = meals[mKey] || DEFAULT_MEALS[mKey];
+    if (!m) return '';
+    const chkId = m.id || `meal_${mKey}`;
+    const isChecked = !!dayData[chkId];
+    return `
+      <label class="chk-item">
+        <input type="checkbox" data-chk="${chkId}" ${isChecked ? 'checked' : ''}>
+        <span class="custom-checkbox"></span>
+        <div class="chk-content">
+          <span class="chk-name">${m.name}</span>
+          <span class="chk-desc">${m.desc}</span>
+        </div>
+      </label>
+    `;
+  }).join('');
+
+  container.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+    chk.addEventListener('change', () => {
+      const todayKey = getTodayKey(selectedDayIndex);
+      if (!appState.days[todayKey]) appState.days[todayKey] = {};
+      const chkKey = chk.dataset.chk;
+      appState.days[todayKey][chkKey] = chk.checked;
+      saveState(appState);
+      updateProgressHUD(selectedDayIndex);
+
+      if (chk.checked) {
+        playCheckSound();
+        showToast(`✔ MARCADO: ${chk.closest('.chk-item').querySelector('.chk-name').innerText}`);
+      }
+    });
+  });
+}
+
+function renderMealsTab() {
+  const container = document.querySelector('.meals-expanded-list');
+  if (!container) return;
+
+  const meals = getMeals();
+  const mealKeys = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
+  container.innerHTML = mealKeys.map(mKey => {
+    const m = meals[mKey] || DEFAULT_MEALS[mKey];
+    if (!m) return '';
+    const itemsHtml = (m.items || []).map(it => {
+      if (typeof it === 'string') {
+        return `<li><strong>${it}</strong></li>`;
+      }
+      return `<li><span class="gram-qty">${it.qty || ''}</span> <strong>${it.text || it}</strong></li>`;
+    }).join('');
+
+    return `
+      <div class="meal-detail-box">
+        <div class="meal-badge">${m.time || ''}</div>
+        <div class="meal-body">
+          <h3 class="meal-name">${m.name}</h3>
+          <ul class="gram-list">
+            ${itemsHtml}
+          </ul>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderScheduleCards() {
+  const container = document.querySelector('.schedule-grid');
+  if (!container) return;
+
+  const workouts = getWorkouts();
+  const dayOrder = [1, 2, 3, 4, 5, 6, 0];
+  const cardClasses = {
+    1: 'card-pull',
+    2: 'card-run',
+    3: 'card-push',
+    4: 'card-quality',
+    5: 'card-legs',
+    6: 'card-rest',
+    0: 'card-longrun'
+  };
+  const tagClasses = {
+    1: 'tag-blue',
+    2: 'tag-volt',
+    3: 'tag-blue',
+    4: 'tag-orange',
+    5: 'tag-purple',
+    6: 'tag-rest',
+    0: 'tag-orange'
+  };
+
+  container.innerHTML = dayOrder.map(d => {
+    const w = workouts[d] || DEFAULT_WORKOUTS[d];
+    if (!w) return '';
+    const stepsSummary = (w.steps || []).map(s => `${s.name} (${s.reps})`).join(', ');
+    return `
+      <div class="day-card ${cardClasses[d] || 'card-pull'}" data-day-index="${d}">
+        <div class="day-card-header">
+          <span class="day-name">${w.name}</span>
+          <span class="day-discipline ${tagClasses[d] || 'tag-blue'}">${w.discipline}</span>
+        </div>
+        <h3 class="day-title">${w.title}</h3>
+        <p class="day-desc">${stepsSummary}</p>
+        <div class="day-footer">
+          <span class="tag-status">${w.km > 0 ? `${w.km.toFixed(1)} KM` : (w.isRest ? '0 KM • REGENERACIÓN' : 'Sin impacto en piernas')}</span>
+          <span class="day-intensity">${w.intensity || ''}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function initPlanEditor() {
+  const modalOverlay = document.getElementById('editor-modal-overlay');
+  const btnClose = document.getElementById('btn-close-editor');
+  const btnOpenMeals = document.getElementById('btn-open-meal-editor');
+  const btnOpenPlan = document.getElementById('btn-open-plan-editor');
+
+  const tabMealsBtn = document.getElementById('btn-tab-edit-meals');
+  const tabWorkoutsBtn = document.getElementById('btn-tab-edit-workouts');
+  const paneMeals = document.getElementById('pane-edit-meals');
+  const paneWorkouts = document.getElementById('pane-edit-workouts');
+
+  const mealSelect = document.getElementById('edit-meal-select');
+  const mealNameInput = document.getElementById('edit-meal-name');
+  const mealTimeInput = document.getElementById('edit-meal-time');
+  const mealDescInput = document.getElementById('edit-meal-desc');
+  const mealItemsTextarea = document.getElementById('edit-meal-items');
+
+  const workoutSelect = document.getElementById('edit-workout-select');
+  const workoutDisciplineInput = document.getElementById('edit-workout-discipline');
+  const workoutTitleInput = document.getElementById('edit-workout-title');
+  const workoutKmInput = document.getElementById('edit-workout-km');
+  const workoutStepsTextarea = document.getElementById('edit-workout-steps');
+
+  const btnSave = document.getElementById('btn-save-custom-plan');
+  const btnReset = document.getElementById('btn-reset-defaults');
+
+  let currentTab = 'meals';
+
+  function openEditor(tab = 'meals') {
+    currentTab = tab;
+    if (tab === 'meals') {
+      if (tabMealsBtn) tabMealsBtn.classList.add('active');
+      if (tabWorkoutsBtn) tabWorkoutsBtn.classList.remove('active');
+      if (paneMeals) paneMeals.style.display = 'flex';
+      if (paneWorkouts) paneWorkouts.style.display = 'none';
+      if (mealSelect) loadMealIntoForm(mealSelect.value);
+    } else {
+      if (tabWorkoutsBtn) tabWorkoutsBtn.classList.add('active');
+      if (tabMealsBtn) tabMealsBtn.classList.remove('active');
+      if (paneWorkouts) paneWorkouts.style.display = 'flex';
+      if (paneMeals) paneMeals.style.display = 'none';
+      if (workoutSelect) loadWorkoutIntoForm(workoutSelect.value);
+    }
+    if (modalOverlay) modalOverlay.classList.add('active');
+  }
+
+  function closeEditor() {
+    if (modalOverlay) modalOverlay.classList.remove('active');
+  }
+
+  if (btnOpenMeals) btnOpenMeals.addEventListener('click', () => openEditor('meals'));
+  if (btnOpenPlan) btnOpenPlan.addEventListener('click', () => openEditor('workouts'));
+  if (btnClose) btnClose.addEventListener('click', closeEditor);
+
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) closeEditor();
+    });
+  }
+
+  if (tabMealsBtn) {
+    tabMealsBtn.addEventListener('click', () => openEditor('meals'));
+  }
+  if (tabWorkoutsBtn) {
+    tabWorkoutsBtn.addEventListener('click', () => openEditor('workouts'));
+  }
+
+  function loadMealIntoForm(mealKey) {
+    const meals = getMeals();
+    const m = meals[mealKey] || DEFAULT_MEALS[mealKey];
+    if (!m) return;
+    if (mealNameInput) mealNameInput.value = m.name || '';
+    if (mealTimeInput) mealTimeInput.value = m.time || '';
+    if (mealDescInput) mealDescInput.value = m.desc || '';
+    const itemsLines = (m.items || []).map(it => {
+      if (typeof it === 'string') return it;
+      return `${it.qty || ''} | ${it.text || ''}`;
+    }).join('\n');
+    if (mealItemsTextarea) mealItemsTextarea.value = itemsLines;
+  }
+
+  function loadWorkoutIntoForm(dayIdx) {
+    const workouts = getWorkouts();
+    const w = workouts[dayIdx] || DEFAULT_WORKOUTS[dayIdx];
+    if (!w) return;
+    if (workoutDisciplineInput) workoutDisciplineInput.value = w.discipline || '';
+    if (workoutTitleInput) workoutTitleInput.value = w.title || '';
+    if (workoutKmInput) workoutKmInput.value = w.km || 0;
+    const stepsLines = (w.steps || []).map(s => `${s.name} | ${s.reps}`).join('\n');
+    if (workoutStepsTextarea) workoutStepsTextarea.value = stepsLines;
+  }
+
+  if (mealSelect) {
+    mealSelect.addEventListener('change', () => loadMealIntoForm(mealSelect.value));
+  }
+  if (workoutSelect) {
+    workoutSelect.addEventListener('change', () => loadWorkoutIntoForm(workoutSelect.value));
+  }
+
+  if (btnSave) {
+    btnSave.addEventListener('click', () => {
+      if (currentTab === 'meals') {
+        const mealKey = mealSelect.value;
+        if (!appState.customMeals) {
+          appState.customMeals = JSON.parse(JSON.stringify(DEFAULT_MEALS));
+        }
+        const lines = (mealItemsTextarea ? mealItemsTextarea.value : '').split('\n').filter(l => l.trim().length > 0);
+        const parsedItems = lines.map(l => {
+          const parts = l.split('|');
+          if (parts.length > 1) {
+            return { qty: parts[0].trim(), text: parts[1].trim() };
+          }
+          return { qty: '', text: l.trim() };
+        });
+
+        appState.customMeals[mealKey] = {
+          id: `meal_${mealKey}`,
+          name: (mealNameInput ? mealNameInput.value.trim() : '') || DEFAULT_MEALS[mealKey].name,
+          time: (mealTimeInput ? mealTimeInput.value.trim() : '') || DEFAULT_MEALS[mealKey].time,
+          desc: (mealDescInput ? mealDescInput.value.trim() : '') || DEFAULT_MEALS[mealKey].desc,
+          items: parsedItems
+        };
+        showToast('✨ MENÚ PERSONALIZADO GUARDADO Y SINCRONIZADO');
+      } else {
+        const dayIdx = parseInt(workoutSelect.value, 10);
+        if (!appState.customWorkouts) {
+          appState.customWorkouts = JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
+        }
+        const lines = (workoutStepsTextarea ? workoutStepsTextarea.value : '').split('\n').filter(l => l.trim().length > 0);
+        const parsedSteps = lines.map(l => {
+          const parts = l.split('|');
+          if (parts.length > 1) {
+            return { name: parts[0].trim(), reps: parts[1].trim() };
+          }
+          return { name: l.trim(), reps: '' };
+        });
+
+        const prev = appState.customWorkouts[dayIdx] || DEFAULT_WORKOUTS[dayIdx];
+        const kmVal = parseFloat(workoutKmInput ? workoutKmInput.value : 0) || 0;
+        const discVal = workoutDisciplineInput ? workoutDisciplineInput.value.trim() : prev.discipline;
+        appState.customWorkouts[dayIdx] = {
+          ...prev,
+          discipline: discVal || prev.discipline,
+          title: (workoutTitleInput ? workoutTitleInput.value.trim() : '') || prev.title,
+          km: kmVal,
+          isRest: kmVal === 0 && discVal.toLowerCase().includes('descanso'),
+          steps: parsedSteps
+        };
+        showToast('✨ ENTRENAMIENTO PERSONALIZADO GUARDADO Y SINCRONIZADO');
+      }
+
+      saveState(appState);
+      playSuccessSound();
+      renderMission(selectedDayIndex);
+      renderMealsTab();
+      renderScheduleCards();
+      closeEditor();
+    });
+  }
+
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      if (confirm('¿Restaurar el plan de entrenamiento y nutrición al original (73 kg Mercadona)?')) {
+        delete appState.customMeals;
+        delete appState.customWorkouts;
+        saveState(appState);
+        playCheckSound();
+        renderMission(selectedDayIndex);
+        renderMealsTab();
+        renderScheduleCards();
+        closeEditor();
+        showToast('🔄 PLAN RESTAURADO AL ORIGINAL (73 KG)');
+      }
+    });
   }
 }
 
@@ -706,6 +1084,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Render current mission
   renderMission(selectedDayIndex);
   renderHistory();
+  renderMealsTab();
+  renderScheduleCards();
+  initPlanEditor();
 
   // Tab navigation
   const navBtns = document.querySelectorAll('.nav-btn');
@@ -745,9 +1126,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Checkboxes
-  const allChecks = document.querySelectorAll('#tab-today input[type="checkbox"]');
-  allChecks.forEach(chk => {
+  // Supplement Checkboxes
+  const suppChecks = document.querySelectorAll('#supplements-checklist input[type="checkbox"]');
+  suppChecks.forEach(chk => {
     chk.addEventListener('change', () => {
       const key = getTodayKey(selectedDayIndex);
       if (!appState.days[key]) appState.days[key] = {};
