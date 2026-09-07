@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;700;800;900&family=Space+Grotesk:wght@600;700;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/style.css?v=12">
+  <link rel="stylesheet" href="css/style.css?v=13">
   <style>
     /* HOVER SEGURO Y LEGIBLE: FONDO OSCURO + BORDE E ICONO AMARILLO NEÓN */
     .btn-customize-plan:hover {
@@ -83,8 +83,12 @@
         min-width: 0 !important;
       }
       .user-avatar {
-        width: 34px !important;
-        height: 34px !important;
+        width: 30px !important;
+        height: 30px !important;
+      }
+      .coach-avatar {
+        width: 26px !important;
+        height: 26px !important;
       }
       .badge-name {
         font-size: 0.82rem !important;
@@ -139,7 +143,10 @@
       <!-- TOP STATUS ROW: USER BADGE + CONTROLS -->
       <div class="header-top">
         <div class="user-badge" id="btn-open-profile-editor" style="cursor:pointer;" title="Haz clic para modificar tus datos (Nombre, Peso, Altura, Objetivo)">
-          <img src="img/victor.png" alt="Víctor" class="user-avatar">
+          <div class="user-avatar-group">
+            <img src="img/victor.png" alt="Víctor" class="user-avatar">
+            <img src="img/valence_fit.png" alt="Valence Fit" class="coach-avatar" title="Entrenador: Josemi (Valence Fit)">
+          </div>
           <div class="user-info-text">
             <span class="badge-name" id="user-display-name">VÍCTOR</span>
             <span class="badge-metrics" id="user-display-metrics">73 KG • 178 CM</span>
@@ -257,6 +264,10 @@
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
               <span class="mission-tag" id="mission-type-badge">CARGANDO...</span>
               <span class="mission-intensity" id="mission-intensity">ALTA INTENSIDAD</span>
+              <span class="coach-tag-running" id="mission-coach-tag" style="display:none;" title="Entrenamiento planificado por Josemi (Valence Fit)">
+                <img src="img/valence_fit.png" alt="Valence Fit" class="valence-mini-logo">
+                <span>COACH // VALENCE FIT</span>
+              </span>
             </div>
             <button class="btn-customize-plan" id="btn-today-open-workout-editor" style="padding:4px 8px; font-size:0.72rem;" title="Modificar este entrenamiento">
               <svg class="svg-ico" width="12" height="12" style="width:12px;height:12px;min-width:12px;max-width:12px;display:inline-block;vertical-align:middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -451,7 +462,10 @@
             <div class="hud-blocks" id="km-blocks">
               <!-- Render 10 blocks representing progress -->
             </div>
-            <span class="hud-info">Pacing óptimo hacia Maratón Valencia</span>
+            <span class="hud-info" style="display:flex; align-items:center; gap:6px;">
+              <img src="img/valence_fit.png" alt="Valence Fit" style="width:14px; height:14px; border-radius:50%; background:#fff; border:1px solid #000; object-fit:contain;">
+              <span>Planificación de carrera por Josemi (Valence Fit)</span>
+            </span>
           </div>
         </div>
 

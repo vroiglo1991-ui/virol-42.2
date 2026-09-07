@@ -549,6 +549,12 @@ function renderMission(dayIndex) {
   if (title) title.innerText = plan.title;
   if (meta) meta.innerHTML = `<span>${plan.meta}</span>`;
 
+  const coachTag = document.getElementById('mission-coach-tag');
+  const isRunning = (plan.km > 0) || (plan.discipline && plan.discipline.includes('RUN')) || (plan.typeBadge && plan.typeBadge.includes('RUN'));
+  if (coachTag) {
+    coachTag.style.display = isRunning ? 'inline-flex' : 'none';
+  }
+
   if (breakdown) {
     breakdown.innerHTML = plan.steps.map((s, idx) => `
       <div class="mission-step">
@@ -698,11 +704,15 @@ function renderScheduleCards() {
     const w = workouts[d] || DEFAULT_WORKOUTS[d];
     if (!w) return '';
     const stepsSummary = (w.steps || []).map(s => `${s.name} (${s.reps})`).join(', ');
+    const isRunning = (w.km > 0) || (w.discipline && w.discipline.includes('RUN'));
     return `
       <div class="day-card ${cardClasses[d] || 'card-pull'}" data-day-index="${d}">
         <div class="day-card-header">
           <span class="day-name">${w.name}</span>
-          <span class="day-discipline ${tagClasses[d] || 'tag-blue'}">${w.discipline}</span>
+          <div style="display:flex; gap:6px; align-items:center;">
+            ${isRunning ? `<span class="tag-valence" title="Entrenador: Josemi (Valence Fit)"><img src="img/valence_fit.png" alt="Valence Fit"> VALENCE FIT</span>` : ''}
+            <span class="day-discipline ${tagClasses[d] || 'tag-blue'}">${w.discipline}</span>
+          </div>
         </div>
         <h3 class="day-title">${w.title}</h3>
         <p class="day-desc">${stepsSummary}</p>

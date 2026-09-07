@@ -1,4 +1,4 @@
-const CACHE_NAME = 'virol-42k-v11';
+const CACHE_NAME = 'virol-42k-v13';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -6,7 +6,8 @@ const ASSETS_TO_CACHE = [
   './js/app.js',
   './manifest.json',
   './img/victor.png',
-  './img/virol_logo.png'
+  './img/virol_logo.png',
+  './img/valence_fit.png'
 ];
 
 self.addEventListener('install', event => {
