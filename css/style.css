@@ -246,9 +246,19 @@ body.brutalist-theme {
 }
 
 .btn-customize-plan:hover {
-  background: var(--c-volt);
-  color: #0F141F;
-  border-color: #000;
+  background: var(--c-volt) !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+.btn-customize-plan:hover span {
+  color: #000000 !important;
+}
+
+.btn-customize-plan:hover svg,
+.btn-customize-plan:hover .svg-ico {
+  stroke: #000000 !important;
+  color: #000000 !important;
 }
 
 .btn-customize-plan:active {
@@ -1705,34 +1715,6 @@ body.brutalist-theme {
 .market-card-head .svg-ico {
   margin-right: 6px;
   color: var(--c-volt);
-}
-
-/* CUSTOMIZE / EDIT BUTTONS */
-.btn-customize-plan {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--bg-card);
-  border: 2px solid var(--border-card);
-  color: var(--text-main);
-  padding: 6px 12px;
-  font-family: var(--font-sub);
-  font-weight: 800;
-  font-size: 0.76rem;
-  letter-spacing: 0.04em;
-  box-shadow: var(--shadow-hard);
-  cursor: pointer;
-  transition: transform 0.1s, border-color 0.2s, background-color 0.2s;
-}
-
-.btn-customize-plan:hover {
-  border-color: var(--c-volt);
-  color: var(--c-volt);
-}
-
-.btn-customize-plan:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0px #000;
 }
 
 /* MODAL EDITOR OVERLAY */
