@@ -16,7 +16,25 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;700;800;900&family=Space+Grotesk:wght@600;700;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=8">
+  <style>
+    /* HOVER SEGURO Y LEGIBLE: FONDO OSCURO + BORDE E ICONO AMARILLO NEÓN */
+    .btn-customize-plan:hover {
+      background: var(--bg-card-alt) !important;
+      color: var(--text-main) !important;
+      border-color: var(--c-volt) !important;
+      box-shadow: 0 0 10px rgba(212, 255, 0, 0.35) !important;
+      transform: translateY(-1px);
+    }
+    .btn-customize-plan:hover span {
+      color: var(--text-main) !important;
+    }
+    .btn-customize-plan:hover svg,
+    .btn-customize-plan:hover .svg-ico {
+      stroke: var(--c-volt) !important;
+      color: var(--c-volt) !important;
+    }
+  </style>
 </head>
 <body class="brutalist-theme">
 
@@ -875,6 +893,6 @@
     <span id="toast-msg">MENSAJE</span>
   </div>
 
-  <script src="js/app.js?v=7"></script>
+  <script src="js/app.js?v=8"></script>
 </body>
 </html>

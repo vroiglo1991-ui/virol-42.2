@@ -246,19 +246,21 @@ body.brutalist-theme {
 }
 
 .btn-customize-plan:hover {
-  background: var(--c-volt) !important;
-  color: #000000 !important;
-  border-color: #000000 !important;
+  background: var(--bg-card-alt) !important;
+  color: var(--text-main) !important;
+  border-color: var(--c-volt) !important;
+  box-shadow: 0 0 10px rgba(212, 255, 0, 0.35) !important;
+  transform: translateY(-1px);
 }
 
 .btn-customize-plan:hover span {
-  color: #000000 !important;
+  color: var(--text-main) !important;
 }
 
 .btn-customize-plan:hover svg,
 .btn-customize-plan:hover .svg-ico {
-  stroke: #000000 !important;
-  color: #000000 !important;
+  stroke: var(--c-volt) !important;
+  color: var(--c-volt) !important;
 }
 
 .btn-customize-plan:active {
