@@ -207,6 +207,14 @@ function getStoredState() {
       if (!parsed.days) parsed.days = {};
       if (!parsed.history) parsed.history = [];
       if (!parsed.lastUpdated) parsed.lastUpdated = 0;
+      if (!parsed.profile) {
+        parsed.profile = {
+          name: 'VÍCTOR',
+          weight: 73,
+          height: 178,
+          goal: 'VALENCIA 42K PRO'
+        };
+      }
       return parsed;
     }
   } catch (e) {
@@ -217,6 +225,12 @@ function getStoredState() {
     lastUpdated: 0,
     themeSetting: 'auto',
     soundEnabled: true,
+    profile: {
+      name: 'VÍCTOR',
+      weight: 73,
+      height: 178,
+      goal: 'VALENCIA 42K PRO'
+    },
     days: {},
     history: []
   };
@@ -225,6 +239,27 @@ function getStoredState() {
 let appState = getStoredState();
 let cloudPushTimer = null;
 let isFetchingCloud = false;
+
+function renderProfileHUD() {
+  const prof = appState.profile || { name: 'VÍCTOR', weight: 73, height: 178, goal: 'VALENCIA 42K PRO' };
+  const athleteName = (prof.name || 'VÍCTOR').toUpperCase();
+  const athleteWeight = prof.weight || 73;
+  const athleteHeight = prof.height || 178;
+
+  const nameEl = document.getElementById('user-display-name');
+  const metricsEl = document.getElementById('user-display-metrics');
+  const tagEl = document.getElementById('system-status-tag');
+  const dailyProgTitle = document.getElementById('daily-progress-title');
+  const navDietLabel = document.getElementById('tab-nav-diet-label');
+  const dietSecTitle = document.getElementById('diet-section-title');
+
+  if (nameEl) nameEl.innerText = athleteName;
+  if (metricsEl) metricsEl.innerText = `${athleteWeight} KG • ${athleteHeight} CM`;
+  if (tagEl) tagEl.innerText = `MODO PRO // ${athleteWeight} KG`;
+  if (dailyProgTitle) dailyProgTitle.innerText = `PROGRESO DEL DÍA (${athleteName})`;
+  if (navDietLabel) navDietLabel.innerText = `DIETA ${athleteWeight}KG`;
+  if (dietSecTitle) dietSecTitle.innerText = `COMBUSTIBLE Y NUTRICIÓN (${athleteName} ${athleteWeight} KG)`;
+}
 
 function updateSyncStatus(status, text) {
   const dot = document.getElementById('sync-dot');
@@ -269,7 +304,8 @@ async function pushToCloud() {
     const payload = {
       version: 1,
       appName: 'VIROL 42K PRO',
-      athlete: 'Víctor',
+      athlete: (appState.profile && appState.profile.name) ? appState.profile.name : 'Víctor',
+      profile: appState.profile || null,
       lastUpdated: appState.lastUpdated || Date.now(),
       days: appState.days || {},
       history: appState.history || [],
@@ -316,6 +352,7 @@ async function syncFromCloud(silent = false) {
         appState.days = cloudData.days || {};
         appState.history = cloudData.history || [];
         appState.lastUpdated = cloudUpdated;
+        if (cloudData.profile) appState.profile = cloudData.profile;
         if (cloudData.themeSetting) appState.themeSetting = cloudData.themeSetting;
         if (typeof cloudData.soundEnabled === 'boolean') appState.soundEnabled = cloudData.soundEnabled;
         if (cloudData.customMeals) appState.customMeals = cloudData.customMeals;
@@ -324,6 +361,7 @@ async function syncFromCloud(silent = false) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
 
         // Refrescar interfaces
+        renderProfileHUD();
         applyTheme(appState.themeSetting || 'auto');
         renderMission(selectedDayIndex);
         renderHistory();
@@ -680,20 +718,39 @@ function renderScheduleCards() {
 function initPlanEditor() {
   const modalOverlay = document.getElementById('editor-modal-overlay');
   const btnClose = document.getElementById('btn-close-editor');
+
+  // Trigger buttons
+  const btnOpenProfile = document.getElementById('btn-open-profile-editor');
+  const btnHeaderOpen = document.getElementById('btn-header-open-editor');
+  const btnTodayWorkout = document.getElementById('btn-today-open-workout-editor');
+  const btnTodayMeal = document.getElementById('btn-today-open-meal-editor');
   const btnOpenMeals = document.getElementById('btn-open-meal-editor');
   const btnOpenPlan = document.getElementById('btn-open-plan-editor');
 
+  // Tab buttons
+  const tabProfileBtn = document.getElementById('btn-tab-edit-profile');
   const tabMealsBtn = document.getElementById('btn-tab-edit-meals');
   const tabWorkoutsBtn = document.getElementById('btn-tab-edit-workouts');
+
+  // Panes
+  const paneProfile = document.getElementById('pane-edit-profile');
   const paneMeals = document.getElementById('pane-edit-meals');
   const paneWorkouts = document.getElementById('pane-edit-workouts');
 
+  // Profile inputs
+  const profileNameInput = document.getElementById('edit-profile-name');
+  const profileWeightInput = document.getElementById('edit-profile-weight');
+  const profileHeightInput = document.getElementById('edit-profile-height');
+  const profileGoalInput = document.getElementById('edit-profile-goal');
+
+  // Meal inputs
   const mealSelect = document.getElementById('edit-meal-select');
   const mealNameInput = document.getElementById('edit-meal-name');
   const mealTimeInput = document.getElementById('edit-meal-time');
   const mealDescInput = document.getElementById('edit-meal-desc');
   const mealItemsTextarea = document.getElementById('edit-meal-items');
 
+  // Workout inputs
   const workoutSelect = document.getElementById('edit-workout-select');
   const workoutDisciplineInput = document.getElementById('edit-workout-discipline');
   const workoutTitleInput = document.getElementById('edit-workout-title');
@@ -703,23 +760,33 @@ function initPlanEditor() {
   const btnSave = document.getElementById('btn-save-custom-plan');
   const btnReset = document.getElementById('btn-reset-defaults');
 
-  let currentTab = 'meals';
+  let currentTab = 'profile';
 
-  function openEditor(tab = 'meals') {
+  function openEditor(tab = 'profile') {
     currentTab = tab;
-    if (tab === 'meals') {
+
+    if (tabProfileBtn) tabProfileBtn.classList.remove('active');
+    if (tabMealsBtn) tabMealsBtn.classList.remove('active');
+    if (tabWorkoutsBtn) tabWorkoutsBtn.classList.remove('active');
+
+    if (paneProfile) paneProfile.style.display = 'none';
+    if (paneMeals) paneMeals.style.display = 'none';
+    if (paneWorkouts) paneWorkouts.style.display = 'none';
+
+    if (tab === 'profile') {
+      if (tabProfileBtn) tabProfileBtn.classList.add('active');
+      if (paneProfile) paneProfile.style.display = 'flex';
+      loadProfileIntoForm();
+    } else if (tab === 'meals') {
       if (tabMealsBtn) tabMealsBtn.classList.add('active');
-      if (tabWorkoutsBtn) tabWorkoutsBtn.classList.remove('active');
       if (paneMeals) paneMeals.style.display = 'flex';
-      if (paneWorkouts) paneWorkouts.style.display = 'none';
       if (mealSelect) loadMealIntoForm(mealSelect.value);
     } else {
       if (tabWorkoutsBtn) tabWorkoutsBtn.classList.add('active');
-      if (tabMealsBtn) tabMealsBtn.classList.remove('active');
       if (paneWorkouts) paneWorkouts.style.display = 'flex';
-      if (paneMeals) paneMeals.style.display = 'none';
       if (workoutSelect) loadWorkoutIntoForm(workoutSelect.value);
     }
+
     if (modalOverlay) modalOverlay.classList.add('active');
   }
 
@@ -727,6 +794,11 @@ function initPlanEditor() {
     if (modalOverlay) modalOverlay.classList.remove('active');
   }
 
+  // Bind open trigger buttons
+  if (btnOpenProfile) btnOpenProfile.addEventListener('click', () => openEditor('profile'));
+  if (btnHeaderOpen) btnHeaderOpen.addEventListener('click', () => openEditor('profile'));
+  if (btnTodayWorkout) btnTodayWorkout.addEventListener('click', () => openEditor('workouts'));
+  if (btnTodayMeal) btnTodayMeal.addEventListener('click', () => openEditor('meals'));
   if (btnOpenMeals) btnOpenMeals.addEventListener('click', () => openEditor('meals'));
   if (btnOpenPlan) btnOpenPlan.addEventListener('click', () => openEditor('workouts'));
   if (btnClose) btnClose.addEventListener('click', closeEditor);
@@ -737,11 +809,17 @@ function initPlanEditor() {
     });
   }
 
-  if (tabMealsBtn) {
-    tabMealsBtn.addEventListener('click', () => openEditor('meals'));
-  }
-  if (tabWorkoutsBtn) {
-    tabWorkoutsBtn.addEventListener('click', () => openEditor('workouts'));
+  // Bind modal tabs
+  if (tabProfileBtn) tabProfileBtn.addEventListener('click', () => openEditor('profile'));
+  if (tabMealsBtn) tabMealsBtn.addEventListener('click', () => openEditor('meals'));
+  if (tabWorkoutsBtn) tabWorkoutsBtn.addEventListener('click', () => openEditor('workouts'));
+
+  function loadProfileIntoForm() {
+    const prof = appState.profile || { name: 'VÍCTOR', weight: 73, height: 178, goal: 'VALENCIA 42K PRO' };
+    if (profileNameInput) profileNameInput.value = prof.name || '';
+    if (profileWeightInput) profileWeightInput.value = prof.weight || 73;
+    if (profileHeightInput) profileHeightInput.value = prof.height || 178;
+    if (profileGoalInput) profileGoalInput.value = prof.goal || '';
   }
 
   function loadMealIntoForm(mealKey) {
@@ -778,7 +856,22 @@ function initPlanEditor() {
 
   if (btnSave) {
     btnSave.addEventListener('click', () => {
-      if (currentTab === 'meals') {
+      if (currentTab === 'profile') {
+        const pName = profileNameInput ? profileNameInput.value.trim() : 'Víctor';
+        const pWeight = parseFloat(profileWeightInput ? profileWeightInput.value : 73) || 73;
+        const pHeight = parseFloat(profileHeightInput ? profileHeightInput.value : 178) || 178;
+        const pGoal = profileGoalInput ? profileGoalInput.value.trim() : 'VALENCIA 42K PRO';
+
+        appState.profile = {
+          name: pName || 'Víctor',
+          weight: pWeight,
+          height: pHeight,
+          goal: pGoal || 'VALENCIA 42K PRO'
+        };
+
+        renderProfileHUD();
+        showToast(`👤 PERFIL ACTUALIZADO: ${appState.profile.name.toUpperCase()} (${appState.profile.weight} KG)`);
+      } else if (currentTab === 'meals') {
         const mealKey = mealSelect.value;
         if (!appState.customMeals) {
           appState.customMeals = JSON.parse(JSON.stringify(DEFAULT_MEALS));
@@ -839,16 +932,23 @@ function initPlanEditor() {
 
   if (btnReset) {
     btnReset.addEventListener('click', () => {
-      if (confirm('¿Restaurar el plan de entrenamiento y nutrición al original (73 kg Mercadona)?')) {
+      if (confirm('¿Restaurar datos de atleta, entrenamientos y menú al original (Víctor 73 kg Mercadona)?')) {
+        appState.profile = {
+          name: 'VÍCTOR',
+          weight: 73,
+          height: 178,
+          goal: 'VALENCIA 42K PRO'
+        };
         delete appState.customMeals;
         delete appState.customWorkouts;
         saveState(appState);
         playCheckSound();
+        renderProfileHUD();
         renderMission(selectedDayIndex);
         renderMealsTab();
         renderScheduleCards();
         closeEditor();
-        showToast('🔄 PLAN RESTAURADO AL ORIGINAL (73 KG)');
+        showToast('🔄 PLAN Y DATOS RESTAURADOS AL ORIGINAL');
       }
     });
   }
@@ -1039,6 +1139,9 @@ function showToast(msg) {
 
 // 10. INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
+  // Render profile HUD
+  renderProfileHUD();
+
   // Apply visual theme
   applyTheme(appState.themeSetting || 'auto');
 
