@@ -2114,3 +2114,397 @@ body.brutalist-theme {
   color: var(--c-red);
   border-color: var(--c-red);
 }
+
+/* ==========================================================================
+   STRAVA ENGINE & REALTIME SYNC WIDGET
+   ========================================================================== */
+:root {
+  --c-strava: #FC4C02;
+  --c-strava-glow: rgba(252, 76, 2, 0.35);
+}
+
+.btn-strava-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card-alt);
+  color: var(--text-main);
+  border: 2px solid var(--border-card);
+  padding: 4px 10px;
+  font-family: var(--font-sub);
+  font-weight: 900;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px #000;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.2s;
+}
+
+.btn-strava-badge svg {
+  color: var(--c-strava);
+}
+
+.btn-strava-badge:hover {
+  border-color: var(--c-strava);
+  box-shadow: 0 0 10px var(--c-strava-glow), 2px 2px 0px #000;
+  transform: translateY(-1px);
+}
+
+.btn-strava-badge.connected {
+  border-color: var(--c-strava);
+  color: var(--c-strava);
+}
+
+@media (max-width: 768px) {
+  .btn-strava-badge {
+    padding: 6px 8px;
+    min-width: 32px;
+    justify-content: center;
+  }
+  #strava-header-text {
+    display: none;
+  }
+}
+
+.action-btn-strava-sync {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #11151F;
+  color: #FFFFFF;
+  border: 2px solid var(--c-strava);
+  padding: 10px 14px;
+  font-family: var(--font-sub);
+  font-weight: 900;
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: var(--shadow-hard);
+  transition: all 0.15s ease;
+}
+
+[data-theme="light"] .action-btn-strava-sync {
+  background: #FFFFFF;
+  color: #0F141F;
+}
+
+.action-btn-strava-sync svg {
+  color: var(--c-strava);
+}
+
+.action-btn-strava-sync:hover {
+  background: var(--c-strava);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow: 0 0 14px var(--c-strava-glow), var(--shadow-hard);
+}
+
+.action-btn-strava-sync:hover svg {
+  color: #FFFFFF;
+}
+
+/* STRAVA ACTIVITY CARD IN MISSION CARD */
+.strava-activity-hud {
+  margin: 12px 0 16px 0;
+  background: rgba(252, 76, 2, 0.06);
+  border: 2px solid var(--c-strava);
+  padding: 12px 14px;
+  box-shadow: 3px 3px 0px #000000;
+}
+
+.strava-hud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(252, 76, 2, 0.35);
+}
+
+.strava-badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--c-strava);
+  color: #FFFFFF;
+  padding: 2px 8px;
+  font-family: var(--font-sub);
+  font-weight: 900;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.strava-effort-status {
+  font-family: var(--font-sub);
+  font-weight: 800;
+  font-size: 0.76rem;
+  color: var(--c-volt);
+  background: #000000;
+  padding: 2px 8px;
+  border: 1px solid var(--c-volt);
+}
+
+.strava-grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.strava-stat-col {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  padding: 6px 10px;
+}
+
+.strava-stat-col .stat-lbl {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  font-family: var(--font-sub);
+}
+
+.strava-stat-col .stat-val {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  line-height: 1.1;
+  color: var(--text-main);
+  letter-spacing: 0.03em;
+}
+
+.strava-bar-wrapper {
+  margin-top: 8px;
+}
+
+.strava-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: var(--font-sub);
+  margin-bottom: 4px;
+}
+
+.strava-bar-track {
+  height: 8px;
+  background: var(--bg-step);
+  border: 1px solid var(--border-card);
+  overflow: hidden;
+}
+
+.strava-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-strava) 0%, var(--c-volt) 100%);
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   AI NUTRITION BANNER & GENERATOR MODAL
+   ========================================================================== */
+.ai-nutrition-banner {
+  background: linear-gradient(135deg, rgba(212, 255, 0, 0.08) 0%, rgba(43, 92, 255, 0.08) 100%), var(--bg-card);
+  border: 2px solid var(--border-card);
+  box-shadow: var(--shadow-chunky);
+  padding: 1.25rem 1.4rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-nutrition-banner::before {
+  content: "AI // ENGINE";
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  font-family: var(--font-display);
+  font-size: 3.8rem;
+  color: rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+  line-height: 1;
+}
+
+.ai-banner-content {
+  flex: 1;
+  min-width: 260px;
+}
+
+.ai-banner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--c-volt);
+  color: #000000;
+  font-family: var(--font-sub);
+  font-size: 0.68rem;
+  font-weight: 900;
+  padding: 2px 8px;
+  margin-bottom: 6px;
+  border: 1px solid #000000;
+  letter-spacing: 0.04em;
+}
+
+.ai-banner-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--text-main);
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+
+.ai-banner-desc {
+  font-size: 0.85rem;
+  color: var(--text-sub);
+  line-height: 1.35;
+  max-width: 600px;
+}
+
+.btn-open-ai-nutrition {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--c-volt);
+  color: #0F141F;
+  border: 2px solid #000000;
+  padding: 10px 18px;
+  font-family: var(--font-sub);
+  font-weight: 900;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-hard);
+  transition: transform 0.12s ease, filter 0.12s ease;
+  white-space: nowrap;
+}
+
+.btn-open-ai-nutrition:hover {
+  filter: brightness(1.12);
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px rgba(212, 255, 0, 0.4), var(--shadow-hard);
+}
+
+.btn-open-ai-nutrition:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px #000;
+}
+
+/* CHIPS & INTERACTIVE INGREDIENTS */
+.chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+  margin-bottom: 12px;
+}
+
+.ingredient-chip {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  color: var(--text-sub);
+  padding: 5px 10px;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+  transition: all 0.12s ease;
+}
+
+.ingredient-chip:hover {
+  border-color: var(--c-volt);
+  color: var(--text-main);
+}
+
+.ingredient-chip.selected {
+  background: var(--c-volt);
+  color: #000000;
+  border-color: #000000;
+  box-shadow: 2px 2px 0px #000;
+  font-weight: 900;
+}
+
+/* AI MEAL PREVIEW GRID */
+.ai-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.ai-meal-preview-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border-card);
+  padding: 12px;
+  box-shadow: 3px 3px 0px #000;
+}
+
+.ai-meal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border-light);
+}
+
+.ai-meal-name {
+  font-family: var(--font-sub);
+  font-weight: 900;
+  font-size: 0.85rem;
+  color: var(--c-volt);
+}
+
+.ai-meal-time {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.ai-meal-items-list {
+  list-style: none;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-sub);
+}
+
+.ai-meal-items-list li {
+  margin-bottom: 4px;
+  display: flex;
+  gap: 6px;
+}
+
+.ai-meal-items-list .g-qty {
+  font-weight: 900;
+  color: var(--c-orange);
+  min-width: 60px;
+}
+
+.ai-quick-btn {
+  background: transparent;
+  color: var(--c-volt);
+  border: 1px dashed var(--c-volt);
+  padding: 4px 10px;
+  font-family: var(--font-sub);
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-quick-btn:hover {
+  background: var(--c-volt);
+  color: #000000;
+  border-style: solid;
+}
+

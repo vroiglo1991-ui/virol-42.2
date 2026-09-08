@@ -1,4 +1,4 @@
-const CACHE_NAME = 'virol-42k-v15';
+const CACHE_NAME = 'virol-42k-v17';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

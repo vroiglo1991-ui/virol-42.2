@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;700;800;900&family=Space+Grotesk:wght@600;700;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/style.css?v=15">
+  <link rel="stylesheet" href="css/style.css?v=17">
   <style>
     /* HOVER SEGURO Y LEGIBLE: FONDO OSCURO + BORDE E ICONO AMARILLO NEÓN */
     .btn-customize-plan:hover {
@@ -104,6 +104,15 @@
       .sync-text {
         display: none !important;
       }
+      .btn-strava-badge {
+        padding: 6px 8px !important;
+        min-width: 32px !important;
+        display: inline-flex !important;
+        justify-content: center !important;
+      }
+      #strava-header-text {
+        display: none !important;
+      }
       .btn-customize-plan {
         padding: 6px 8px !important;
       }
@@ -153,6 +162,12 @@
             <span class="sync-dot" id="sync-dot"></span>
             <span class="sync-text" id="sync-text">NUBE OK</span>
           </div>
+
+          <!-- STRAVA SYNC BADGE & TRIGGER BUTTON -->
+          <button class="btn-strava-badge" id="btn-header-open-strava" title="Sincronizar entrenamientos con Strava">
+            <svg class="svg-ico" width="14" height="14" style="width:14px;height:14px;max-width:14px;max-height:14px;display:inline-block;vertical-align:middle;" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
+            <span id="strava-header-text">STRAVA</span>
+          </button>
 
           <!-- EDIT CUSTOM PLAN & PROFILE BUTTON -->
           <button class="btn-customize-plan" id="btn-header-open-editor" title="Personalizar datos del atleta, menú y entrenamientos">
@@ -276,10 +291,19 @@
             <!-- Dynamic workout breakdown -->
           </div>
 
+          <!-- STRAVA ACTIVITY REALTIME WIDGET (DYNAMIC) -->
+          <div class="strava-activity-hud" id="strava-activity-hud" style="display:none;">
+            <!-- Rendered dynamically by js/app.js -->
+          </div>
+
           <div class="mission-action-bar">
             <button class="action-btn-large btn-complete-workout" id="btn-toggle-workout">
               <span class="check-box-square"></span>
               <span class="txt">MARCAR ENTRENO COMPLETADO</span>
+            </button>
+            <button class="action-btn-strava-sync" id="btn-today-sync-strava" title="Sincronizar con Strava y validar esfuerzo">
+              <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
+              <span>SINCRONIZAR STRAVA</span>
             </button>
           </div>
         </div>
@@ -596,9 +620,28 @@
             <h2 class="sec-title" id="diet-section-title">COMBUSTIBLE Y NUTRICIÓN (VÍCTOR 73 KG)</h2>
             <p class="sec-sub">CALCULADO AL GRAMO PARA MANTENER FUERZA Y RENDIR AL MÁXIMO</p>
           </div>
-          <button class="btn-customize-plan" id="btn-open-meal-editor">
-            <svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            <span>PERSONALIZAR MENÚ</span>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-open-ai-nutrition" id="btn-open-ai-nutrition-head" style="padding:7px 12px; font-size:0.78rem;">
+              <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              <span>GENERAR CON IA</span>
+            </button>
+            <button class="btn-customize-plan" id="btn-open-meal-editor">
+              <svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <span>PERSONALIZAR MENÚ</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- AI NUTRITION GENERATOR PROMO BANNER -->
+        <div class="ai-nutrition-banner">
+          <div class="ai-banner-content">
+            <div class="ai-banner-badge">IA NUTRICIONAL // ZERO DESPERDICIO</div>
+            <h3 class="ai-banner-title">CREAR MENÚ SEMANAL CON TU COMPRA REAL</h3>
+            <p class="ai-banner-desc">Introduce qué compraste en Mercadona (o pega tu ticket) y la IA repartirá el menú con tus macros exactos (~2.850 kcal para 73 kg), priorizando lo perecedero.</p>
+          </div>
+          <button class="btn-open-ai-nutrition" id="btn-open-ai-nutrition">
+            <svg class="svg-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            <span>GENERAR CON IA</span>
           </button>
         </div>
 
@@ -996,12 +1039,192 @@
     </div>
   </div>
 
+  <!-- ================= STRAVA CONFIG & SYNC MODAL ================= -->
+  <div class="editor-modal-overlay" id="strava-modal-overlay">
+    <div class="editor-modal" style="max-width:580px;">
+      <div class="editor-modal-head" style="border-bottom-color: var(--c-strava);">
+        <div class="editor-modal-title" style="color: var(--c-strava);">
+          <svg class="svg-ico lg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
+          <span>STRAVA ENGINE // SINCRONIZACIÓN & AUTO-CHECK</span>
+        </div>
+        <button class="editor-btn-close" id="btn-close-strava-modal">✕</button>
+      </div>
+
+      <div class="editor-body">
+        <div style="background:rgba(252,76,2,0.08); border:1px solid var(--c-strava); padding:10px 12px; margin-bottom:12px; font-size:0.8rem; line-height:1.4;">
+          <strong>⚡ VINCULACIÓN AUTOMÁTICA CON STRAVA:</strong> Al sincronizar, la app busca tus actividades de running recientes. Si tu esfuerzo alcanza el umbral de tolerancia (ej. 49 de 60 min = 82%), <strong>marca el entreno automáticamente como completado</strong> con tus métricas reales.
+        </div>
+
+        <div class="editor-field">
+          <label class="editor-label">TOKEN DE ACCESO STRAVA (PERSONAL ACCESS TOKEN):</label>
+          <input type="password" id="strava-token-input" class="editor-input" value="e879a9119db61a2e1c8edaa6bf2c10faa9bad366" placeholder="Pega tu token de Strava (ej: 8a7f9...)">
+          <span style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; display:block;">
+            ¿Dónde conseguirlo? En tu cuenta de Strava ➔ <a href="https://www.strava.com/settings/api" target="_blank" style="color:var(--c-strava); text-decoration:underline;">Ajustes ➔ Mi API</a> o genera uno con permisos <code>activity:read_all</code>.
+          </span>
+        </div>
+
+        <div class="editor-field">
+          <label class="editor-label">UMBRAL MÍNIMO DE ESFUERZO PARA AUTO-CHECK:</label>
+          <select id="strava-tolerance-select" class="editor-select">
+            <option value="60">60% del tiempo/km previstos (Muy flexible)</option>
+            <option value="70" selected>70% del tiempo/km previstos (Recomendado: 42+ min en sesión de 60 min)</option>
+            <option value="80">80% del tiempo/km previstos (Estricto)</option>
+            <option value="90">90% del tiempo/km previstos (Máxima exigencia)</option>
+          </select>
+        </div>
+
+        <div class="editor-field" style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+          <input type="checkbox" id="strava-autocheck-toggle" checked style="width:18px; height:18px; accent-color:var(--c-strava);">
+          <label for="strava-autocheck-toggle" style="font-size:0.82rem; font-weight:700; cursor:pointer;">
+            Marcar entreno automáticamente si supera el esfuerzo mínimo
+          </label>
+        </div>
+
+        <!-- VINCULACIÓN DIRECTA OAUTH & RECARGA DE HOY -->
+        <div style="border-top:1px dashed var(--border-light); margin-top:14px; padding-top:14px;">
+          <label class="editor-label" style="color:var(--c-strava);">1. CONEXIÓN DIRECTA CON TU CUENTA DE STRAVA:</label>
+          <p style="font-size:0.78rem; color:var(--text-sub); margin-bottom:10px;">
+            Para que Strava permita leer tus carreras automáticamente, requiere el permiso <code>activity:read_all</code>. Pulsa el botón para autorizar el acceso:
+          </p>
+          <a href="https://www.strava.com/oauth/authorize?client_id=243799&response_type=code&redirect_uri=https://virol.v-roiglo1991.workers.dev/&approval_prompt=force&scope=activity:read_all" target="_blank" class="action-btn-strava-sync" style="width:100%; justify-content:center; text-decoration:none; margin-bottom:14px;">
+            <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
+            <span>🔗 AUTORIZAR LECTURA DE ACTIVIDADES EN STRAVA</span>
+          </a>
+
+          <label class="editor-label" style="color:var(--c-volt);">2. CARGAR CARRERA DE HOY (DATOS REALES DE TU FOTO):</label>
+          <p style="font-size:0.78rem; color:var(--text-sub); margin-bottom:10px;">
+            Carga tus métricas exactas registradas en Strava a las 10:26: <strong>8,51 km • 49:09 • 5:46 /km • 8m • 712 kcal</strong>.
+          </p>
+          <button type="button" class="btn-open-ai-nutrition" id="btn-strava-simulate-today" style="background:var(--c-volt); color:#000; border-color:#000; width:100%; justify-content:center; font-weight:900;">
+            <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
+            <span>APLICAR CARRERA REAL DE HOY (8,51 KM • 49:09)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="editor-modal-foot">
+        <button class="btn-editor-reset" id="btn-strava-disconnect">DESCONECTAR</button>
+        <div style="display:flex; gap:8px;">
+          <button class="action-btn-strava-sync" id="btn-strava-fetch-now" style="padding:8px 14px; font-size:0.8rem;">
+            🔄 SINCRONIZAR AHORA
+          </button>
+          <button class="btn-editor-save" id="btn-save-strava-config" style="background:var(--c-strava); color:#fff;">
+            GUARDAR AJUSTES
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= AI NUTRITION GENERATOR MODAL ================= -->
+  <div class="editor-modal-overlay" id="ai-nutrition-modal-overlay">
+    <div class="editor-modal" style="max-width:760px;">
+      <div class="editor-modal-head" style="border-bottom-color: var(--c-volt);">
+        <div class="editor-modal-title" style="color: var(--c-volt);">
+          <svg class="svg-ico lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          <span>GENERADOR DE NUTRICIÓN IA // ZERO DESPERDICIO</span>
+        </div>
+        <button class="editor-btn-close" id="btn-close-ai-modal">✕</button>
+      </div>
+
+      <div class="editor-body">
+        <div style="background:rgba(212,255,0,0.06); border:1px solid var(--c-volt); padding:10px 12px; margin-bottom:12px; font-size:0.8rem; line-height:1.4;">
+          <strong>🎯 FILOSOFÍA ZERO WASTE:</strong> No compres comida que luego tires. Dinos qué has comprado en Mercadona y la IA te repartirá las cantidades exactas para clavar <strong>~2.850 kcal y 150g de proteína</strong> (Víctor 73 kg).
+        </div>
+
+        <!-- PASO 1: SELECCIONAR ALIMENTOS DISPONIBLES -->
+        <div class="editor-field">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <label class="editor-label">1. INGREDIENTES EN TU NEVERA / COMPRA MERCADONA:</label>
+            <button type="button" class="ai-quick-btn" id="btn-ai-load-market-list">
+              🛒 IMPORTAR MI LISTA MERCADONA
+            </button>
+          </div>
+          
+          <div class="chips-container" id="ai-ingredient-chips">
+            <span class="ingredient-chip selected" data-item="Lomo de cerdo">Lomo de cerdo</span>
+            <span class="ingredient-chip selected" data-item="Carne picada magra">Carne picada magra</span>
+            <span class="ingredient-chip selected" data-item="Atún claro">Atún claro</span>
+            <span class="ingredient-chip selected" data-item="Pechuga de pavo">Pechuga de pavo</span>
+            <span class="ingredient-chip selected" data-item="Jamón serrano">Jamón serrano</span>
+            <span class="ingredient-chip selected" data-item="Huevos">Huevos frescos</span>
+            <span class="ingredient-chip selected" data-item="Arroz">Arroz redondo</span>
+            <span class="ingredient-chip selected" data-item="Pasta">Pasta</span>
+            <span class="ingredient-chip selected" data-item="Patatas">Patatas</span>
+            <span class="ingredient-chip selected" data-item="Pan Rústico">Pan Rústico</span>
+            <span class="ingredient-chip selected" data-item="Tortitas de arroz">Tortitas arroz</span>
+            <span class="ingredient-chip selected" data-item="Plátanos">Plátanos de Canarias</span>
+            <span class="ingredient-chip selected" data-item="Queso tierno">Queso tierno</span>
+            <span class="ingredient-chip selected" data-item="Gazpacho tradicional">Gazpacho Mercadona</span>
+            <span class="ingredient-chip selected" data-item="Olivas">Olivas</span>
+            <span class="ingredient-chip selected" data-item="Aceite de Oliva Virgen Extra">AOVE</span>
+            <span class="ingredient-chip selected" data-item="Proteína Whey">Proteína Whey</span>
+            <span class="ingredient-chip" data-item="Copos de avena">Copos de avena</span>
+            <span class="ingredient-chip" data-item="Yogur griego">Yogur griego</span>
+            <span class="ingredient-chip" data-item="Aguacate">Aguacate</span>
+            <span class="ingredient-chip" data-item="Espinacas">Espinacas</span>
+          </div>
+
+          <label class="editor-label" style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+            O ESCRIBE/PEGA OTROS INGREDIENTES O TU TICKET DE COMPRA:
+          </label>
+          <textarea id="ai-custom-ingredients-text" class="editor-textarea" rows="2" placeholder="Ej: 1kg pechuga de pollo, 500g ternera, espinacas frescas, queso batido..."></textarea>
+        </div>
+
+        <!-- PASO 2: OBJETIVO Y OPCIONAL GEMINI API KEY -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;">
+          <div class="editor-field">
+            <label class="editor-label">CALORÍAS OBJETIVO / DÍA:</label>
+            <input type="number" id="ai-target-calories" class="editor-input" value="2850" step="50">
+          </div>
+          <div class="editor-field">
+            <label class="editor-label">PROTEÍNA DIARIA (VÍCTOR 73 KG):</label>
+            <input type="number" id="ai-target-protein" class="editor-input" value="150" step="5">
+          </div>
+        </div>
+
+        <div class="editor-field" style="margin-top:4px;">
+          <label class="editor-label">GEMINI API KEY (OPCIONAL):</label>
+          <input type="password" id="ai-gemini-key" class="editor-input" placeholder="Si tienes clave de Gemini, pégala aquí. Si no, nuestro motor algorítmico genera tu menú gratis">
+        </div>
+
+        <!-- BOTÓN GENERAR -->
+        <div style="margin-top:14px;">
+          <button type="button" class="btn-open-ai-nutrition" id="btn-run-ai-generation" style="width:100%; justify-content:center; padding:12px 18px; font-size:0.95rem;">
+            ⚡ GENERAR MENÚ PERSONALIZADO AL GRAMO CON IA
+          </button>
+        </div>
+
+        <!-- PREVISUALIZACIÓN DE RESULTADOS -->
+        <div id="ai-generation-results" style="display:none; margin-top:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="editor-label" style="color:var(--c-volt); font-size:0.9rem;">
+              MENÚ GENERADO SEGÚN TU COMPRA (BALANCEADO):
+            </label>
+            <span class="chk-pill tag-volt" id="ai-result-summary-pill">~2.850 KCAL • 152G PRO</span>
+          </div>
+          <div class="ai-preview-grid" id="ai-preview-grid-cards">
+            <!-- Dynamic meal cards rendered by js/app.js -->
+          </div>
+        </div>
+
+      </div>
+
+      <div class="editor-modal-foot">
+        <button class="btn-editor-reset" id="btn-cancel-ai">CANCELAR</button>
+        <button class="btn-editor-save" id="btn-apply-ai-meals" style="display:none;">
+          ✅ APLICAR ESTE MENÚ A MI PLAN
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- FLOATING NOTIFICATION / TOAST -->
   <div id="toast" class="brutal-toast">
     <span class="toast-icon">⚡</span>
     <span id="toast-msg">MENSAJE</span>
   </div>
 
-  <script src="js/app.js?v=15"></script>
+  <script src="js/app.js?v=17"></script>
 </body>
 </html>
