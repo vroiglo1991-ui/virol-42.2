@@ -1,8 +1,17 @@
-const CACHE_NAME = 'virol-42k-v21';
+const CACHE_NAME = 'virol-42k-v28';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './css/style.css',
+  './js/constants.js',
+  './js/state.js',
+  './js/sync.js',
+  './js/alarms.js',
+  './js/running.js',
+  './js/strava.js',
+  './js/ui.js',
+  './js/ai-nutrition.js',
+  './js/chat.js',
   './js/app.js',
   './manifest.json',
   './img/victor.png',

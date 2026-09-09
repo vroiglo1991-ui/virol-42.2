@@ -237,7 +237,14 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
           }
         };
 
-        const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
+        const models = [
+          'gemini-3.7-flash',
+          'gemini-3.6-flash',
+          'gemini-3.5-flash',
+          'gemini-3.5-flash-lite',
+          'gemini-flash-latest',
+          'gemini-2.5-flash'
+        ];
         let geminiData = null;
         let lastErrorText = '';
 
@@ -254,9 +261,10 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
               break;
             } else {
               lastErrorText = await geminiRes.text();
+              console.warn(`Fallback modelo ${model} falló:`, geminiRes.status, lastErrorText);
             }
-          } catch (e) {
-            lastErrorText = e.message;
+          } catch (fetchErr) {
+            lastErrorText = fetchErr.message;
           }
         }
 
@@ -264,7 +272,22 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
           return corsResponse({ error: 'Fallo al invocar Gemini API', detail: lastErrorText }, 502);
         }
 
-        const analysis = JSON.parse(geminiData.candidates[0].content.parts[0].text);
+        const rawText = geminiData.candidates[0].content.parts[0].text;
+        let parsedResult = null;
+        try {
+          parsedResult = JSON.parse(rawText);
+        } catch (_) {
+          parsedResult = {
+            raw_text: rawText,
+            status_badge: 'OPTIMIZACIÓN REQUERIDA',
+            fatigue_score: 5,
+            injury_risk: 'Medio',
+            summary_headline: 'Análisis generado',
+            weekly_diagnosis: rawText,
+            actionable_adjustments: ['Revisar hidratación', 'Mantener descanso'],
+            nutrition_focus: 'Priorizar carbohidratos complejos'
+          };
+        }
 
         return corsResponse({
           metrics: {
@@ -274,7 +297,7 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
             avgSleep,
             avgRPE
           },
-          analysis
+          ...parsedResult
         }, 200);
 
       } catch (err) {
@@ -294,7 +317,7 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
         try {
           body = await request.json();
         } catch (_) {
-          return corsResponse({ error: 'Body inválido' }, 400);
+          return corsResponse({ error: 'Payload JSON inválido' }, 400);
         }
 
         const userMessage = body.message || '';
@@ -311,7 +334,7 @@ ${contextStr}
 
 CAPACIDADES DEL COACH (AGÉNTICO):
 1. ACCIONES EN LA APP:
-Si el atleta te pide agregar/quitar alimentos en el menú diario, o modificar productos de la cesta de Mercadona, o ajustar ritmos/kilometraje de un día de entrenamiento, DEBES incluir esas acciones en el array "actions" para que la app se auto-actualice.
+Si el atleta te pide agregar/quitar alimentos en el menú diario, o modificar productos de la cesta de Mercadona, o ajustar ritmos/kilometraje de un día de entrenamiento, o marcar suplementos/comidas como tomados/completados, DEBES incluir esas acciones en el array "actions" para que la app se auto-actualice.
 Tipos de acciones soportadas:
 - { "type": "ADD_MERCADONA_ITEM", "category": "proteins"|"carbs"|"fresh"|"supplements", "name": "Nombre producto", "weight": "Cantidad estimada ej: 1 paquete o 500g" }
 - { "type": "REMOVE_MERCADONA_ITEM", "name": "Nombre del producto a quitar" }
@@ -320,6 +343,8 @@ Tipos de acciones soportadas:
 - { "type": "ADJUST_WORKOUT", "dayIdx": 0..6, "km": 14, "note": "Breve nota de ajuste" } (0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado)
 - { "type": "TRIGGER_NOTIFICATION", "title": "Título de la notificación", "message": "Mensaje de aviso o alerta para el atleta" }
 - { "type": "SET_ALARM", "alarm": "workout"|"creatina"|"hidratacion"|"magnesio", "time": "HH:MM", "title": "Título del aviso" }
+- { "type": "CHECK_ITEM", "key": "supp_creatina"|"supp_omega3"|"supp_whey"|"supp_magnesio"|"meal_desayuno"|"meal_snack"|"meal_comida"|"meal_merienda"|"meal_cena"|"workoutCompleted" } — marca ese ítem como COMPLETADO hoy
+- { "type": "UNCHECK_ITEM", "key": "..." } — desmarca ese ítem
 
 2. MODO ENTREVISTA CLAUDE / "GRILL ME":
 De vez en cuando, o cuando Víctor te plantee dudas sobre su rendimiento, fatiga, ritmos, sensaciones post-tirada, o nuevas ideas de menú/suplementación, NO TE LIMITES A ACEPTAR O DAR UNA RESPUESTA GENÉRICA.
@@ -362,9 +387,16 @@ RESPONDE OBLIGATORIAMENTE EN FORMATO JSON ESTRICTO con la siguiente estructura:
           }
         };
 
-        const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest'];
+        const models = [
+          'gemini-3.7-flash',
+          'gemini-3.6-flash',
+          'gemini-3.5-flash',
+          'gemini-3.5-flash-lite',
+          'gemini-flash-latest',
+          'gemini-2.5-flash'
+        ];
         let geminiData = null;
-        let lastErrorText = '';
+        const modelErrors = [];
 
         for (const model of models) {
           try {
@@ -378,15 +410,16 @@ RESPONDE OBLIGATORIAMENTE EN FORMATO JSON ESTRICTO con la siguiente estructura:
               geminiData = await geminiRes.json();
               break;
             } else {
-              lastErrorText = await geminiRes.text();
+              const errTxt = await geminiRes.text();
+              modelErrors.push({ model, status: geminiRes.status, error: errTxt });
             }
           } catch (e) {
-            lastErrorText = e.message;
+            modelErrors.push({ model, exception: e.message });
           }
         }
 
         if (!geminiData || !geminiData.candidates || !geminiData.candidates[0]) {
-          return corsResponse({ error: 'Fallo al invocar Gemini API en chat', detail: lastErrorText }, 502);
+          return corsResponse({ error: 'Fallo al invocar Gemini API en chat', attempts: modelErrors }, 502);
         }
 
         const rawText = geminiData.candidates[0].content.parts[0].text;
