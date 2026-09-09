@@ -318,6 +318,8 @@ Tipos de acciones soportadas:
 - { "type": "ADD_MEAL_ITEM", "meal": "desayuno"|"snack"|"comida"|"merienda"|"cena", "qty": "Cantidad ej: 2 uds o 150g", "text": "Alimento ej: Huevos cocidos" }
 - { "type": "REMOVE_MEAL_ITEM", "meal": "desayuno"|"snack"|"comida"|"merienda"|"cena", "text": "Alimento a retirar" }
 - { "type": "ADJUST_WORKOUT", "dayIdx": 0..6, "km": 14, "note": "Breve nota de ajuste" } (0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado)
+- { "type": "TRIGGER_NOTIFICATION", "title": "Título de la notificación", "message": "Mensaje de aviso o alerta para el atleta" }
+- { "type": "SET_ALARM", "alarm": "workout"|"creatina"|"hidratacion"|"magnesio", "time": "HH:MM", "title": "Título del aviso" }
 
 2. MODO ENTREVISTA CLAUDE / "GRILL ME":
 De vez en cuando, o cuando Víctor te plantee dudas sobre su rendimiento, fatiga, ritmos, sensaciones post-tirada, o nuevas ideas de menú/suplementación, NO TE LIMITES A ACEPTAR O DAR UNA RESPUESTA GENÉRICA.

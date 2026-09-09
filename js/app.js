@@ -3300,6 +3300,27 @@ function dispatchChatActions(actions) {
         executedNotes.push(`Ajustado entreno ${appState.customWorkouts[day].name}`);
       }
     }
+
+    // 6. TRIGGER_NOTIFICATION
+    else if (act.type === 'TRIGGER_NOTIFICATION') {
+      const title = act.title || '🚨 AVISO DEL COACH';
+      const body = act.message || act.body || 'Nuevo recordatorio de tu preparación Valencia 42K';
+      triggerSystemNotification(title, body, 'coach-alert-' + Date.now());
+      executedNotes.push(`Notificación: ${title}`);
+    }
+
+    // 7. SET_ALARM
+    else if (act.type === 'SET_ALARM') {
+      if (!appState.alarms) appState.alarms = {};
+      const alarmKey = act.alarm || 'workout';
+      if (appState.alarms[alarmKey]) {
+        if (act.time) appState.alarms[alarmKey].time = act.time;
+        if (act.title) appState.alarms[alarmKey].title = act.title;
+        appState.alarms[alarmKey].enabled = true;
+        updateAlarmsUI();
+        executedNotes.push(`Alarma ${alarmKey} programada (${act.time || appState.alarms[alarmKey].time})`);
+      }
+    }
   }
 
   if (executedNotes.length > 0) {
@@ -3331,7 +3352,19 @@ function initChatbot() {
   btnOpen.addEventListener('click', () => {
     modal.classList.add('active');
     setTimeout(() => input.focus(), 100);
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
   });
+
+  const btnDietAdvisor = document.getElementById('btn-chat-diet-advisor');
+  if (btnDietAdvisor) {
+    btnDietAdvisor.addEventListener('click', () => {
+      modal.classList.add('active');
+      input.value = 'Coach, quiero ajustar mi menú de comidas según mi entrenamiento. ¿Qué me recomiendas cambiar o añadir?';
+      setTimeout(() => input.focus(), 100);
+    });
+  }
 
   const closeModal = () => modal.classList.remove('active');
   btnClose.addEventListener('click', closeModal);

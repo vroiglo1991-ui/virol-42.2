@@ -865,28 +865,15 @@
             <p class="sec-sub">CALCULADO AL GRAMO PARA MANTENER FUERZA Y RENDIR AL MÁXIMO</p>
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button class="btn-open-ai-nutrition" id="btn-open-ai-nutrition-head" style="padding:7px 12px; font-size:0.78rem;">
-              <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              <span>GENERAR CON IA</span>
+            <button class="btn-customize-plan" id="btn-chat-diet-advisor" style="background: var(--c-volt); color: #000; border-color: #000;">
+              <svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span>PEDIR CAMBIOS AL COACH</span>
             </button>
             <button class="btn-customize-plan" id="btn-open-meal-editor">
               <svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               <span>PERSONALIZAR MENÚ</span>
             </button>
           </div>
-        </div>
-
-        <!-- AI NUTRITION GENERATOR PROMO BANNER -->
-        <div class="ai-nutrition-banner">
-          <div class="ai-banner-content">
-            <div class="ai-banner-badge">IA NUTRICIONAL // ZERO DESPERDICIO</div>
-            <h3 class="ai-banner-title">CREAR MENÚ SEMANAL CON TU COMPRA REAL</h3>
-            <p class="ai-banner-desc">Introduce qué compraste en Mercadona (o pega tu ticket) y la IA repartirá el menú con tus macros exactos (~2.850 kcal para 73 kg), priorizando lo perecedero.</p>
-          </div>
-          <button class="btn-open-ai-nutrition" id="btn-open-ai-nutrition">
-            <svg class="svg-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-            <span>GENERAR CON IA</span>
-          </button>
         </div>
 
         <!-- MACROS TARGET HUD -->
@@ -1481,20 +1468,14 @@
           </div>
         </div>
 
-        <!-- GEMINI KEY + RECOMENDACIONES -->
-        <div style="display:grid; grid-template-columns:1fr auto; gap:8px; align-items:end; margin-top:6px;">
-          <div class="editor-field" style="margin:0;">
-            <label class="editor-label" style="display:flex; align-items:center; gap:6px;">
-              GEMINI API KEY
-              <span id="ai-key-status-badge" style="font-size:0.65rem; padding:2px 7px; border-radius:20px; background:rgba(255,255,255,0.08); color:var(--text-muted);">NO GUARDADA</span>
-            </label>
-            <div style="display:flex; gap:6px;">
-              <input type="password" id="ai-gemini-key" class="editor-input" style="flex:1; margin:0;" placeholder="AIza... (se guarda en tu dispositivo, nunca en el servidor)">
-              <button type="button" class="btn-editor-save" id="btn-save-gemini-key" style="padding:7px 12px; font-size:0.72rem; white-space:nowrap;">💾 GUARDAR</button>
-            </div>
-            <span style="font-size:0.68rem; color:var(--text-muted); margin-top:3px; display:block;">Gratis en <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--c-volt);">aistudio.google.com</a> · Si no tienes clave, el motor local genera tu menú igualmente.</span>
+        <!-- ESTADO MOTOR IA CLOUDFLARE + RECOMENDACIONES -->
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; color:var(--text-sub);">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--c-volt); box-shadow:0 0 6px var(--c-volt);"></span>
+            <strong>VIROL AI CLOUD ENGINE:</strong>
+            <span style="color:var(--c-volt); font-weight:800;">ACTIVO (GEMINI PROXY SEGURO)</span>
           </div>
-          <button type="button" class="ai-quick-btn" id="btn-ai-shopping-recs" style="border:1px solid var(--c-volt); background:transparent; color:var(--c-volt); white-space:nowrap; align-self:center;">
+          <button type="button" class="ai-quick-btn" id="btn-ai-shopping-recs" style="border:1px solid var(--c-volt); background:transparent; color:var(--c-volt); white-space:nowrap;">
             🛍️ RECOMENDACIONES DE COMPRA IA
           </button>
         </div>
