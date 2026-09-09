@@ -3376,7 +3376,11 @@ function initChatbot() {
     const msgDiv = document.createElement('div');
     msgDiv.className = `chat-message ${type}-message`;
     
-    let contentHtml = `<div class="msg-bubble">${(text || '').replace(/\n/g, '<br>')}`;
+    let contentHtml = '';
+    if (type === 'ai') {
+      contentHtml += `<img src="img/coach_gorilla.webp" class="chat-msg-avatar" alt="Coach Gorila">`;
+    }
+    contentHtml += `<div class="msg-bubble">${(text || '').replace(/\n/g, '<br>')}`;
 
     // Insignia de acciones ejecutadas
     if (actions && actions.length > 0) {
@@ -3441,12 +3445,12 @@ function initChatbot() {
       recentActivities: Object.values(appState.days).map(d => d.stravaActivity).filter(Boolean)
     };
 
-    // Indicador de carga
+    // Indicador de carga con avatar del gorila
     const loadingId = 'loading-' + Date.now();
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'chat-message ai-message';
     loadingDiv.id = loadingId;
-    loadingDiv.innerHTML = `<div class="msg-bubble spin">⏳ Pensando con base científica...</div>`;
+    loadingDiv.innerHTML = `<img src="img/coach_gorilla.webp" class="chat-msg-avatar" alt="Coach Gorila"><div class="msg-bubble spin">⏳ El Gorila está analizando tus métricas...</div>`;
     messagesContainer.appendChild(loadingDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 

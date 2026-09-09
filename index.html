@@ -1572,26 +1572,32 @@
   </div>
 
   <!-- ================= AI CHATBOT FAB & MODAL ================= -->
-  <button class="chat-fab" id="btn-open-chat" title="Abrir Chat con Virol AI Coach">
-    <svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
+  <button class="chat-fab" id="btn-open-chat" title="Abrir Chat con Virol Coach (Gorila Iron)">
+    <img src="img/coach_gorilla.webp" alt="Gorila Coach" class="chat-fab-img">
+    <span class="chat-fab-online-dot"></span>
   </button>
 
   <div class="editor-modal-overlay" id="chat-modal-overlay">
     <div class="editor-modal chat-modal-container" style="max-width:550px; height: 80vh; display: flex; flex-direction: column;">
-      <div class="editor-modal-head" style="border-bottom-color: var(--c-volt); flex-shrink: 0;">
-        <div class="editor-modal-title" style="color: var(--c-volt);">
-          <svg class="svg-ico lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-          <span>VIROL AI COACH</span>
+      <div class="editor-modal-head" style="border-bottom-color: var(--c-volt); flex-shrink: 0; padding: 10px 14px;">
+        <div class="editor-modal-title" style="color: var(--c-volt); display: flex; align-items: center; gap: 10px;">
+          <img src="img/coach_gorilla.webp" alt="Gorila Coach" class="chat-header-avatar">
+          <div>
+            <div style="font-size: 0.95rem; font-family: var(--font-sub); font-weight: 900; letter-spacing: 0.05em; color: var(--c-volt); line-height: 1.1;">VIROL AI COACH</div>
+            <div style="font-size: 0.65rem; color: #a1a1aa; font-weight: 800; display: flex; align-items: center; gap: 5px;">
+              <span class="online-indicator"></span>
+              <span>GORILA IRON // EN LÍNEA</span>
+            </div>
+          </div>
         </div>
         <button class="editor-btn-close" id="btn-close-chat-modal">✕</button>
       </div>
       
       <div class="editor-body chat-messages" id="chat-messages" style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.2);">
         <div class="chat-message ai-message">
+          <img src="img/coach_gorilla.webp" class="chat-msg-avatar" alt="Coach Gorila">
           <div class="msg-bubble">
-            ¡Qué pasa Víctor! Soy tu entrenador. Tengo a la vista tus ritmos, tus macros y tu progreso semanal hacia Valencia. ¿Qué duda tienes sobre el entreno o la nutrición de hoy?
+            ¡Qué pasa Víctor! Aquí tu Coach Gorila. Tengo a la vista tus 44 km, tus macros de 2.850 kcal y tus sesiones Pull-Push-Legs. ¿Qué ajustamos hoy? ¿Entrenamiento, menú o lista de Mercadona?
           </div>
         </div>
       </div>
