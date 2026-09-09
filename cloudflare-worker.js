@@ -145,7 +145,145 @@ export default {
       }
     }
 
-    // ─── 4. Archivos estáticos ────────────────────────────────────
+    // ─── 4. POST /api/ai/weekly-review — Análisis Semanal con Gemini ───
+    if (url.pathname === '/api/ai/weekly-review' && request.method === 'POST') {
+      try {
+        const userId = 'u_victor';
+        const geminiApiKey = env.GEMINI_API_KEY;
+
+        if (!geminiApiKey) {
+          return corsResponse({ error: 'GEMINI_API_KEY no configurada en Cloudflare Secrets' }, 500);
+        }
+
+        let clientData = {};
+        try {
+          clientData = await request.json();
+        } catch (_) {}
+
+        let logs = [];
+        let plan = null;
+        let suppAdherence = [];
+
+        if (env.DB) {
+          try {
+            const logsRes = await env.DB.prepare(`
+              SELECT log_date, completed, distance_km, duration_sec, 
+                     avg_pace_sec_km, perceived_effort, sleep_hours, notes
+              FROM session_logs
+              WHERE user_id = ? AND log_date >= date('now', '-7 days')
+              ORDER BY log_date ASC
+            `).bind(userId).all();
+            logs = logsRes.results || [];
+
+            plan = await env.DB.prepare(`
+              SELECT weekly_km_target FROM training_plans 
+              WHERE user_id = ? AND is_active = 1 LIMIT 1
+            `).bind(userId).first();
+
+            const suppRes = await env.DB.prepare(`
+              SELECT s.name, COUNT(sl.id) as tomas, SUM(sl.taken) as completados
+              FROM supplements s
+              LEFT JOIN supplement_logs sl ON s.id = sl.supplement_id 
+                AND sl.log_date >= date('now', '-7 days')
+              WHERE s.user_id = ? AND s.is_active = 1
+              GROUP BY s.id
+            `).bind(userId).all();
+            suppAdherence = suppRes.results || [];
+          } catch (dbErr) {
+            console.warn('D1 no disponible o vacía:', dbErr.message);
+          }
+        }
+
+        const totalKmDone = clientData.totalKmDone !== undefined 
+          ? Number(clientData.totalKmDone) 
+          : logs.reduce((acc, l) => acc + (l.distance_km || 0), 0);
+        const targetKm = clientData.targetKm !== undefined 
+          ? Number(clientData.targetKm) 
+          : (plan ? plan.weekly_km_target : 60);
+        const avgSleep = clientData.avgSleep !== undefined 
+          ? Number(clientData.avgSleep) 
+          : (logs.length ? (logs.reduce((acc, l) => acc + (l.sleep_hours || 0), 0) / logs.length).toFixed(1) : 7.0);
+        const avgRPE = clientData.avgRPE !== undefined 
+          ? Number(clientData.avgRPE) 
+          : (logs.length ? (logs.reduce((acc, l) => acc + (l.perceived_effort || 0), 0) / logs.length).toFixed(1) : 6.5);
+
+        const systemInstruction = `
+Eres un entrenador de atletismo de élite y fisiólogo deportivo especializado en maratón (preparación Maratón Valencia 42K).
+Analiza las métricas semanales del atleta Víctor (volumen en km, esfuerzo percibido RPE, horas de sueño y consistencia).
+Debes ser riguroso, directo, sin frases motivacionales vacías y con base científica.
+Devuelve OBLIGATORIAMENTE un JSON válido con el esquema estricto solicitado.
+`;
+
+        const userPrompt = `
+DATOS SEMANALES:
+- Objetivo semanal: ${targetKm} km
+- Volumen completado: ${totalKmDone} km (${Math.round((totalKmDone / (targetKm || 1)) * 100)}%)
+- Media de Sueño: ${avgSleep} horas/noche
+- RPE Medio (1-10): ${avgRPE}
+- Registros diarios: ${JSON.stringify(logs.length ? logs : clientData.recentSessions || [])}
+- Suplementación: ${JSON.stringify(suppAdherence.length ? suppAdherence : clientData.supplements || [])}
+
+Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42K.
+`;
+
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+        const geminiRes = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ parts: [{ text: userPrompt }] }],
+            generationConfig: {
+              response_mime_type: 'application/json',
+              response_schema: {
+                type: 'OBJECT',
+                properties: {
+                  status_badge: { type: 'STRING', description: 'ÓPTIMO, ATENCIÓN, o DESCARGA' },
+                  fatigue_score: { type: 'INTEGER', description: '1 a 100 (100 = máxima fatiga)' },
+                  injury_risk: { type: 'STRING', description: 'BAJO, MEDIO o ALTO' },
+                  summary_headline: { type: 'STRING', description: 'Titular conciso en mayúsculas estilo neobrutalista' },
+                  weekly_diagnosis: { type: 'STRING', description: 'Diagnóstico directo en 2-3 frases' },
+                  actionable_adjustments: {
+                    type: 'ARRAY',
+                    items: { type: 'STRING' },
+                    description: '3 ajustes accionables para la semana siguiente'
+                  },
+                  nutrition_focus: { type: 'STRING', description: 'Ajuste nutricional clave (hidratos o hidratación)' }
+                },
+                required: [
+                  'status_badge', 'fatigue_score', 'injury_risk',
+                  'summary_headline', 'weekly_diagnosis', 'actionable_adjustments', 'nutrition_focus'
+                ]
+              }
+            }
+          })
+        });
+
+        if (!geminiRes.ok) {
+          const errText = await geminiRes.text();
+          return corsResponse({ error: 'Fallo al invocar Gemini API', detail: errText }, 502);
+        }
+
+        const geminiData = await geminiRes.json();
+        const analysis = JSON.parse(geminiData.candidates[0].content.parts[0].text);
+
+        return corsResponse({
+          metrics: {
+            totalKmDone,
+            targetKm,
+            completionPct: Math.round((totalKmDone / (targetKm || 1)) * 100),
+            avgSleep,
+            avgRPE
+          },
+          analysis
+        }, 200);
+
+      } catch (err) {
+        return corsResponse({ error: err.message }, 500);
+      }
+    }
+
+    // ─── 5. Archivos estáticos ────────────────────────────────────
     const response = await env.ASSETS.fetch(request);
     const newHeaders = new Headers(response.headers);
     const p = url.pathname;
