@@ -237,7 +237,7 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
           }
         };
 
-        const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest'];
+        const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
         let geminiData = null;
         let lastErrorText = '';
 
