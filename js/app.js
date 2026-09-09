@@ -202,6 +202,25 @@ const CLOUD_SYNC_URL = 'https://extendsclass.com/api/json-storage/bin/dfddcab';
 const DEFAULT_STRAVA_TOKEN = 'e879a9119db61a2e1c8edaa6bf2c10faa9bad366';
 
 function getStoredState() {
+  const defaultAlarms = {
+    workout: { enabled: true, time: '09:00', title: '🏋️‍♂️ RECORDATORIO DE ENTRENO DEL DÍA' },
+    creatina: { enabled: true, time: '12:00', title: '⚡ CREATINA & RECUPERACIÓN POST-ENTRENO' },
+    hidratacion: { enabled: true, time: '16:00', title: '💧 CONTROL DE HIDRATACIÓN' },
+    magnesio: { enabled: true, time: '21:30', title: '🌙 MAGNESIO & REGISTRO DE SENSACIONES' }
+  };
+
+  const defaultRunning = {
+    benchmark: {
+      name: 'Carrera de mañana (Martes)',
+      distanceKm: 8.51,
+      movingTimeSec: 2949, // 49m 09s
+      paceStr: '5:46/km',
+      elevation: 8,
+      heartRate: 154
+    },
+    weeklyTargetKm: 44.0
+  };
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -222,6 +241,16 @@ function getStoredState() {
           goal: 'VALENCIA 42K PRO'
         };
       }
+      if (!parsed.alarms) {
+        parsed.alarms = defaultAlarms;
+      } else {
+        parsed.alarms = Object.assign({}, defaultAlarms, parsed.alarms);
+      }
+      if (!parsed.running) {
+        parsed.running = defaultRunning;
+      } else {
+        parsed.running = Object.assign({}, defaultRunning, parsed.running);
+      }
       return parsed;
     }
   } catch (e) {
@@ -239,6 +268,8 @@ function getStoredState() {
       height: 178,
       goal: 'VALENCIA 42K PRO'
     },
+    alarms: defaultAlarms,
+    running: defaultRunning,
     days: {},
     history: []
   };
@@ -321,7 +352,9 @@ async function pushToCloud() {
       soundEnabled: appState.soundEnabled !== false,
       customMeals: appState.customMeals || null,
       customWorkouts: appState.customWorkouts || null,
-      strava: appState.strava || null
+      strava: appState.strava || null,
+      alarms: appState.alarms || null,
+      running: appState.running || null
     };
 
     const res = await fetch(CLOUD_SYNC_URL, {
@@ -367,6 +400,14 @@ async function syncFromCloud(silent = false) {
         if (cloudData.customMeals) appState.customMeals = cloudData.customMeals;
         if (cloudData.customWorkouts) appState.customWorkouts = cloudData.customWorkouts;
         if (cloudData.strava) appState.strava = cloudData.strava;
+        if (cloudData.alarms) {
+          appState.alarms = Object.assign({}, appState.alarms, cloudData.alarms);
+          updateAlarmsUI();
+        }
+        if (cloudData.running) {
+          appState.running = Object.assign({}, appState.running, cloudData.running);
+          renderRunningTab();
+        }
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
 
@@ -377,6 +418,7 @@ async function syncFromCloud(silent = false) {
         renderHistory();
         renderMealsTab();
         renderScheduleCards();
+        renderRunningTab();
 
         updateSyncStatus('synced', 'NUBE OK');
         if (!silent) {
@@ -1103,46 +1145,606 @@ function archiveCurrentWeek() {
   showToast(`📁 ¡SEMANA ARCHIVADA CON ÉXITO (${totalKm} KM SUMADOS)!`);
 }
 
-// 8. NOTIFICATIONS & ALARMS
-function setupNotifications() {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
+// ==========================================================================
+// 8. NOTIFICATIONS & ALARM CENTER (PWA & iOS STANDALONE)
+// ==========================================================================
+
+function updateAlarmsUI() {
+  if (!appState.alarms) return;
+
+  const mapping = [
+    { key: 'workout', inputId: 'time-alarm-workout', chkId: 'alarm-workout' },
+    { key: 'creatina', inputId: 'time-alarm-creatina', chkId: 'alarm-creatina' },
+    { key: 'hidratacion', inputId: 'time-alarm-hidratacion', chkId: 'alarm-hidratacion' },
+    { key: 'magnesio', inputId: 'time-alarm-magnesio', chkId: 'alarm-magnesio' }
+  ];
+
+  mapping.forEach(m => {
+    const config = appState.alarms[m.key];
+    if (!config) return;
+    const timeInput = document.getElementById(m.inputId);
+    const chk = document.getElementById(m.chkId);
+
+    if (timeInput && config.time) timeInput.value = config.time;
+    if (chk && typeof config.enabled === 'boolean') chk.checked = config.enabled;
+  });
+
+  updatePushPermissionUI();
+}
+
+function updatePushPermissionUI() {
+  const badge = document.getElementById('device-push-status');
+  const btn = document.getElementById('btn-request-push-permission');
+  const txt = document.getElementById('push-permission-text');
+  const ico = document.getElementById('push-permission-icon');
+  if (!badge) return;
+
+  if (!('Notification' in window)) {
+    badge.innerText = 'NOTIFICACIONES NO SOPORTADAS EN ESTE NAVEGADOR';
+    badge.style.color = 'var(--c-orange)';
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    badge.innerText = 'PERMISOS: CONCEDIDOS ✔ (AVISOS ACTIVOS)';
+    badge.style.color = 'var(--c-volt)';
+    if (txt) txt.innerText = 'NOTIFICACIONES ACTIVAS';
+    if (ico) ico.innerText = '✅';
+    if (btn) {
+      btn.style.background = 'var(--bg-card)';
+      btn.style.color = 'var(--text-main)';
+      btn.style.borderColor = 'var(--c-volt)';
+    }
+  } else if (Notification.permission === 'denied') {
+    badge.innerText = 'PERMISOS: BLOQUEADOS (HABILÍTALOS EN AJUSTES iOS/ANDROID)';
+    badge.style.color = 'var(--c-orange)';
+    if (txt) txt.innerText = 'PERMISO BLOQUEADO';
+    if (ico) ico.innerText = '⚠️';
+  } else {
+    badge.innerText = 'PERMISOS: PENDIENTES DE ACTIVAR';
+    badge.style.color = 'var(--c-orange)';
+    if (txt) txt.innerText = 'ACTIVAR NOTIFICACIONES MÓVIL';
+    if (ico) ico.innerText = '🔔';
+  }
+}
+
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) {
+    showToast('⚠️ Este dispositivo o navegador no soporta Notificaciones Web');
+    return;
+  }
+
+  try {
+    const perm = await Notification.requestPermission();
+    updatePushPermissionUI();
+
+    if (perm === 'granted') {
+      playSuccessSound();
+      showToast('🔔 ¡NOTIFICACIONES ACTIVADAS PARA VALENCIA 42K!');
+      triggerSystemNotification('⚡ VIROL 42K PRO', '¡Notificaciones del sistema y sonido táctil activos en tu móvil!');
+    } else if (perm === 'denied') {
+      showToast('⚠️ Permiso denegado. Puedes cambiarlo en los Ajustes de tu móvil.');
+    }
+  } catch (err) {
+    console.error('Notification permission error:', err);
+  }
+}
+
+async function triggerSystemNotification(title, body, tag = 'virol-alert') {
+  playAlarmSound();
+  showToast(`🔔 ${title}: ${body}`);
+
+  // Try Service Worker registration first (standard for iOS 16.4+ standalone PWAs & Android)
+  if ('serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (reg && reg.showNotification) {
+        await reg.showNotification(title, {
+          body: body,
+          icon: './img/virol_logo.png',
+          badge: './img/virol_logo.png',
+          tag: tag,
+          vibrate: [200, 100, 200],
+          renotify: true,
+          data: { url: './index.html' }
+        });
+        return;
+      }
+    } catch (e) {
+      console.warn('SW showNotification error:', e);
+    }
+  }
+
+  // Fallback to desktop/browser Notification
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body: body,
+        icon: './img/virol_logo.png'
+      });
+    } catch (e) {}
   }
 }
 
 function checkAlarms() {
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  
-  const alarms = [
-    { id: 'alarm-creatina', time: '08:30', title: '⚡ CREATINA & OMEGA 3', body: 'Víctor: 5g de Creatina y 2 perlas de Omega 3 con el desayuno.' },
-    { id: 'alarm-hidratacion', time: '13:00', title: '💧 CONTROL DE HIDRATACIÓN', body: 'Asegura 1.5 L de agua acumulados antes de comer.' },
-    { id: 'alarm-whey', time: '17:30', title: '🍌 MERIENDA ANABÓLICA', body: 'Batido de 30g de Proteína Whey + Plátano para reparar fibras.' },
-    { id: 'alarm-magnesio', time: '22:30', title: '🌙 MAGNESIO NOCTURNO', body: 'Toma el magnesio. ¡Hora de dormir 7-8 horas completas!' }
+  if (!appState.alarms) return;
+
+  const currentDay = now.getDay();
+  const todayPlan = WORKOUT_PLANS[currentDay] || {};
+
+  const alarmConfigs = [
+    {
+      key: 'workout',
+      title: '🏋️‍♂️ ENTRENO DEL DÍA (10:00 AM)',
+      getBody: () => {
+        const kmStr = todayPlan.km ? ` (${todayPlan.km} km running)` : '';
+        return `Víctor, hoy toca ${todayPlan.name || 'Entrenamiento'}${kmStr}. ¡A tope en la sesión de mañanas!`;
+      }
+    },
+    {
+      key: 'creatina',
+      title: '⚡ CREATINA & RECUPERACIÓN POST-ENTRENO',
+      getBody: () => 'Víctor: 5g de Creatina en agua y el batido de 30g de Proteína Whey post-entreno.'
+    },
+    {
+      key: 'hidratacion',
+      title: '💧 CONTROL DE HIDRATACIÓN',
+      getBody: () => 'Asegura 2.0 L de agua acumulados antes de la tarde para optimizar síntesis y descanso.'
+    },
+    {
+      key: 'magnesio',
+      title: '🌙 MAGNESIO & REGISTRO DE SENSACIONES',
+      getBody: () => 'Víctor: Toma el magnesio y registra tus sensaciones y peso en VIROL 42K antes de dormir.'
+    }
   ];
 
-  alarms.forEach(al => {
-    const toggle = document.getElementById(al.id);
-    if (toggle && toggle.checked && timeStr === al.time) {
-      if (!al._lastTriggered || al._lastTriggered !== timeStr) {
-        al._lastTriggered = timeStr;
-        triggerAlarm(al.title, al.body);
+  alarmConfigs.forEach(al => {
+    const item = appState.alarms[al.key];
+    if (item && item.enabled && item.time === timeStr) {
+      if (!item._lastTriggered || item._lastTriggered !== timeStr) {
+        item._lastTriggered = timeStr;
+        triggerSystemNotification(al.title, al.getBody(), `alarm-${al.key}`);
       }
     }
   });
 }
 
-function triggerAlarm(title, body) {
-  playAlarmSound();
-  showToast(`🔔 ${title}: ${body}`);
+function initAlarmsModule() {
+  updateAlarmsUI();
 
-  if ('Notification' in window && Notification.permission === 'granted') {
-    try {
-      new Notification(title, {
-        body,
-        icon: 'img/victor.png'
+  const timeInputs = [
+    { key: 'workout', id: 'time-alarm-workout' },
+    { key: 'creatina', id: 'time-alarm-creatina' },
+    { key: 'hidratacion', id: 'time-alarm-hidratacion' },
+    { key: 'magnesio', id: 'time-alarm-magnesio' }
+  ];
+
+  timeInputs.forEach(t => {
+    const el = document.getElementById(t.id);
+    if (el) {
+      el.addEventListener('change', () => {
+        if (!appState.alarms[t.key]) appState.alarms[t.key] = {};
+        appState.alarms[t.key].time = el.value;
+        saveState(appState);
+        flashAutosaveTag();
+        showToast(`⏰ Hora actualizada: ${el.value}`);
       });
-    } catch (e) {}
+    }
+  });
+
+  const toggles = [
+    { key: 'workout', id: 'alarm-workout' },
+    { key: 'creatina', id: 'alarm-creatina' },
+    { key: 'hidratacion', id: 'alarm-hidratacion' },
+    { key: 'magnesio', id: 'alarm-magnesio' }
+  ];
+
+  toggles.forEach(tog => {
+    const el = document.getElementById(tog.id);
+    if (el) {
+      el.addEventListener('change', () => {
+        if (!appState.alarms[tog.key]) appState.alarms[tog.key] = {};
+        appState.alarms[tog.key].enabled = el.checked;
+        saveState(appState);
+        flashAutosaveTag();
+        playCheckSound();
+        showToast(el.checked ? '🔔 Alarma activada' : '🔕 Alarma desactivada');
+      });
+    }
+  });
+
+  const btnPerm = document.getElementById('btn-request-push-permission');
+  if (btnPerm) {
+    btnPerm.addEventListener('click', requestNotificationPermission);
+  }
+
+  const btnTest = document.getElementById('btn-test-notification');
+  if (btnTest) {
+    btnTest.addEventListener('click', () => {
+      requestNotificationPermission();
+      triggerSystemNotification(
+        '🚀 TEST DE NOTIFICACIÓN IPHONE // VIROL 42K',
+        '¡Notificación nativa y sonido táctil confirmados en tu dispositivo!'
+      );
+    });
+  }
+}
+
+function flashAutosaveTag() {
+  const tag = document.getElementById('alarms-autosave-tag');
+  if (!tag) return;
+  tag.style.display = 'inline-block';
+  clearTimeout(tag._timeout);
+  tag._timeout = setTimeout(() => {
+    tag.style.display = 'none';
+  }, 2200);
+}
+
+// ==========================================================================
+// 8B. RUNNING PHYSIOLOGY ENGINE & MARATHON PREDICTOR (VDOT + RIEGEL)
+// ==========================================================================
+
+// JACK DANIELS VDOT FORMULA (Daniels & Gilbert formula)
+function calculateVDOT(distanceMeters, timeSeconds) {
+  if (distanceMeters <= 0 || timeSeconds <= 0) return 38.6;
+  const timeMinutes = timeSeconds / 60;
+  const v = distanceMeters / timeMinutes; // Velocity in meters/min
+
+  // Oxygen cost of running at velocity v
+  const vo2 = -4.60 + 0.182258 * v + 0.000104 * Math.pow(v, 2);
+
+  // Percentage of VO2max sustainable over timeMinutes
+  const pctVO2max = 0.8 + 0.1894393 * Math.exp(-0.012778 * timeMinutes) + 0.2989558 * Math.exp(-0.1932605 * timeMinutes);
+
+  const vdot = vo2 / pctVO2max;
+  return Math.max(25, Math.min(85, vdot));
+}
+
+// PETER RIEGEL FORMULA: T2 = T1 * (D2 / D1)^exponent
+function predictRaceTimeRiegel(d1Meters, t1Seconds, d2Meters, exponent = 1.06) {
+  if (d1Meters <= 0 || t1Seconds <= 0) return 0;
+  return t1Seconds * Math.pow(d2Meters / d1Meters, exponent);
+}
+
+// Velocity for a specific target % of VO2max given VDOT
+function getVelocityFromVDOT(vdot, percentVO2) {
+  const targetVO2 = vdot * percentVO2;
+  // Solve 0.000104 * v^2 + 0.182258 * v - (targetVO2 + 4.60) = 0
+  const a = 0.000104;
+  const b = 0.182258;
+  const c = -(targetVO2 + 4.60);
+  const v = (-b + Math.sqrt(Math.pow(b, 2) - 4 * a * c)) / (2 * a);
+  return v; // m/min
+}
+
+function velocityToPaceSecondsPerKm(v) {
+  if (v <= 0) return 360;
+  return (1000 / v) * 60;
+}
+
+function formatPaceMinSec(totalSeconds) {
+  if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return '--:--';
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = Math.round(totalSeconds % 60);
+  return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
+function formatTimeHMS(totalSeconds) {
+  if (!totalSeconds || isNaN(totalSeconds) || totalSeconds <= 0) return '--:--';
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.round(totalSeconds % 60);
+
+  if (hours > 0) {
+    return `${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+  }
+  return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+}
+
+function getDanielsTrainingPaces(vdot) {
+  // Zone intensities according to Jack Daniels Running Formula:
+  // Easy (E): ~65-74% VO2max
+  // Marathon (M): ~80-84% VO2max
+  // Threshold (T): ~87-89% VO2max
+  // Interval (I): ~97-100% VO2max
+  // Repetition (R): ~105-110% VO2max
+
+  const vE_slow = getVelocityFromVDOT(vdot, 0.65);
+  const vE_fast = getVelocityFromVDOT(vdot, 0.74);
+  const paceE_slow = velocityToPaceSecondsPerKm(vE_slow);
+  const paceE_fast = velocityToPaceSecondsPerKm(vE_fast);
+
+  const vM_slow = getVelocityFromVDOT(vdot, 0.80);
+  const vM_fast = getVelocityFromVDOT(vdot, 0.84);
+  const paceM_slow = velocityToPaceSecondsPerKm(vM_slow);
+  const paceM_fast = velocityToPaceSecondsPerKm(vM_fast);
+
+  const vT_slow = getVelocityFromVDOT(vdot, 0.87);
+  const vT_fast = getVelocityFromVDOT(vdot, 0.89);
+  const paceT_slow = velocityToPaceSecondsPerKm(vT_slow);
+  const paceT_fast = velocityToPaceSecondsPerKm(vT_fast);
+
+  const vI_slow = getVelocityFromVDOT(vdot, 0.97);
+  const vI_fast = getVelocityFromVDOT(vdot, 1.00);
+  const paceI_slow = velocityToPaceSecondsPerKm(vI_slow);
+  const paceI_fast = velocityToPaceSecondsPerKm(vI_fast);
+
+  const vR_slow = getVelocityFromVDOT(vdot, 1.05);
+  const vR_fast = getVelocityFromVDOT(vdot, 1.10);
+  const paceR_slow = velocityToPaceSecondsPerKm(vR_slow);
+  const paceR_fast = velocityToPaceSecondsPerKm(vR_fast);
+
+  return {
+    easy: `${formatPaceMinSec(paceE_fast)} - ${formatPaceMinSec(paceE_slow)}`,
+    marathon: `${formatPaceMinSec(paceM_fast)} - ${formatPaceMinSec(paceM_slow)}`,
+    threshold: `${formatPaceMinSec(paceT_fast)} - ${formatPaceMinSec(paceT_slow)}`,
+    interval: `${formatPaceMinSec(paceI_fast)} - ${formatPaceMinSec(paceI_slow)}`,
+    repetition: `${formatPaceMinSec(paceR_fast)} - ${formatPaceMinSec(paceR_slow)}`
+  };
+}
+
+function renderRunningTab() {
+  const running = appState.running || {};
+  const benchmark = running.benchmark || {
+    name: 'Carrera de mañana (Martes)',
+    distanceKm: 8.51,
+    movingTimeSec: 2949,
+    paceStr: '5:46/km',
+    elevation: 8,
+    heartRate: 154
+  };
+
+  const distMeters = (benchmark.distanceKm || 8.51) * 1000;
+  const timeSeconds = benchmark.movingTimeSec || 2949;
+
+  // 1. Calculate Daniels VDOT
+  const vdot = calculateVDOT(distMeters, timeSeconds);
+  const vdotFormatted = vdot.toFixed(1);
+
+  // Update Benchmark HUD
+  const vdotPill = document.getElementById('running-vdot-pill');
+  if (vdotPill) vdotPill.innerText = `VDOT ${vdotFormatted}`;
+
+  const benchName = document.getElementById('bench-activity-name');
+  if (benchName) benchName.innerText = benchmark.name || 'Sesión de carrera';
+
+  const benchDist = document.getElementById('bench-distance');
+  if (benchDist) benchDist.innerHTML = `${benchmark.distanceKm} <span class="unit">KM</span>`;
+
+  const benchTime = document.getElementById('bench-time');
+  if (benchTime) benchTime.innerText = formatTimeHMS(timeSeconds);
+
+  const benchPace = document.getElementById('bench-pace');
+  if (benchPace) benchPace.innerText = benchmark.paceStr || `${formatPaceMinSec((timeSeconds / distMeters) * 1000)} /km`;
+
+  const benchElev = document.getElementById('bench-elevation');
+  if (benchElev) benchElev.innerText = `${benchmark.elevation || 8} m • ${benchmark.heartRate || 154} ppm`;
+
+  // 2. Race Predictions (Half 21.097 km & Full Marathon 42.195 km)
+  // Peter Riegel: exponent 1.06 for Half Marathon, 1.07 for Full Marathon (accounting for amateur marathon fatigue)
+  const predHalfSeconds = predictRaceTimeRiegel(distMeters, timeSeconds, 21097, 1.06);
+  const predFullSeconds = predictRaceTimeRiegel(distMeters, timeSeconds, 42195, 1.07);
+
+  // Half Marathon metrics
+  const halfPaceSec = predHalfSeconds / 21.097;
+  const halfSpeedKmh = (21.097 / (predHalfSeconds / 3600)).toFixed(1);
+  const halfSplit10 = formatTimeHMS(halfPaceSec * 10);
+
+  const predHalfTimeEl = document.getElementById('pred-half-time');
+  if (predHalfTimeEl) predHalfTimeEl.innerText = formatTimeHMS(predHalfSeconds);
+
+  const predHalfPaceEl = document.getElementById('pred-half-pace');
+  if (predHalfPaceEl) predHalfPaceEl.innerHTML = `${formatPaceMinSec(halfPaceSec)} <span class="unit">/km</span>`;
+
+  const predHalfSpeedEl = document.getElementById('pred-half-speed');
+  if (predHalfSpeedEl) predHalfSpeedEl.innerHTML = `${halfSpeedKmh} <span class="unit">KM/H</span>`;
+
+  const predHalfSplit10El = document.getElementById('pred-half-split10');
+  if (predHalfSplit10El) predHalfSplit10El.innerText = halfSplit10;
+
+  // Full Marathon metrics
+  const fullPaceSec = predFullSeconds / 42.195;
+  const fullSpeedKmh = (42.195 / (predFullSeconds / 3600)).toFixed(1);
+  const fullSplit21 = formatTimeHMS(fullPaceSec * 21.097);
+  const fullSplit30 = formatTimeHMS(fullPaceSec * 30.0);
+
+  const predFullTimeEl = document.getElementById('pred-full-time');
+  if (predFullTimeEl) predFullTimeEl.innerText = formatTimeHMS(predFullSeconds);
+
+  const predFullPaceEl = document.getElementById('pred-full-pace');
+  if (predFullPaceEl) predFullPaceEl.innerHTML = `${formatPaceMinSec(fullPaceSec)} <span class="unit">/km</span>`;
+
+  const predFullSpeedEl = document.getElementById('pred-full-speed');
+  if (predFullSpeedEl) predFullSpeedEl.innerHTML = `${fullSpeedKmh} <span class="unit">KM/H</span>`;
+
+  const predFullSplit21El = document.getElementById('pred-full-split21');
+  if (predFullSplit21El) predFullSplit21El.innerText = fullSplit21;
+
+  const predFullSplit30El = document.getElementById('pred-full-split30');
+  if (predFullSplit30El) predFullSplit30El.innerText = fullSplit30;
+
+  // 3. Weekly Volume & Fatigue Semaphore
+  let weeklyRunningKm = 0;
+  for (let i = 0; i < 7; i++) {
+    const dayKey = getTodayKey(i);
+    const dayData = appState.days[dayKey];
+    if (dayData && dayData.stravaActivity && dayData.stravaActivity.distanceKm) {
+      weeklyRunningKm += parseFloat(dayData.stravaActivity.distanceKm) || 0;
+    }
+  }
+
+  // If no day has Strava data logged yet in state, show benchmark distance as active week sample
+  if (weeklyRunningKm === 0 && benchmark.distanceKm) {
+    weeklyRunningKm = benchmark.distanceKm;
+  }
+
+  const targetWeeklyKm = running.weeklyTargetKm || 44.0;
+  const volumePct = Math.min(130, Math.round((weeklyRunningKm / targetWeeklyKm) * 100));
+
+  const progressKmEl = document.getElementById('semaphore-progress-km');
+  if (progressKmEl) {
+    progressKmEl.innerHTML = `<strong>${weeklyRunningKm.toFixed(2)}</strong> / ${targetWeeklyKm.toFixed(2)} KM ACUMULADOS EN LA SEMANA`;
+  }
+
+  const progressPctEl = document.getElementById('semaphore-progress-pct');
+  if (progressPctEl) {
+    progressPctEl.innerText = `${volumePct}%`;
+  }
+
+  const fillBar = document.getElementById('semaphore-fill-bar');
+  if (fillBar) {
+    fillBar.style.width = `${Math.min(100, volumePct)}%`;
+  }
+
+  const statusPill = document.getElementById('semaphore-status-pill');
+  const statusTxt = document.getElementById('semaphore-status-text');
+  if (statusPill && statusTxt) {
+    if (weeklyRunningKm < 35.0) {
+      statusPill.style.background = '#3b82f6';
+      statusPill.style.color = '#ffffff';
+      statusTxt.innerText = `DESCARGA / INICIO (${volumePct}%)`;
+    } else if (weeklyRunningKm >= 35.0 && weeklyRunningKm <= 46.0) {
+      statusPill.style.background = 'var(--c-volt)';
+      statusPill.style.color = '#000000';
+      statusTxt.innerText = `ZONA ÓPTIMA MARATÓN (${volumePct}%)`;
+    } else if (weeklyRunningKm > 46.0 && weeklyRunningKm <= 52.0) {
+      statusPill.style.background = '#eab308';
+      statusPill.style.color = '#000000';
+      statusTxt.innerText = `ALTA CARGA SEMANAL (${volumePct}%)`;
+    } else {
+      statusPill.style.background = '#ef4444';
+      statusPill.style.color = '#ffffff';
+      statusTxt.innerText = `SOBRECARGA / FATIGA (${volumePct}%)`;
+    }
+  }
+
+  // 4. Jack Daniels Training Paces
+  const danielsPaces = getDanielsTrainingPaces(vdot);
+  const danielsLbl = document.getElementById('daniels-vdot-lbl');
+  if (danielsLbl) danielsLbl.innerText = vdotFormatted;
+
+  const paceE = document.getElementById('pace-val-e');
+  if (paceE) paceE.innerHTML = `${danielsPaces.easy} <span class="unit">/km</span>`;
+
+  const paceM = document.getElementById('pace-val-m');
+  if (paceM) paceM.innerHTML = `${danielsPaces.marathon} <span class="unit">/km</span>`;
+
+  const paceT = document.getElementById('pace-val-t');
+  if (paceT) paceT.innerHTML = `${danielsPaces.threshold} <span class="unit">/km</span>`;
+
+  const paceI = document.getElementById('pace-val-i');
+  if (paceI) paceI.innerHTML = `${danielsPaces.interval} <span class="unit">/km</span>`;
+
+  const paceR = document.getElementById('pace-val-r');
+  if (paceR) paceR.innerHTML = `${danielsPaces.repetition} <span class="unit">/km</span>`;
+}
+
+function initRunningModule() {
+  renderRunningTab();
+
+  // Button to trigger Strava sync from running view
+  const btnSync = document.getElementById('btn-running-sync-strava');
+  if (btnSync) {
+    btnSync.addEventListener('click', () => {
+      playCheckSound();
+      openStravaModal();
+    });
+  }
+
+  // Button to simulate Victor's real run
+  const btnSim = document.getElementById('btn-running-simulate-run');
+  if (btnSim) {
+    btnSim.addEventListener('click', () => {
+      simulateTodayRun();
+      renderRunningTab();
+      showToast('⚡ Sesión real de 8.51 km aplicada como benchmark activo');
+    });
+  }
+
+  // Benchmark editor modal
+  const btnEditBench = document.getElementById('btn-open-benchmark-editor');
+  const benchModal = document.getElementById('benchmark-modal-overlay');
+  const btnCloseBench = document.getElementById('btn-close-benchmark-modal');
+  const btnCancelBench = document.getElementById('btn-cancel-benchmark');
+  const btnSaveBench = document.getElementById('btn-save-benchmark');
+
+  const distInp = document.getElementById('input-bench-dist');
+  const minInp = document.getElementById('input-bench-min');
+  const secInp = document.getElementById('input-bench-sec');
+
+  if (btnEditBench && benchModal) {
+    btnEditBench.addEventListener('click', () => {
+      const bm = (appState.running && appState.running.benchmark) || {};
+      if (distInp) distInp.value = bm.distanceKm || 8.51;
+      const totalSec = bm.movingTimeSec || 2949;
+      if (minInp) minInp.value = Math.floor(totalSec / 60);
+      if (secInp) secInp.value = totalSec % 60;
+      benchModal.classList.add('active');
+    });
+  }
+
+  const closeBenchModal = () => {
+    if (benchModal) benchModal.classList.remove('active');
+  };
+
+  if (btnCloseBench) btnCloseBench.addEventListener('click', closeBenchModal);
+  if (btnCancelBench) btnCancelBench.addEventListener('click', closeBenchModal);
+
+  // Presets in benchmark modal
+  const presetToday = document.getElementById('btn-bench-preset-today');
+  if (presetToday) {
+    presetToday.addEventListener('click', () => {
+      if (distInp) distInp.value = '8.51';
+      if (minInp) minInp.value = '49';
+      if (secInp) secInp.value = '9';
+    });
+  }
+
+  const preset10k = document.getElementById('btn-bench-preset-10k');
+  if (preset10k) {
+    preset10k.addEventListener('click', () => {
+      if (distInp) distInp.value = '10.00';
+      if (minInp) minInp.value = '55';
+      if (secInp) secInp.value = '0';
+    });
+  }
+
+  const preset5k = document.getElementById('btn-bench-preset-5k');
+  if (preset5k) {
+    preset5k.addEventListener('click', () => {
+      if (distInp) distInp.value = '5.00';
+      if (minInp) minInp.value = '26';
+      if (secInp) secInp.value = '30';
+    });
+  }
+
+  // Save Benchmark
+  if (btnSaveBench) {
+    btnSaveBench.addEventListener('click', () => {
+      const d = parseFloat(distInp?.value) || 8.51;
+      const m = parseInt(minInp?.value) || 49;
+      const s = parseInt(secInp?.value) || 0;
+      const totalSec = (m * 60) + s;
+      const paceSec = totalSec / d;
+
+      if (!appState.running) appState.running = {};
+      appState.running.benchmark = {
+        name: `Test Personal (${d} km)`,
+        distanceKm: d,
+        movingTimeSec: totalSec,
+        paceStr: `${formatPaceMinSec(paceSec)}/km`,
+        elevation: 8,
+        heartRate: 154
+      };
+
+      saveState(appState);
+      renderRunningTab();
+      closeBenchModal();
+      playSuccessSound();
+      showToast(`🎯 ¡PREDICCIONES RECALCULADAS CON ${d} KM EN ${m}:${String(s).padStart(2, '0')}!`);
+    });
   }
 }
 
@@ -1329,6 +1931,21 @@ function applyStravaActivity(act, dayIndex = selectedDayIndex) {
   } else {
     playCheckSound();
     showToast(`⚡ STRAVA: ${distanceKm} km registrados (${Math.round(effortRatio * 100)}% del volumen)`);
+  }
+
+  // Actualizar marca de referencia en el módulo de Running si es una carrera válida
+  if (parseFloat(distanceKm) >= 1.0) {
+    if (!appState.running) appState.running = {};
+    const totalSec = (act.moving_time || act.elapsed_time) || (durationMin * 60);
+    appState.running.benchmark = {
+      name: act.name || 'Carrera Strava',
+      distanceKm: parseFloat(distanceKm),
+      movingTimeSec: totalSec,
+      paceStr: paceStr,
+      elevation: act.elevation !== undefined ? act.elevation : (act.total_elevation_gain !== undefined ? act.total_elevation_gain : 8),
+      heartRate: act.average_heartrate || 154
+    };
+    renderRunningTab();
   }
 
   saveState(appState);
@@ -1851,6 +2468,29 @@ document.addEventListener('DOMContentLoaded', () => {
   initPlanEditor();
   initStravaModule();
   initAINutritionModule();
+  initAlarmsModule();
+  initRunningModule();
+
+  // Tab navigation helper
+  window.switchToTab = function(targetTabId) {
+    const navBtns = document.querySelectorAll('.nav-btn');
+    const panes = document.querySelectorAll('.tab-pane');
+    navBtns.forEach(b => {
+      if (b.dataset.tab === targetTabId) {
+        b.classList.add('active');
+      } else {
+        b.classList.remove('active');
+      }
+    });
+    panes.forEach(p => {
+      if (p.id === targetTabId) {
+        p.classList.add('active');
+      } else {
+        p.classList.remove('active');
+      }
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Tab navigation
   const navBtns = document.querySelectorAll('.nav-btn');
@@ -1859,15 +2499,29 @@ document.addEventListener('DOMContentLoaded', () => {
   navBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const targetTab = btn.dataset.tab;
-      navBtns.forEach(b => b.classList.remove('active'));
-      panes.forEach(p => p.classList.remove('active'));
-
-      btn.classList.add('active');
-      const targetPane = document.getElementById(targetTab);
-      if (targetPane) targetPane.classList.add('active');
+      window.switchToTab(targetTab);
       playCheckSound();
     });
   });
+
+  // Countdown cards linking to Running tab
+  const cardHalf = document.getElementById('card-trigger-half-marathon');
+  if (cardHalf) {
+    cardHalf.addEventListener('click', () => {
+      window.switchToTab('tab-running');
+      playCheckSound();
+      showToast('🏃 PREVISIONES: Media Maratón de Valencia (21.097 km)');
+    });
+  }
+
+  const cardFull = document.getElementById('card-trigger-full-marathon');
+  if (cardFull) {
+    cardFull.addEventListener('click', () => {
+      window.switchToTab('tab-running');
+      playCheckSound();
+      showToast('🔥 PREVISIONES: Gran Maratón de Valencia (42.195 km)');
+    });
+  }
 
   // Workout complete toggle
   const toggleWorkoutBtn = document.getElementById('btn-toggle-workout');
@@ -1970,15 +2624,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const archiveBtn = document.getElementById('btn-archive-week');
   if (archiveBtn) {
     archiveBtn.addEventListener('click', archiveCurrentWeek);
-  }
-
-  // Test alarm button
-  const testAlarmBtn = document.getElementById('btn-test-notification');
-  if (testAlarmBtn) {
-    testAlarmBtn.addEventListener('click', () => {
-      setupNotifications();
-      triggerAlarm('🔔 PRUEBA DE AVISO (VÍCTOR 42K)', '¡Tu sistema de alarmas y sonido táctil está 100% activo!');
-    });
   }
 
   // Alarm interval check

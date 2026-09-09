@@ -1,4 +1,4 @@
-const CACHE_NAME = 'virol-42k-v17';
+const CACHE_NAME = 'virol-42k-v18';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -30,8 +30,8 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Do not intercept or cache cloud sync API calls
-  if (event.request.url.includes('extendsclass.com')) {
+  // Do not intercept or cache cloud sync or Strava API calls
+  if (event.request.url.includes('extendsclass.com') || event.request.url.includes('strava.com')) {
     return;
   }
 
@@ -50,5 +50,61 @@ self.addEventListener('fetch', event => {
       .catch(() => {
         return caches.match(event.request);
       })
+  );
+});
+
+// PUSH NOTIFICATIONS EVENT LISTENER (iOS 16.4+ standalone PWA & Android)
+self.addEventListener('push', event => {
+  let data = {
+    title: 'VIROL 42K PRO',
+    body: '¡Notificación de entrenamiento!',
+    icon: './img/virol_logo.png',
+    badge: './img/virol_logo.png',
+    tag: 'virol-alert',
+    url: './index.html'
+  };
+
+  if (event.data) {
+    try {
+      const parsed = event.data.json();
+      data = Object.assign(data, parsed);
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon || './img/virol_logo.png',
+    badge: data.badge || './img/virol_logo.png',
+    vibrate: [200, 100, 200],
+    tag: data.tag || 'virol-alert',
+    renotify: true,
+    data: {
+      url: data.url || './index.html'
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// FOCUS OR OPEN APP ON NOTIFICATION CLICK
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || './index.html';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url.includes('index.html') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
   );
 });

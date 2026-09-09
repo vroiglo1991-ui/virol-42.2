@@ -667,10 +667,10 @@ body.brutalist-theme {
   margin-top: 4px;
 }
 
-/* BRUTAL NAVIGATION - 5 BUTTONS */
+/* BRUTAL NAVIGATION - 6 BUTTONS */
 .brutal-nav {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 6px;
   margin-bottom: 1.75rem;
 }
@@ -697,11 +697,32 @@ body.brutalist-theme {
 }
 
 .nav-btn .btn-label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-@media (min-width: 580px) {
+@media (max-width: 640px) {
+  .brutal-nav {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .nav-btn {
+    padding: 8px 4px;
+  }
+  .nav-btn .btn-label {
+    font-size: 0.7rem;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 820px) {
+  .nav-btn .btn-label {
+    font-size: 0.68rem;
+    letter-spacing: 0;
+  }
+}
+
+@media (min-width: 821px) {
   .nav-btn .btn-label {
     font-size: 0.82rem;
     letter-spacing: 0.04em;
@@ -1683,7 +1704,19 @@ body.brutalist-theme {
   color: var(--text-muted);
 }
 
-/* TAB 5: AVISOS & ALARMAS */
+/* TAB 6: AVISOS & ALARMAS */
+.ios-push-info-box {
+  background: var(--bg-card);
+  border: 2px solid var(--c-volt);
+  box-shadow: var(--shadow-hard);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+[data-theme="light"] .ios-push-info-box {
+  border-color: var(--c-orange);
+}
+
 .alarms-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -1701,16 +1734,63 @@ body.brutalist-theme {
   gap: 14px;
 }
 
-.alarm-time {
-  font-family: var(--font-display);
-  font-size: 2.4rem;
-  color: var(--c-volt);
-  line-height: 0.9;
-  min-width: 80px;
+.alarm-time-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 120px;
 }
 
-[data-theme="light"] .alarm-time {
+.alarm-time-input {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  color: var(--c-volt);
+  line-height: 1;
+  background: transparent;
+  border: 2px solid transparent;
+  padding: 2px 4px;
+  width: 120px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.alarm-time-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+[data-theme="light"] .alarm-time-input::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+
+.alarm-time-input:hover,
+.alarm-time-input:focus {
+  border: 2px dashed var(--c-volt);
+  background: rgba(212, 255, 0, 0.08);
+}
+
+[data-theme="light"] .alarm-time-input {
   color: var(--c-orange);
+}
+
+[data-theme="light"] .alarm-time-input:hover,
+[data-theme="light"] .alarm-time-input:focus {
+  border-color: var(--c-orange);
+  background: rgba(255, 102, 0, 0.08);
+}
+
+.alarm-time-tag {
+  font-size: 0.62rem;
+  font-family: var(--font-sub);
+  font-weight: 900;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  padding-left: 4px;
+  margin-top: -2px;
 }
 
 .alarm-info {
@@ -1727,6 +1807,7 @@ body.brutalist-theme {
 .alarm-desc {
   font-size: 0.78rem;
   color: var(--text-muted);
+  line-height: 1.35;
 }
 
 .card-night-alarm {
@@ -2507,4 +2588,460 @@ body.brutalist-theme {
   color: #000000;
   border-style: solid;
 }
+
+/* ==========================================================================
+   RUNNING ENGINE & MARATHON PREDICTOR (VDOT + RIEGEL)
+   ========================================================================== */
+
+.running-benchmark-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border-card);
+  box-shadow: var(--shadow-hard);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.benchmark-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border-light);
+  margin-bottom: 12px;
+}
+
+.benchmark-pill-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.benchmark-tag {
+  font-family: var(--font-sub);
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.vdot-pill {
+  background: var(--c-volt);
+  color: #000000;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 3px 8px;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px #000000;
+}
+
+[data-theme="light"] .vdot-pill {
+  background: var(--c-orange);
+  color: #ffffff;
+}
+
+.btn-edit-benchmark {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-light);
+  padding: 5px 10px;
+  font-family: var(--font-sub);
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-edit-benchmark:hover {
+  background: var(--bg-card-alt);
+  border-color: var(--c-volt);
+  color: var(--c-volt);
+}
+
+.benchmark-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.bench-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bench-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bench-val {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--text-main);
+}
+
+.bench-val .unit {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* PREDICTIONS 21K / 42K CARDS */
+.predictions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 14px;
+  margin-bottom: 1.5rem;
+}
+
+.prediction-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border-card);
+  box-shadow: var(--shadow-hard);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.card-half-marathon {
+  border-top: 6px solid var(--c-orange);
+}
+
+.card-full-marathon {
+  border-top: 6px solid var(--c-volt);
+}
+
+.pred-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pred-badge {
+  font-family: var(--font-sub);
+  font-size: 0.68rem;
+  font-weight: 900;
+  padding: 3px 8px;
+  border: 2px solid #000;
+  letter-spacing: 0.04em;
+}
+
+.badge-orange {
+  background: var(--c-orange);
+  color: #fff;
+}
+
+.badge-volt {
+  background: var(--c-volt);
+  color: #000;
+}
+
+.pred-dist-tag {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: var(--text-muted);
+}
+
+.pred-title {
+  font-family: var(--font-sub);
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.pred-main-time {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+
+.card-half-marathon .pred-main-time {
+  color: var(--c-orange);
+}
+
+.card-full-marathon .pred-main-time {
+  color: var(--c-volt);
+}
+
+[data-theme="light"] .card-full-marathon .pred-main-time {
+  color: #0d6e27;
+}
+
+.pred-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border: 1px solid var(--border-light);
+}
+
+[data-theme="light"] .pred-metrics-row {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.pred-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pred-metric .m-lbl {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.pred-metric .m-val {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.pred-metric .m-val .unit {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.pred-note {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  font-style: italic;
+  border-top: 1px dashed var(--border-light);
+  padding-top: 8px;
+}
+
+/* FATIGUE SEMAPHORE (44 KM TARGET) */
+.fatigue-semaphore-box {
+  background: var(--bg-card);
+  border: 2px solid var(--border-card);
+  box-shadow: var(--shadow-hard);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.semaphore-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.semaphore-title {
+  font-family: var(--font-sub);
+  font-size: 1.05rem;
+  font-weight: 900;
+  margin: 4px 0 2px 0;
+}
+
+.semaphore-sub {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+}
+
+.semaphore-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 2px solid #000;
+  font-family: var(--font-sub);
+  font-size: 0.75rem;
+  font-weight: 900;
+  box-shadow: 2px 2px 0px #000;
+  background: var(--c-volt);
+  color: #000;
+}
+
+.semaphore-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.semaphore-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.semaphore-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.semaphore-track {
+  position: relative;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid #000;
+  overflow: hidden;
+}
+
+[data-theme="light"] .semaphore-track {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.semaphore-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e 0%, var(--c-volt) 100%);
+  transition: width 0.4s ease;
+}
+
+.semaphore-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #fff;
+  z-index: 2;
+  box-shadow: 0 0 4px rgba(0,0,0,0.8);
+}
+
+.semaphore-zones-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.zone-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border: 1px solid var(--border-light);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* DANIELS TRAINING PACES */
+.daniels-paces-container {
+  background: var(--bg-card);
+  border: 2px solid var(--border-card);
+  box-shadow: var(--shadow-hard);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.daniels-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border-light);
+  margin-bottom: 14px;
+}
+
+.daniels-title {
+  font-family: var(--font-sub);
+  font-size: 1.05rem;
+  font-weight: 900;
+  margin: 0;
+}
+
+.daniels-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.daniels-paces-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.pace-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 2px solid var(--border-card);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 2px 2px 0px #000;
+}
+
+[data-theme="light"] .pace-card {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.pace-card.pace-e { border-left: 6px solid #22c55e; }
+.pace-card.pace-m { border-left: 6px solid #3b82f6; }
+.pace-card.pace-t { border-left: 6px solid #eab308; }
+.pace-card.pace-i { border-left: 6px solid #ef4444; }
+.pace-card.pace-r { border-left: 6px solid #a855f7; }
+
+.pace-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pace-badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 900;
+  padding: 2px 6px;
+  background: #000;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.pace-name {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--text-sub);
+  text-transform: uppercase;
+}
+
+.pace-time {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 900;
+  line-height: 1;
+  margin: 4px 0 2px 0;
+}
+
+.pace-time .unit {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.pace-e .pace-time { color: #22c55e; }
+.pace-m .pace-time { color: #3b82f6; }
+.pace-t .pace-time { color: #eab308; }
+.pace-i .pace-time { color: #ef4444; }
+.pace-r .pace-time { color: #a855f7; }
+
+.pace-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
 
