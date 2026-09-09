@@ -11,4 +11,4 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "virol-db"
-database_id = "PLACEHOLDER_VIROL_DB_ID"
+database_id = "b5446c8b-33ce-4995-b3fd-0ef9504b9c74"

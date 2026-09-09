@@ -1,6 +1,8 @@
 .git/
 .agents/
 .sandbox/
+.wrangler/
+db/
 *modified.png
 wrangler.toml
 cloudflare-worker.js
