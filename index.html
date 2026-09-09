@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@500;700;800;900&family=Space+Grotesk:wght@600;700;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/style.css?v=17">
+  <link rel="stylesheet" href="css/style.css?v=20">
   <style>
     /* HOVER SEGURO Y LEGIBLE: FONDO OSCURO + BORDE E ICONO AMARILLO NEÓN */
     .btn-customize-plan:hover {
@@ -705,6 +705,28 @@
               <img src="img/valence_fit.png" alt="Valence Fit" style="width:14px; height:14px; border-radius:50%; background:#fff; border:1px solid #000; object-fit:contain;">
               <span>Planificación de carrera por Josemi (Valence Fit)</span>
             </span>
+          </div>
+        </div>
+
+        <!-- AI WEEKLY COACH DASHBOARD CARD -->
+        <div class="ai-weekly-review-card" id="ai-weekly-review-card">
+          <div class="ai-weekly-header">
+            <div class="ai-weekly-badge-row">
+              <span class="badge-volt-black">🤖 COACH IA // VALENCIA 42K</span>
+              <span class="ai-weekly-model">GEMINI 1.5 FLASH + D1</span>
+            </div>
+            <button class="btn-run-weekly-ai" id="btn-trigger-weekly-ai">
+              <span id="ai-review-btn-spinner" style="display:none;" class="spin">⏳</span>
+              <span id="ai-review-btn-text">⚡ ANALIZAR MI SEMANA</span>
+            </button>
+          </div>
+
+          <div class="ai-weekly-body" id="ai-weekly-body-placeholder">
+            <p class="ai-placeholder-text">Pulsa <strong>"ANALIZAR MI SEMANA"</strong> para que el motor de IA examine tus kilómetros acumulados, horas de descanso, esfuerzo percibido y riesgo de sobrecarga con ajustes personalizados para tus próximas sesiones.</p>
+          </div>
+
+          <div class="ai-weekly-results" id="ai-weekly-results" style="display:none;">
+            <!-- Renderizado dinámico vía JS -->
           </div>
         </div>
 
@@ -1568,6 +1590,6 @@
     <span id="toast-msg">MENSAJE</span>
   </div>
 
-  <script src="js/app.js?v=19"></script>
+  <script src="js/app.js?v=20"></script>
 </body>
 </html>

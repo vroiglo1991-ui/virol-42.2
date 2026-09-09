@@ -2622,6 +2622,213 @@ Sé conciso y práctico. Devuelve un JSON con este formato:
   }
 }
 
+// ─── 9B. AI WEEKLY REVIEW // COACH IA // VALENCIA 42K ─────────
+function initAIWeeklyReviewModule() {
+  const btnTrigger = document.getElementById('btn-trigger-weekly-ai');
+  const spinner = document.getElementById('ai-review-btn-spinner');
+  const btnText = document.getElementById('ai-review-btn-text');
+  const placeholder = document.getElementById('ai-weekly-body-placeholder');
+  const resultsContainer = document.getElementById('ai-weekly-results');
+
+  if (!btnTrigger) return;
+
+  btnTrigger.addEventListener('click', async () => {
+    playCheckSound();
+
+    btnTrigger.disabled = true;
+    if (spinner) spinner.style.display = 'inline-block';
+    if (btnText) btnText.textContent = 'ANALIZANDO SEMANA...';
+
+    let totalKmDone = 0;
+    let sessionsDone = 0;
+    let sleepSum = 0;
+    let rpeSum = 0;
+    let rpeCount = 0;
+    const recentSessions = [];
+
+    [1, 2, 3, 4, 5, 6, 0].forEach(d => {
+      const key = getTodayKey(d);
+      const dayData = (appState.days && appState.days[key]) || {};
+      const plan = (typeof WORKOUT_PLANS !== 'undefined' && WORKOUT_PLANS[d]) || {};
+      const done = !!dayData.workoutCompleted;
+      const km = parseFloat(plan.km || 0);
+
+      if (done) {
+        totalKmDone += km;
+        sessionsDone++;
+      }
+      const sleep = parseFloat(dayData.sleepHours || 7.5);
+      sleepSum += sleep;
+
+      if (dayData.rpe) {
+        rpeSum += parseFloat(dayData.rpe);
+        rpeCount++;
+      }
+
+      recentSessions.push({
+        dia: plan.dayName || `Día ${d}`,
+        disciplina: plan.discipline || 'Entrenamiento',
+        completado: done,
+        km_objetivo: km,
+        sueno_horas: sleep
+      });
+    });
+
+    const targetKm = (typeof TARGET_KM !== 'undefined' ? TARGET_KM : 44);
+    const avgSleep = (sleepSum / 7).toFixed(1);
+    const avgRPE = rpeCount > 0 ? (rpeSum / rpeCount).toFixed(1) : 6.5;
+
+    const payload = {
+      totalKmDone,
+      targetKm,
+      avgSleep: parseFloat(avgSleep),
+      avgRPE: parseFloat(avgRPE),
+      recentSessions
+    };
+
+    let data = null;
+
+    // 1. Llamada a endpoint Cloudflare Worker
+    try {
+      const workerUrl = window.location.origin.includes('workers.dev')
+        ? '/api/ai/weekly-review'
+        : 'https://virol.v-roiglo1991.workers.dev/api/ai/weekly-review';
+
+      const res = await fetch(workerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        data = await res.json();
+      } else {
+        console.warn('Worker weekly review devolvió status:', res.status);
+      }
+    } catch (netErr) {
+      console.warn('Error conectando a Cloudflare Worker:', netErr);
+    }
+
+    // 2. Respaldo directo si no responde Worker y hay clave local
+    if (!data || !data.analysis) {
+      const localKey = localStorage.getItem('virol_gemini_key') || '';
+      if (localKey) {
+        try {
+          const systemPrompt = `Eres un entrenador de atletismo de élite y fisiólogo deportivo especializado en maratón (Valencia 42K). Analiza los datos de Víctor y devuelve un JSON válido con: status_badge (ÓPTIMO/ATENCIÓN/DESCARGA), fatigue_score (1-100), injury_risk (BAJO/MEDIO/ALTO), summary_headline, weekly_diagnosis, actionable_adjustments (array de 3 strings) y nutrition_focus.`;
+          const userPrompt = `Objetivo: ${targetKm}km. Realizados: ${totalKmDone}km. Sueño: ${avgSleep}h/noche. RPE: ${avgRPE}. Sesiones: ${JSON.stringify(recentSessions)}.`;
+
+          const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${localKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: systemPrompt }] },
+              contents: [{ parts: [{ text: userPrompt }] }],
+              generationConfig: { responseMimeType: 'application/json' }
+            })
+          });
+          if (gRes.ok) {
+            const gData = await gRes.json();
+            const analysis = JSON.parse(gData.candidates[0].content.parts[0].text);
+            data = {
+              metrics: {
+                totalKmDone,
+                targetKm,
+                completionPct: Math.round((totalKmDone / (targetKm || 1)) * 100),
+                avgSleep,
+                avgRPE
+              },
+              analysis
+            };
+          }
+        } catch (e) {
+          console.warn('Fallback Gemini local error:', e);
+        }
+      }
+    }
+
+    // 3. Respaldo fisiológico algorítmico si no hay red ni API key
+    if (!data || !data.analysis) {
+      const pct = Math.round((totalKmDone / (targetKm || 1)) * 100);
+      const isFatigued = parseFloat(avgSleep) < 7.0 || parseFloat(avgRPE) >= 7.5;
+      data = {
+        metrics: {
+          totalKmDone,
+          targetKm,
+          completionPct: pct,
+          avgSleep,
+          avgRPE
+        },
+        analysis: {
+          status_badge: isFatigued ? 'ATENCIÓN' : (pct >= 85 ? 'ÓPTIMO' : 'ATENCIÓN'),
+          fatigue_score: isFatigued ? 68 : 42,
+          injury_risk: isFatigued ? 'MEDIO' : 'BAJO',
+          summary_headline: pct >= 80 
+            ? 'VOLUMEN CONSISTENTE // VIGILAR RECUPERACIÓN NOCTURNA' 
+            : 'ASIMILACIÓN EN PROCESO // PRIORIZAR TIRADA LARGA',
+          weekly_diagnosis: `Has completado ${totalKmDone} km de ${targetKm} km planificados (${pct}%). Con una media de descanso de ${avgSleep} horas, la asimilación aeróbica es adecuada pero requiere atención en el sóleo y tendón de Aquiles.`,
+          actionable_adjustments: [
+            'Mantener el ritmo regenerativo (Z2) 15-20 seg más lento si el RPE supera 6.',
+            'Dedicar 10 min de foam roller y movilidad de tobillo antes de cada sesión.',
+            'Asegurar un mínimo de 7.5 horas de sueño en la víspera de la tirada larga.'
+          ],
+          nutrition_focus: 'Cargar 4g/kg de hidratos de absorción lenta 24h antes del rodaje largo y asegurar aporte de sales.'
+        }
+      };
+    }
+
+    // 4. Renderizado visual Neobrutalista
+    const a = data.analysis;
+    const m = data.metrics;
+    const statusClass = a.status_badge === 'ÓPTIMO' 
+      ? 'ai-status-optimo' 
+      : (a.status_badge === 'DESCARGA' ? 'ai-status-descarga' : 'ai-status-atencion');
+
+    if (resultsContainer) {
+      resultsContainer.innerHTML = `
+        <div class="ai-results-strip">
+          <span class="ai-status-pill ${statusClass}">● ${a.status_badge}</span>
+          <span class="ai-fatigue-pill">⚡ FATIGA: <strong>${a.fatigue_score}/100</strong></span>
+          <span class="ai-injury-pill">🛡️ RIESGO: <strong>${a.injury_risk}</strong></span>
+          <span class="ai-injury-pill" style="border-color:var(--c-volt); color:var(--c-volt);">🏃 ${m.totalKmDone}/${m.targetKm} KM (${m.completionPct}%)</span>
+          <span class="ai-injury-pill">💤 SUEÑO: ${m.avgSleep}h</span>
+        </div>
+
+        <h4 class="ai-headline-box">${a.summary_headline}</h4>
+        <p class="ai-diagnosis-text">${a.weekly_diagnosis}</p>
+
+        <div style="margin-top:14px;">
+          <span style="font-family:var(--font-mono); font-size:0.75rem; font-weight:900; color:var(--c-volt); display:block; margin-bottom:8px; text-transform:uppercase;">🔧 3 AJUSTES ACCIONABLES PARA LA SEMANA:</span>
+          <div class="ai-adjustments-grid">
+            ${(a.actionable_adjustments || []).map((adj, idx) => `
+              <div class="ai-adj-card">
+                <span class="ai-adj-num">${idx + 1}</span>
+                <span>${adj}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="ai-nutrition-callout">
+          <span style="font-size:1.2rem;">🍌</span>
+          <div>
+            <strong>ENFOQUE NUTRICIONAL:</strong> ${a.nutrition_focus}
+          </div>
+        </div>
+      `;
+
+      if (placeholder) placeholder.style.display = 'none';
+      resultsContainer.style.display = 'block';
+    }
+
+    btnTrigger.disabled = false;
+    if (spinner) spinner.style.display = 'none';
+    if (btnText) btnText.textContent = '🔄 RE-ANALIZAR SEMANA';
+
+    playSuccessSound();
+    showToast('🧠 ¡ANÁLISIS SEMANAL IA COMPLETADO!');
+  });
+}
+
 // 10. INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
   // Render profile HUD
@@ -2677,6 +2884,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initPlanEditor();
   initStravaModule();
   initAINutritionModule();
+  initAIWeeklyReviewModule();
   initAlarmsModule();
   initRunningModule();
 

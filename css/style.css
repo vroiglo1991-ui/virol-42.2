@@ -3058,4 +3058,203 @@ body.brutalist-theme {
   line-height: 1.3;
 }
 
+/* ==========================================================================
+   AI WEEKLY REVIEW / COACH IA // VALENCIA 42K (NEOBRUTALIST)
+   ========================================================================== */
+.ai-weekly-review-card {
+  background: var(--bg-card);
+  border: 3px solid #000;
+  box-shadow: 5px 5px 0px #000;
+  margin: 18px 0;
+  padding: 16px;
+  position: relative;
+}
+
+[data-theme="light"] .ai-weekly-review-card {
+  background: #ffffff;
+  border-color: #000;
+  box-shadow: 5px 5px 0px #000;
+}
+
+.ai-weekly-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 2px dashed var(--border-light);
+}
+
+.ai-weekly-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge-volt-black {
+  background: var(--c-volt);
+  color: #000000;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px #000;
+}
+
+.ai-weekly-model {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.btn-run-weekly-ai {
+  background: var(--c-volt);
+  color: #000000;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 0.8rem;
+  border: 2px solid #000;
+  box-shadow: 3px 3px 0px #000;
+  padding: 8px 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.btn-run-weekly-ai:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #000;
+  background: #d8ff26;
+}
+
+.btn-run-weekly-ai:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px #000;
+}
+
+.ai-placeholder-text {
+  font-size: 0.86rem;
+  color: var(--text-sub);
+  line-height: 1.5;
+  margin: 12px 0 0 0;
+}
+
+/* AI REVIEW RESULTS RENDER */
+.ai-results-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 14px 0 10px 0;
+}
+
+.ai-status-pill {
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px #000;
+}
+
+.ai-status-optimo { background: #22c55e; color: #000; }
+.ai-status-atencion { background: #f97316; color: #fff; }
+.ai-status-descarga { background: #ef4444; color: #fff; }
+
+.ai-fatigue-pill, .ai-injury-pill {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 4px 8px;
+  border: 1px solid var(--border-light);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-main);
+}
+
+.ai-headline-box {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.2;
+  letter-spacing: 0.5px;
+  color: var(--text-main);
+  margin: 10px 0 8px 0;
+  text-transform: uppercase;
+}
+
+.ai-diagnosis-text {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.25);
+  border-left: 4px solid var(--c-volt);
+  padding: 10px 14px;
+  margin: 10px 0 14px 0;
+}
+
+[data-theme="light"] .ai-diagnosis-text {
+  background: #f8fafc;
+}
+
+.ai-adjustments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ai-adj-card {
+  background: rgba(0, 0, 0, 0.15);
+  border: 2px solid var(--border-light);
+  padding: 10px 12px;
+  box-shadow: 2px 2px 0px #000;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--text-main);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.ai-adj-num {
+  background: var(--c-volt);
+  color: #000;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 0.65rem;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #000;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ai-nutrition-callout {
+  background: rgba(200, 255, 0, 0.08);
+  border: 2px dashed var(--c-volt);
+  padding: 10px 14px;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-main);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ai-nutrition-callout strong {
+  color: var(--c-volt);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
+
 
