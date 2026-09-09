@@ -191,6 +191,63 @@ function getMeals() {
   return appState.customMeals || DEFAULT_MEALS;
 }
 
+const DEFAULT_MERCADONA = {
+  proteins: {
+    title: "PROTEÍNAS & PESCADOS",
+    subtitle: "~3.5 KG TOTAL",
+    icon: `<svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+    items: [
+      { name: "Lomo de cerdo", weight: "1.5 kg", checked: false },
+      { name: "Carne picada vacuno/cerdo", weight: "1.0 kg", checked: false },
+      { name: "Latas de atún claro", weight: "8 a 10 latas", checked: false },
+      { name: "Pechuga de pavo (fiambre)", weight: "400 g", checked: false },
+      { name: "Jamón serrano", weight: "250 g", checked: false }
+    ]
+  },
+  carbs: {
+    title: "CARBOHIDRATOS BASE",
+    subtitle: "COMBUSTIBLE MARATÓN",
+    icon: `<svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/></svg>`,
+    items: [
+      { name: "Patatas (malla)", weight: "3.0 kg", checked: false },
+      { name: "Pan Rústico Mercadona", weight: "2 hogazas", checked: false },
+      { name: "Arroz (redondo o vaporizado)", weight: "1 paquete (1 kg)", checked: false },
+      { name: "Pasta (macarrones/espaguetis)", weight: "1 paquete (1 kg)", checked: false },
+      { name: "Tortitas de arroz", weight: "2 paquetes", checked: false },
+      { name: "Plátanos de Canarias", weight: "2 racimos (~2.0 kg)", checked: false }
+    ]
+  },
+  fresh: {
+    title: "LÁCTEOS, GRASAS & EXTRAS",
+    subtitle: "RECUPERACIÓN",
+    icon: `<svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/></svg>`,
+    items: [
+      { name: "Queso semicurado o tierno", weight: "1 cuña (350 g)", checked: false },
+      { name: "Gazpacho tradicional", weight: "3 bricks de 1L", checked: false },
+      { name: "Bote de olivas rellenas o con hueso", weight: "1 tarro (300 g)", checked: false },
+      { name: "Aceite de Oliva Virgen Extra", weight: "1 botella", checked: false }
+    ]
+  },
+  supplements: {
+    title: "ARMERÍA DE SUPLEMENTOS",
+    subtitle: "DISPENSADOR",
+    icon: `<svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>`,
+    items: [
+      { name: "Creatina Monohidrato", weight: "5 g diarios", checked: false },
+      { name: "Proteína Whey en polvo", weight: "30 g diarios", checked: false },
+      { name: "Omega 3 concentrado", weight: "2 perlas/día", checked: false },
+      { name: "Magnesio (citrato/bisglicinato)", weight: "1 dosis noche", checked: false }
+    ]
+  }
+};
+
+function getMercadonaList() {
+  if (!appState.mercadonaList) {
+    appState.mercadonaList = JSON.parse(JSON.stringify(DEFAULT_MERCADONA));
+  }
+  return appState.mercadonaList;
+}
+
 const WORKOUT_PLANS = new Proxy({}, {
   get: (target, prop) => getWorkouts()[prop]
 });
@@ -251,6 +308,9 @@ function getStoredState() {
       } else {
         parsed.running = Object.assign({}, defaultRunning, parsed.running);
       }
+      if (!parsed.mercadonaList) {
+        parsed.mercadonaList = JSON.parse(JSON.stringify(DEFAULT_MERCADONA));
+      }
       return parsed;
     }
   } catch (e) {
@@ -270,6 +330,7 @@ function getStoredState() {
     },
     alarms: defaultAlarms,
     running: defaultRunning,
+    mercadonaList: JSON.parse(JSON.stringify(DEFAULT_MERCADONA)),
     days: {},
     history: []
   };
@@ -352,6 +413,7 @@ async function pushToCloud() {
       soundEnabled: appState.soundEnabled !== false,
       customMeals: appState.customMeals || null,
       customWorkouts: appState.customWorkouts || null,
+      mercadonaList: appState.mercadonaList || null,
       strava: appState.strava || null,
       alarms: appState.alarms || null,
       running: appState.running || null
@@ -399,6 +461,7 @@ async function syncFromCloud(silent = false) {
         if (typeof cloudData.soundEnabled === 'boolean') appState.soundEnabled = cloudData.soundEnabled;
         if (cloudData.customMeals) appState.customMeals = cloudData.customMeals;
         if (cloudData.customWorkouts) appState.customWorkouts = cloudData.customWorkouts;
+        if (cloudData.mercadonaList) appState.mercadonaList = cloudData.mercadonaList;
         if (cloudData.strava) appState.strava = cloudData.strava;
         if (cloudData.alarms) {
           appState.alarms = Object.assign({}, appState.alarms, cloudData.alarms);
@@ -417,6 +480,7 @@ async function syncFromCloud(silent = false) {
         renderMission(selectedDayIndex);
         renderHistory();
         renderMealsTab();
+        renderMercadonaList();
         renderScheduleCards();
         renderRunningTab();
 
@@ -2979,73 +3043,39 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(`⚡ ¡ENTRENO DE ${WORKOUT_PLANS[selectedDayIndex].name} COMPLETADO, VÍCTOR!`);
       } else {
         playCheckSound();
-      }
+}
     });
   }
 
   // Supplement Checkboxes
-  const suppChecks = document.querySelectorAll('#supplements-checklist input[type="checkbox"]');
-  suppChecks.forEach(chk => {
-    chk.addEventListener('change', () => {
-      const key = getTodayKey(selectedDayIndex);
-      if (!appState.days[key]) appState.days[key] = {};
+  renderMercadonaList();
 
-      const chkKey = chk.dataset.chk;
-      appState.days[key][chkKey] = chk.checked;
+  const btnCustomMarket = document.getElementById('btn-add-custom-market-item');
+  if (btnCustomMarket) {
+    btnCustomMarket.addEventListener('click', () => {
+      const name = prompt('Nombre del producto para la lista de Mercadona:');
+      if (!name || !name.trim()) return;
+      const weight = prompt('Cantidad o peso (ej: 1 kg, 6 latas, 2 uds, 500g):', '1 ud') || '';
+      const mList = getMercadonaList();
+      mList.fresh.items.push({ name: name.trim(), weight: weight.trim(), checked: false });
       saveState(appState);
-      updateProgressHUD(selectedDayIndex);
-
-      if (chk.checked) {
-        playCheckSound();
-        showToast(`✔ MARCADO: ${chk.closest('.chk-item').querySelector('.chk-name').innerText}`);
-      }
-    });
-  });
-
-  // Sleep hours
-  const sleepInput = document.getElementById('sleep-hours');
-  if (sleepInput) {
-    const key = getTodayKey(selectedDayIndex);
-    if (appState.days[key] && appState.days[key].sleepHours) {
-      sleepInput.value = appState.days[key].sleepHours;
-    }
-    sleepInput.addEventListener('change', () => {
-      const key = getTodayKey(selectedDayIndex);
-      if (!appState.days[key]) appState.days[key] = {};
-      appState.days[key].sleepHours = sleepInput.value;
-      saveState(appState);
-      playCheckSound();
-      showToast(`💤 SUEÑO REGISTRADO: ${sleepInput.value} HORAS`);
+      renderMercadonaList();
+      showToast(`🛒 AÑADIDO: ${name.trim()}`);
     });
   }
 
-  // Copy Mercadona shopping list
   const copyBtn = document.getElementById('btn-copy-market');
   if (copyBtn) {
     copyBtn.addEventListener('click', () => {
       playCheckSound();
-      const listText = `🛒 LISTA DE LA COMPRA MERCADONA (SEMANAL - VÍCTOR 73KG):
-- 1.5 kg Lomo de cerdo
-- 1.0 kg Carne picada vacuno/cerdo
-- 8 a 10 latas de Atún claro
-- 400 g Fiambre pechuga de pavo
-- 250 g Jamón serrano
-- 3.0 kg Patatas
-- 2 hogazas Pan Rústico Mercadona
-- 1.0 kg Arroz
-- 1.0 kg Pasta
-- 2 paquetes Tortitas de arroz
-- 2.0 kg Plátanos de Canarias
-- 350 g Queso tierno/semicurado
-- 3 bricks Gazpacho tradicional 1L
-- 1 tarro Olivas
-- Aceite de Oliva Virgen Extra
-
-💊 SUPLEMENTACIÓN:
-- Creatina Monohidrato (5g/día)
-- Proteína Whey (30g/día)
-- Omega 3 (2 perlas/día)
-- Magnesio (1 dosis antes de dormir)`;
+      const mList = getMercadonaList();
+      let listText = `🛒 LISTA DE LA COMPRA MERCADONA (VÍCTOR 73KG):\n`;
+      for (const cat of Object.values(mList)) {
+        listText += `\n📌 ${cat.title}:\n`;
+        (cat.items || []).forEach(it => {
+          listText += `- [${it.checked ? 'X' : ' '}] ${it.name} (${it.weight || ''})\n`;
+        });
+      }
 
       if (navigator.clipboard) {
         navigator.clipboard.writeText(listText).then(() => {
@@ -3096,4 +3126,326 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('SW registration note:', err);
     });
   }
+
+  // Init Chatbot
+  initChatbot();
 });
+
+// ==========================================================================
+// RENDERIZADOR DINÁMICO DE MERCADONA
+// ==========================================================================
+function renderMercadonaList() {
+  const container = document.getElementById('market-categories-container');
+  if (!container) return;
+
+  const mList = getMercadonaList();
+  
+  let html = '';
+  for (const [catKey, catData] of Object.entries(mList)) {
+    const isSupp = catKey === 'supplements';
+    const itemsHtml = (catData.items || []).map((item, idx) => {
+      return `
+        <div class="m-item-row" data-cat="${catKey}" data-idx="${idx}">
+          <label class="m-item">
+            <input type="checkbox" ${item.checked ? 'checked' : ''} data-cat="${catKey}" data-idx="${idx}">
+            <span class="m-box"></span>
+            <span class="m-name">${item.name}</span>
+            <span class="m-weight">${item.weight || ''}</span>
+          </label>
+          <button class="m-del-btn" title="Eliminar de la lista" data-cat="${catKey}" data-idx="${idx}">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    html += `
+      <div class="market-card ${isSupp ? 'card-supp-check' : ''}">
+        <div class="market-card-head">
+          <h3>
+            ${catData.icon || ''}
+            <span>${catData.title}</span>
+          </h3>
+          <span class="m-count">${catData.subtitle || ''}</span>
+        </div>
+        <div class="market-checklist">
+          ${itemsHtml || '<p style="font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:6px;">No hay productos en esta categoría</p>'}
+        </div>
+        <button class="btn-add-market-item" data-cat="${catKey}">
+          <span>+ Añadir a ${catData.title.split(' ')[0]}</span>
+        </button>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+
+  // Listeners para checkboxes
+  container.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+    chk.addEventListener('change', (e) => {
+      const cat = e.target.dataset.cat;
+      const idx = parseInt(e.target.dataset.idx, 10);
+      if (mList[cat] && mList[cat].items[idx]) {
+        mList[cat].items[idx].checked = e.target.checked;
+        saveState(appState);
+        if (e.target.checked) playCheckSound();
+      }
+    });
+  });
+
+  // Listeners para borrar
+  container.querySelectorAll('.m-del-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const cat = e.currentTarget.dataset.cat;
+      const idx = parseInt(e.currentTarget.dataset.idx, 10);
+      if (mList[cat] && mList[cat].items[idx]) {
+        const removed = mList[cat].items.splice(idx, 1)[0];
+        saveState(appState);
+        renderMercadonaList();
+        showToast(`🗑️ ELIMINADO: ${removed.name}`);
+      }
+    });
+  });
+
+  // Listeners para añadir inline
+  container.querySelectorAll('.btn-add-market-item').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const cat = e.currentTarget.dataset.cat;
+      const name = prompt(`Nombre del producto para ${mList[cat].title}:`);
+      if (!name || !name.trim()) return;
+      const weight = prompt(`Cantidad o peso estimado (ej: 500g, 1 paquete, 2 uds):`, '1 ud') || '';
+      mList[cat].items.push({ name: name.trim(), weight: weight.trim(), checked: false });
+      saveState(appState);
+      renderMercadonaList();
+      showToast(`🛒 AÑADIDO: ${name}`);
+    });
+  });
+}
+
+// ==========================================================================
+// 10. AI AGENTIC DISPATCHER & CHATBOT LOGIC
+// ==========================================================================
+function dispatchChatActions(actions) {
+  if (!Array.isArray(actions) || actions.length === 0) return [];
+
+  const executedNotes = [];
+  const mList = getMercadonaList();
+
+  for (const act of actions) {
+    if (!act || !act.type) continue;
+
+    // 1. ADD_MERCADONA_ITEM
+    if (act.type === 'ADD_MERCADONA_ITEM') {
+      const catKey = (act.category && mList[act.category]) ? act.category : 'fresh';
+      const name = act.name || 'Producto';
+      const weight = act.weight || '1 ud';
+      mList[catKey].items.push({ name, weight, checked: false });
+      executedNotes.push(`+ ${name} en Mercadona`);
+    }
+
+    // 2. REMOVE_MERCADONA_ITEM
+    else if (act.type === 'REMOVE_MERCADONA_ITEM') {
+      const target = (act.name || '').toLowerCase();
+      for (const cat of Object.values(mList)) {
+        const idx = cat.items.findIndex(it => it.name.toLowerCase().includes(target));
+        if (idx !== -1) {
+          const removed = cat.items.splice(idx, 1)[0];
+          executedNotes.push(`- ${removed.name} de Mercadona`);
+          break;
+        }
+      }
+    }
+
+    // 3. ADD_MEAL_ITEM
+    else if (act.type === 'ADD_MEAL_ITEM') {
+      if (!appState.customMeals) {
+        appState.customMeals = JSON.parse(JSON.stringify(DEFAULT_MEALS));
+      }
+      const mealKey = act.meal || 'snack';
+      if (appState.customMeals[mealKey]) {
+        const itemObj = { qty: act.qty || '1 ud', text: act.text || act.name || 'Alimento' };
+        if (!Array.isArray(appState.customMeals[mealKey].items)) {
+          appState.customMeals[mealKey].items = [];
+        }
+        appState.customMeals[mealKey].items.push(itemObj);
+        executedNotes.push(`+ ${itemObj.text} en ${appState.customMeals[mealKey].name.split(' ')[0]}`);
+      }
+    }
+
+    // 4. REMOVE_MEAL_ITEM
+    else if (act.type === 'REMOVE_MEAL_ITEM') {
+      if (!appState.customMeals) {
+        appState.customMeals = JSON.parse(JSON.stringify(DEFAULT_MEALS));
+      }
+      const mealKey = act.meal || 'snack';
+      const target = (act.text || act.name || '').toLowerCase();
+      if (appState.customMeals[mealKey] && Array.isArray(appState.customMeals[mealKey].items)) {
+        const idx = appState.customMeals[mealKey].items.findIndex(it => 
+          (it.text || '').toLowerCase().includes(target) || (it.name || '').toLowerCase().includes(target)
+        );
+        if (idx !== -1) {
+          const removed = appState.customMeals[mealKey].items.splice(idx, 1)[0];
+          executedNotes.push(`- ${removed.text || removed.name} de ${mealKey}`);
+        }
+      }
+    }
+
+    // 5. ADJUST_WORKOUT
+    else if (act.type === 'ADJUST_WORKOUT') {
+      if (!appState.customWorkouts) {
+        appState.customWorkouts = JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
+      }
+      const day = act.dayIdx !== undefined ? Number(act.dayIdx) : 4;
+      if (appState.customWorkouts[day]) {
+        if (act.km !== undefined) appState.customWorkouts[day].km = Number(act.km);
+        if (act.note) appState.customWorkouts[day].meta = act.note;
+        executedNotes.push(`Ajustado entreno ${appState.customWorkouts[day].name}`);
+      }
+    }
+  }
+
+  if (executedNotes.length > 0) {
+    saveState(appState);
+    renderMercadonaList();
+    renderMeals(selectedDayIndex);
+    renderMealsTab();
+    renderWeeklyCalendar();
+    renderTodayWorkout(selectedDayIndex);
+    playCheckSound();
+    showToast(`⚡ COACH: ${executedNotes.join(' • ')}`);
+  }
+
+  return executedNotes;
+}
+
+function initChatbot() {
+  const btnOpen = document.getElementById('btn-open-chat');
+  const modal = document.getElementById('chat-modal-overlay');
+  const btnClose = document.getElementById('btn-close-chat-modal');
+  const btnSend = document.getElementById('btn-send-chat');
+  const input = document.getElementById('chat-input');
+  const messagesContainer = document.getElementById('chat-messages');
+
+  if (!btnOpen || !modal || !btnClose || !btnSend || !input || !messagesContainer) return;
+
+  const chatHistory = [];
+
+  btnOpen.addEventListener('click', () => {
+    modal.classList.add('active');
+    setTimeout(() => input.focus(), 100);
+  });
+
+  const closeModal = () => modal.classList.remove('active');
+  btnClose.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  const addMessage = (text, type, actions = [], interview = null) => {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-message ${type}-message`;
+    
+    let contentHtml = `<div class="msg-bubble">${(text || '').replace(/\n/g, '<br>')}`;
+
+    // Insignia de acciones ejecutadas
+    if (actions && actions.length > 0) {
+      contentHtml += `
+        <div class="chat-action-badge">
+          <span>⚡ ACCIÓN EJECUTADA:</span>
+          <span>${actions.join(' • ')}</span>
+        </div>
+      `;
+    }
+
+    // Modo entrevista: preguntas incisivas y respuestas rápidas
+    if (interview && interview.is_active && Array.isArray(interview.quick_replies) && interview.quick_replies.length > 0) {
+      contentHtml += `
+        <div class="chat-interview-box">
+          ${interview.question ? `<div class="chat-interview-q"><span>🎯 PREGUNTA DEL COACH:</span> <span>${interview.question}</span></div>` : ''}
+          <div class="chat-quick-replies">
+            ${interview.quick_replies.map(qr => `<button type="button" class="chat-reply-chip" data-reply="${encodeURIComponent(qr)}">💬 ${qr}</button>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    contentHtml += `</div>`;
+    msgDiv.innerHTML = contentHtml;
+    messagesContainer.appendChild(msgDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Vincular clics en quick reply chips
+    msgDiv.querySelectorAll('.chat-reply-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const replyText = decodeURIComponent(chip.dataset.reply);
+        input.value = replyText;
+        sendMessage();
+      });
+    });
+  };
+
+  const sendMessage = async () => {
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    addMessage(text, 'user');
+    chatHistory.push({ role: 'user', content: text });
+
+    // Preparar contexto ultra-completo
+    let weeklyRunningKm = 0;
+    for (let i = 0; i < 7; i++) {
+      const dayData = appState.days[getTodayKey(i)];
+      if (dayData && dayData.stravaActivity && dayData.stravaActivity.distanceKm) {
+        weeklyRunningKm += parseFloat(dayData.stravaActivity.distanceKm) || 0;
+      }
+    }
+
+    const context = {
+      weeklyKm: weeklyRunningKm,
+      weight: (appState.profile && appState.profile.weight) || 73,
+      goal: "Maratón Valencia 42K",
+      meals: getMeals(),
+      mercadonaList: getMercadonaList(),
+      recentActivities: Object.values(appState.days).map(d => d.stravaActivity).filter(Boolean)
+    };
+
+    // Indicador de carga
+    const loadingId = 'loading-' + Date.now();
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'chat-message ai-message';
+    loadingDiv.id = loadingId;
+    loadingDiv.innerHTML = `<div class="msg-bubble spin">⏳ Pensando con base científica...</div>`;
+    messagesContainer.appendChild(loadingDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    try {
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, context, history: chatHistory })
+      });
+
+      document.getElementById(loadingId)?.remove();
+
+      if (!res.ok) throw new Error('Error en el servidor');
+      const data = await res.json();
+      
+      // Ejecutar acciones en la app si el Coach las prescribió
+      const executed = dispatchChatActions(data.actions);
+
+      if (data.reply) {
+        chatHistory.push({ role: 'model', content: data.reply });
+        addMessage(data.reply, 'ai', executed, data.interview_mode);
+      } else {
+        addMessage('Ha habido un error al procesar tu solicitud.', 'ai');
+      }
+    } catch (err) {
+      document.getElementById(loadingId)?.remove();
+      addMessage('Error de conexión con el Coach: ' + err.message, 'ai');
+    }
+  };
+
+  btnSend.addEventListener('click', sendMessage);
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+}

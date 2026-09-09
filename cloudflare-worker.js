@@ -282,6 +282,130 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
       }
     }
 
+    // ─── 4.5. POST /api/ai/chat — Chatbot interactivo y Agéntico ─────────────
+    if (url.pathname === '/api/ai/chat' && request.method === 'POST') {
+      try {
+        const geminiApiKey = env.GEMINI_API_KEY;
+        if (!geminiApiKey) {
+          return corsResponse({ error: 'GEMINI_API_KEY no configurada' }, 500);
+        }
+
+        let body = {};
+        try {
+          body = await request.json();
+        } catch (_) {
+          return corsResponse({ error: 'Body inválido' }, 400);
+        }
+
+        const userMessage = body.message || '';
+        const contextData = body.context || {};
+        const conversationHistory = Array.isArray(body.history) ? body.history : [];
+        
+        const contextStr = JSON.stringify(contextData, null, 2);
+
+        const systemInstruction = `Eres Virol AI Coach, el entrenador de atletismo de élite y nutricionista personal de Víctor (73 kg, 178 cm, objetivo Maratón Valencia 42K).
+Eres directo, riguroso, de corte militar-atlético brutalista y científico: sin clichés ni frases vacías. Hablas con seguridad, claridad y autoridad técnica.
+
+CONTEXTO DEL ATLETA:
+${contextStr}
+
+CAPACIDADES DEL COACH (AGÉNTICO):
+1. ACCIONES EN LA APP:
+Si el atleta te pide agregar/quitar alimentos en el menú diario, o modificar productos de la cesta de Mercadona, o ajustar ritmos/kilometraje de un día de entrenamiento, DEBES incluir esas acciones en el array "actions" para que la app se auto-actualice.
+Tipos de acciones soportadas:
+- { "type": "ADD_MERCADONA_ITEM", "category": "proteins"|"carbs"|"fresh"|"supplements", "name": "Nombre producto", "weight": "Cantidad estimada ej: 1 paquete o 500g" }
+- { "type": "REMOVE_MERCADONA_ITEM", "name": "Nombre del producto a quitar" }
+- { "type": "ADD_MEAL_ITEM", "meal": "desayuno"|"snack"|"comida"|"merienda"|"cena", "qty": "Cantidad ej: 2 uds o 150g", "text": "Alimento ej: Huevos cocidos" }
+- { "type": "REMOVE_MEAL_ITEM", "meal": "desayuno"|"snack"|"comida"|"merienda"|"cena", "text": "Alimento a retirar" }
+- { "type": "ADJUST_WORKOUT", "dayIdx": 0..6, "km": 14, "note": "Breve nota de ajuste" } (0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado)
+
+2. MODO ENTREVISTA CLAUDE / "GRILL ME":
+De vez en cuando, o cuando Víctor te plantee dudas sobre su rendimiento, fatiga, ritmos, sensaciones post-tirada, o nuevas ideas de menú/suplementación, NO TE LIMITES A ACEPTAR O DAR UNA RESPUESTA GENÉRICA.
+Haz 1 o 2 preguntas incisivas de diagnóstico (ej: sensaciones en sóleos, horas de sueño previas, digestión con geles, pulsaciones en umbral, etc.) para indagar en su contexto real antes o mientras le das la recomendación.
+Proporciona siempre entre 2 y 4 opciones breves de respuesta rápida en "quick_replies" para que Víctor pueda pulsarla y responderte al instante.
+
+RESPONDE OBLIGATORIAMENTE EN FORMATO JSON ESTRICTO con la siguiente estructura:
+{
+  "reply": "Tu mensaje como Coach, claro, riguroso y confirmando cualquier acción ejecutada en la app.",
+  "actions": [ /* array de acciones a ejecutar en la app, o [] si solo es conversación */ ],
+  "interview_mode": {
+    "is_active": true o false,
+    "question": "Pregunta diagnóstica afilada si aplica, o vacía",
+    "quick_replies": ["Opción rápida 1", "Opción rápida 2", "Opción rápida 3"]
+  }
+}`;
+
+        // Construir contenido con historial breve si existe
+        const contents = [];
+        for (const h of conversationHistory.slice(-4)) {
+          contents.push({
+            role: h.role === 'user' ? 'user' : 'model',
+            parts: [{ text: typeof h.content === 'string' ? h.content : JSON.stringify(h.content) }]
+          });
+        }
+        contents.push({
+          role: 'user',
+          parts: [{ text: userMessage }]
+        });
+
+        const promptPayload = {
+          contents,
+          systemInstruction: {
+            parts: [{
+              text: systemInstruction
+            }]
+          },
+          generationConfig: {
+            response_mime_type: 'application/json'
+          }
+        };
+
+        const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest'];
+        let geminiData = null;
+        let lastErrorText = '';
+
+        for (const model of models) {
+          try {
+            const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(promptPayload)
+            });
+
+            if (geminiRes.ok) {
+              geminiData = await geminiRes.json();
+              break;
+            } else {
+              lastErrorText = await geminiRes.text();
+            }
+          } catch (e) {
+            lastErrorText = e.message;
+          }
+        }
+
+        if (!geminiData || !geminiData.candidates || !geminiData.candidates[0]) {
+          return corsResponse({ error: 'Fallo al invocar Gemini API en chat', detail: lastErrorText }, 502);
+        }
+
+        const rawText = geminiData.candidates[0].content.parts[0].text;
+        let parsedResult = null;
+        try {
+          parsedResult = JSON.parse(rawText);
+        } catch (_) {
+          parsedResult = {
+            reply: rawText,
+            actions: [],
+            interview_mode: { is_active: false, question: '', quick_replies: [] }
+          };
+        }
+
+        return corsResponse(parsedResult, 200);
+
+      } catch (err) {
+        return corsResponse({ error: err.message }, 500);
+      }
+    }
+
     // ─── 5. Archivos estáticos ────────────────────────────────────
     const response = await env.ASSETS.fetch(request);
     const newHeaders = new Headers(response.headers);

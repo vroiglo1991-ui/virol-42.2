@@ -1704,6 +1704,62 @@ body.brutalist-theme {
   color: var(--text-muted);
 }
 
+.m-item-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.m-item-row .m-item {
+  flex: 1;
+}
+
+.m-del-btn {
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  transition: all 0.15s;
+}
+
+.m-del-btn:hover {
+  background: #FF3B30;
+  color: #FFF;
+  border-color: #000;
+}
+
+.btn-add-market-item {
+  margin-top: 8px;
+  background: transparent;
+  border: 1px dashed var(--border-card);
+  color: var(--text-sub);
+  padding: 6px 10px;
+  font-family: var(--font-sub);
+  font-weight: 800;
+  font-size: 0.75rem;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.btn-add-market-item:hover {
+  background: var(--bg-step);
+  border-color: var(--c-volt);
+  color: var(--c-volt);
+}
+
 /* TAB 6: AVISOS & ALARMAS */
 .ios-push-info-box {
   background: var(--bg-card);
@@ -3256,5 +3312,142 @@ body.brutalist-theme {
   text-transform: uppercase;
 }
 
+/* ================= AI CHATBOT STYLES ================= */
+.chat-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--c-volt);
+  color: #000;
+  border: 3px solid #000;
+  box-shadow: var(--shadow-chunky);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 999;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
 
+.chat-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 8px 8px 0px #000;
+}
 
+.chat-fab:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px #000;
+}
+
+.chat-message {
+  display: flex;
+  margin-bottom: 4px;
+}
+
+.chat-message.user-message {
+  justify-content: flex-end;
+}
+
+.chat-message.ai-message {
+  justify-content: flex-start;
+}
+
+.chat-message .msg-bubble {
+  max-width: 85%;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  border: 2px solid #000;
+  box-shadow: 3px 3px 0px #000;
+}
+
+.chat-message.user-message .msg-bubble {
+  background: var(--c-orange);
+  color: #000;
+  border-radius: 12px 12px 0 12px;
+}
+
+.chat-message.ai-message .msg-bubble {
+  background: var(--bg-card);
+  color: var(--text-main);
+  border-color: var(--c-volt);
+  border-radius: 12px 12px 12px 0;
+}
+
+/* Dark theme specific adjustment for ai bubble shadow if needed */
+[data-theme="dark"] .chat-message.ai-message .msg-bubble {
+  border-color: var(--c-volt);
+}
+
+/* AI CHATBOT AGENTIC & INTERVIEW STYLES */
+.chat-action-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(200, 255, 0, 0.12);
+  border: 1px solid var(--c-volt);
+  color: var(--c-volt);
+  font-family: var(--font-sub);
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 6px 10px;
+  margin-top: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+}
+
+.chat-interview-box {
+  margin-top: 10px;
+  border-top: 1px dashed var(--border-light);
+  padding-top: 8px;
+}
+
+.chat-interview-q {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--c-orange);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-quick-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.chat-reply-chip {
+  background: var(--bg-main);
+  color: var(--text-main);
+  border: 1px solid var(--border-card);
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-family: var(--font-sub);
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  box-shadow: 2px 2px 0px #000;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chat-reply-chip:hover {
+  background: var(--c-volt);
+  color: #000;
+  border-color: #000;
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 0px #000;
+}
+
+.chat-reply-chip:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #000;
+}
