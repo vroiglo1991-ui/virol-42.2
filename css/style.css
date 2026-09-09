@@ -76,8 +76,8 @@ svg.svg-ico, .svg-ico {
   gap: 8px !important;
 }
 
-.chk-title .svg-ico, .market-card-head .svg-ico {
-  color: var(--c-volt) !important;
+.chk-title .svg-ico, .market-card-head .svg-ico, .sec-title .svg-ico, .history-title .svg-ico {
+  color: var(--c-orange) !important;
 }
 
 body.brutalist-theme {
@@ -3447,18 +3447,24 @@ body.brutalist-theme {
 .chat-action-badge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(200, 255, 0, 0.12);
-  border: 1px solid var(--c-volt);
-  color: var(--c-volt);
+  gap: 8px;
+  background: #0B0E14;
+  border: 2px solid #1E293B;
+  color: #F8FAFC;
   font-family: var(--font-sub);
-  font-size: 0.72rem;
-  font-weight: 900;
-  padding: 6px 10px;
-  margin-top: 8px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 8px 12px;
+  margin-top: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-radius: 4px;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.3);
+}
+
+.chat-action-badge-tag {
+  color: var(--c-orange);
+  font-weight: 900;
 }
 
 .chat-interview-box {

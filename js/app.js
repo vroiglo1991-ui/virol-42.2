@@ -3390,7 +3390,7 @@ function initChatbot() {
     if (actions && actions.length > 0) {
       contentHtml += `
         <div class="chat-action-badge">
-          <span>⚡ ACCIÓN EJECUTADA:</span>
+          <span class="chat-action-badge-tag">⚡ ACCIÓN EJECUTADA:</span>
           <span>${actions.join(' • ')}</span>
         </div>
       `;
