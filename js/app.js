@@ -2289,7 +2289,7 @@ Devuelve estrictamente un JSON válido con este formato:
   "cena": { "name": "...", "time": "21:30 - 22:30", "desc": "...", "items": [{"qty": "...", "text": "..."}] }
 }`;
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+      let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2297,6 +2297,17 @@ Devuelve estrictamente un JSON válido con este formato:
           generationConfig: { responseMimeType: "application/json" }
         })
       });
+
+      if (!res.ok) {
+        res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
+      }
 
       if (res.ok) {
         const data = await res.json();
@@ -2509,7 +2520,7 @@ Sé conciso y práctico. Devuelve un JSON con este formato:
   "summary": "Breve resumen de las carencias principales (1-2 frases)"
 }`;
 
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+          let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -2517,6 +2528,17 @@ Sé conciso y práctico. Devuelve un JSON con este formato:
               generationConfig: { responseMimeType: 'application/json' }
             })
           });
+
+          if (!res.ok) {
+            res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: 'application/json' }
+              })
+            });
+          }
 
           if (res.ok) {
             const data = await res.json();
