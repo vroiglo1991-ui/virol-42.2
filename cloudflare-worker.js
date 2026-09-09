@@ -226,38 +226,31 @@ DATOS SEMANALES:
 Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42K.
 `;
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
-        const geminiRes = await fetch(geminiUrl, {
+        const promptPayload = {
+          contents: [{
+            parts: [{
+              text: `${systemInstruction}\n\n${userPrompt}\n\nDevuelve ÚNICAMENTE un objeto JSON con las claves: status_badge, fatigue_score, injury_risk, summary_headline, weekly_diagnosis, actionable_adjustments, nutrition_focus.`
+            }]
+          }],
+          generationConfig: {
+            response_mime_type: 'application/json'
+          }
+        };
+
+        let geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemInstruction }] },
-            contents: [{ parts: [{ text: userPrompt }] }],
-            generationConfig: {
-              response_mime_type: 'application/json',
-              response_schema: {
-                type: 'OBJECT',
-                properties: {
-                  status_badge: { type: 'STRING', description: 'ÓPTIMO, ATENCIÓN, o DESCARGA' },
-                  fatigue_score: { type: 'INTEGER', description: '1 a 100 (100 = máxima fatiga)' },
-                  injury_risk: { type: 'STRING', description: 'BAJO, MEDIO o ALTO' },
-                  summary_headline: { type: 'STRING', description: 'Titular conciso en mayúsculas estilo neobrutalista' },
-                  weekly_diagnosis: { type: 'STRING', description: 'Diagnóstico directo en 2-3 frases' },
-                  actionable_adjustments: {
-                    type: 'ARRAY',
-                    items: { type: 'STRING' },
-                    description: '3 ajustes accionables para la semana siguiente'
-                  },
-                  nutrition_focus: { type: 'STRING', description: 'Ajuste nutricional clave (hidratos o hidratación)' }
-                },
-                required: [
-                  'status_badge', 'fatigue_score', 'injury_risk',
-                  'summary_headline', 'weekly_diagnosis', 'actionable_adjustments', 'nutrition_focus'
-                ]
-              }
-            }
-          })
+          body: JSON.stringify(promptPayload)
         });
+
+        if (!geminiRes.ok) {
+          // Fallback a gemini-flash-latest
+          geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(promptPayload)
+          });
+        }
 
         if (!geminiRes.ok) {
           const errText = await geminiRes.text();
