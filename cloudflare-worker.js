@@ -237,24 +237,31 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
           }
         };
 
-        let geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(promptPayload)
-        });
+        const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest'];
+        let geminiData = null;
+        let lastErrorText = '';
 
-        if (!geminiRes.ok) {
-          // Fallback a gemini-flash-latest
-          geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiApiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(promptPayload)
-          });
+        for (const model of models) {
+          try {
+            const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(promptPayload)
+            });
+
+            if (geminiRes.ok) {
+              geminiData = await geminiRes.json();
+              break;
+            } else {
+              lastErrorText = await geminiRes.text();
+            }
+          } catch (e) {
+            lastErrorText = e.message;
+          }
         }
 
-        if (!geminiRes.ok) {
-          const errText = await geminiRes.text();
-          return corsResponse({ error: 'Fallo al invocar Gemini API', detail: errText }, 502);
+        if (!geminiData || !geminiData.candidates || !geminiData.candidates[0]) {
+          return corsResponse({ error: 'Fallo al invocar Gemini API', detail: lastErrorText }, 502);
         }
 
         const geminiData = await geminiRes.json();
