@@ -5,3 +5,10 @@ compatibility_date = "2024-05-22"
 [assets]
 directory = "./"
 binding = "ASSETS"
+
+# D1 Database — multi-atleta
+# Sustituir <DATABASE_ID> por el UUID que da: wrangler d1 create virol-db
+[[d1_databases]]
+binding = "DB"
+database_name = "virol-db"
+database_id = "PLACEHOLDER_VIROL_DB_ID"
