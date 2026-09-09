@@ -264,7 +264,6 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
           return corsResponse({ error: 'Fallo al invocar Gemini API', detail: lastErrorText }, 502);
         }
 
-        const geminiData = await geminiRes.json();
         const analysis = JSON.parse(geminiData.candidates[0].content.parts[0].text);
 
         return corsResponse({
