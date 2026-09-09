@@ -1,0 +1,6 @@
+.git/
+.agents/
+.sandbox/
+*modified.png
+wrangler.toml
+cloudflare-worker.js
