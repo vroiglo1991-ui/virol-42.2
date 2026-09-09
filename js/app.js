@@ -3324,14 +3324,18 @@ function dispatchChatActions(actions) {
   }
 
   if (executedNotes.length > 0) {
-    saveState(appState);
-    renderMercadonaList();
-    renderMeals(selectedDayIndex);
-    renderMealsTab();
-    renderWeeklyCalendar();
-    renderTodayWorkout(selectedDayIndex);
-    playCheckSound();
-    showToast(`⚡ COACH: ${executedNotes.join(' • ')}`);
+    try {
+      saveState(appState);
+      if (typeof renderMercadonaList === 'function') renderMercadonaList();
+      if (typeof renderMealChecklist === 'function') renderMealChecklist(selectedDayIndex);
+      if (typeof renderMealsTab === 'function') renderMealsTab();
+      if (typeof renderScheduleCards === 'function') renderScheduleCards();
+      if (typeof renderMission === 'function') renderMission(selectedDayIndex);
+      playCheckSound();
+      showToast(`⚡ COACH: ${executedNotes.join(' • ')}`);
+    } catch (renderErr) {
+      console.warn('Error al actualizar vistas de la app:', renderErr);
+    }
   }
 
   return executedNotes;
@@ -3466,8 +3470,13 @@ function initChatbot() {
       if (!res.ok) throw new Error('Error en el servidor');
       const data = await res.json();
       
-      // Ejecutar acciones en la app si el Coach las prescribió
-      const executed = dispatchChatActions(data.actions);
+      // Ejecutar acciones en la app si el Coach las prescribió de forma segura
+      let executed = [];
+      try {
+        executed = dispatchChatActions(data.actions);
+      } catch (actErr) {
+        console.warn('Error al despachar acciones del coach:', actErr);
+      }
 
       if (data.reply) {
         chatHistory.push({ role: 'model', content: data.reply });
