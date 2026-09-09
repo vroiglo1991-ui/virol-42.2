@@ -1390,44 +1390,52 @@
       </div>
 
       <div class="editor-body">
-        <div style="background:rgba(212,255,0,0.06); border:1px solid var(--c-volt); padding:10px 12px; margin-bottom:12px; font-size:0.8rem; line-height:1.4;">
-          <strong>🎯 FILOSOFÍA ZERO WASTE:</strong> No compres comida que luego tires. Dinos qué has comprado en Mercadona y la IA te repartirá las cantidades exactas para clavar <strong>~2.850 kcal y 150g de proteína</strong> (Víctor 73 kg).
+        <div style="background:rgba(212,255,0,0.10); border:1px solid var(--c-volt); border-left:3px solid var(--c-volt); padding:10px 14px; margin-bottom:12px; font-size:0.8rem; line-height:1.5; color:#fff; border-radius:6px;">
+          <strong style="color:var(--c-volt);">🎯 FILOSOFÍA ZERO WASTE:</strong> No compres comida que luego tires. Dinos qué has comprado en Mercadona y la IA te repartirá las cantidades exactas para clavar <strong style="color:var(--c-volt);">~2.850 kcal y 150g de proteína</strong> (Víctor 73 kg).
         </div>
 
         <!-- PASO 1: SELECCIONAR ALIMENTOS DISPONIBLES -->
         <div class="editor-field">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <label class="editor-label">1. INGREDIENTES EN TU NEVERA / COMPRA MERCADONA:</label>
-            <button type="button" class="ai-quick-btn" id="btn-ai-load-market-list">
-              🛒 IMPORTAR MI LISTA MERCADONA
-            </button>
-          </div>
-          
-          <div class="chips-container" id="ai-ingredient-chips">
-            <span class="ingredient-chip selected" data-item="Lomo de cerdo">Lomo de cerdo</span>
-            <span class="ingredient-chip selected" data-item="Carne picada magra">Carne picada magra</span>
-            <span class="ingredient-chip selected" data-item="Atún claro">Atún claro</span>
-            <span class="ingredient-chip selected" data-item="Pechuga de pavo">Pechuga de pavo</span>
-            <span class="ingredient-chip selected" data-item="Jamón serrano">Jamón serrano</span>
-            <span class="ingredient-chip selected" data-item="Huevos">Huevos frescos</span>
-            <span class="ingredient-chip selected" data-item="Arroz">Arroz redondo</span>
-            <span class="ingredient-chip selected" data-item="Pasta">Pasta</span>
-            <span class="ingredient-chip selected" data-item="Patatas">Patatas</span>
-            <span class="ingredient-chip selected" data-item="Pan Rústico">Pan Rústico</span>
-            <span class="ingredient-chip selected" data-item="Tortitas de arroz">Tortitas arroz</span>
-            <span class="ingredient-chip selected" data-item="Plátanos">Plátanos de Canarias</span>
-            <span class="ingredient-chip selected" data-item="Queso tierno">Queso tierno</span>
-            <span class="ingredient-chip selected" data-item="Gazpacho tradicional">Gazpacho Mercadona</span>
-            <span class="ingredient-chip selected" data-item="Olivas">Olivas</span>
-            <span class="ingredient-chip selected" data-item="Aceite de Oliva Virgen Extra">AOVE</span>
-            <span class="ingredient-chip selected" data-item="Proteína Whey">Proteína Whey</span>
-            <span class="ingredient-chip" data-item="Copos de avena">Copos de avena</span>
-            <span class="ingredient-chip" data-item="Yogur griego">Yogur griego</span>
-            <span class="ingredient-chip" data-item="Aguacate">Aguacate</span>
-            <span class="ingredient-chip" data-item="Espinacas">Espinacas</span>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button type="button" class="ai-quick-btn" id="btn-ai-load-market-list">🛒 SELECCIONAR TODOS</button>
+              <button type="button" class="ai-quick-btn" id="btn-ai-add-ingredient" style="background:transparent; border:1px solid var(--c-volt); color:var(--c-volt);">＋ AÑADIR PRODUCTO</button>
+              <button type="button" class="ai-quick-btn" id="btn-ai-clear-chips" style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:var(--text-muted);">✕ VACIAR LISTA</button>
+            </div>
           </div>
 
-          <label class="editor-label" style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+          <!-- Fila para añadir nuevo ingrediente -->
+          <div id="ai-add-ingredient-row" style="display:none; margin-top:8px; display:none; gap:6px; align-items:center;">
+            <input type="text" id="ai-new-ingredient-input" class="editor-input" placeholder="Nombre del producto (ej: Claras de huevo brik)" style="flex:1; margin:0;">
+            <button type="button" class="btn-editor-save" id="btn-ai-confirm-add" style="padding:6px 14px; font-size:0.78rem; white-space:nowrap;">AÑADIR</button>
+          </div>
+          
+          <div class="chips-container" id="ai-ingredient-chips" style="margin-top:10px;">
+            <span class="ingredient-chip selected" data-item="Lomo de cerdo">Lomo de cerdo <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Carne picada magra">Carne picada magra <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Atún claro">Atún claro <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Pechuga de pavo">Pechuga de pavo <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Jamón serrano">Jamón serrano <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Huevos">Huevos frescos <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Arroz">Arroz redondo <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Pasta">Pasta <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Patatas">Patatas <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Pan Rústico">Pan Rústico <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Tortitas de arroz">Tortitas arroz <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Plátanos">Plátanos de Canarias <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Queso tierno">Queso tierno <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Gazpacho tradicional">Gazpacho Mercadona <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Olivas">Olivas <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Aceite de Oliva Virgen Extra">AOVE <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip selected" data-item="Proteína Whey">Proteína Whey <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip" data-item="Copos de avena">Copos de avena <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip" data-item="Yogur griego">Yogur griego <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip" data-item="Aguacate">Aguacate <span class="chip-remove" title="Quitar">✕</span></span>
+            <span class="ingredient-chip" data-item="Espinacas">Espinacas <span class="chip-remove" title="Quitar">✕</span></span>
+          </div>
+
+          <label class="editor-label" style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">
             O ESCRIBE/PEGA OTROS INGREDIENTES O TU TICKET DE COMPRA:
           </label>
           <textarea id="ai-custom-ingredients-text" class="editor-textarea" rows="2" placeholder="Ej: 1kg pechuga de pollo, 500g ternera, espinacas frescas, queso batido..."></textarea>
@@ -1445,15 +1453,42 @@
           </div>
         </div>
 
-        <div class="editor-field" style="margin-top:4px;">
-          <label class="editor-label">GEMINI API KEY (OPCIONAL):</label>
-          <input type="password" id="ai-gemini-key" class="editor-input" placeholder="Si tienes clave de Gemini, pégala aquí. Si no, nuestro motor algorítmico genera tu menú gratis">
+        <!-- GEMINI KEY + RECOMENDACIONES -->
+        <div style="display:grid; grid-template-columns:1fr auto; gap:8px; align-items:end; margin-top:6px;">
+          <div class="editor-field" style="margin:0;">
+            <label class="editor-label" style="display:flex; align-items:center; gap:6px;">
+              GEMINI API KEY
+              <span id="ai-key-status-badge" style="font-size:0.65rem; padding:2px 7px; border-radius:20px; background:rgba(255,255,255,0.08); color:var(--text-muted);">NO GUARDADA</span>
+            </label>
+            <div style="display:flex; gap:6px;">
+              <input type="password" id="ai-gemini-key" class="editor-input" style="flex:1; margin:0;" placeholder="AIza... (se guarda en tu dispositivo, nunca en el servidor)">
+              <button type="button" class="btn-editor-save" id="btn-save-gemini-key" style="padding:7px 12px; font-size:0.72rem; white-space:nowrap;">💾 GUARDAR</button>
+            </div>
+            <span style="font-size:0.68rem; color:var(--text-muted); margin-top:3px; display:block;">Gratis en <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--c-volt);">aistudio.google.com</a> · Si no tienes clave, el motor local genera tu menú igualmente.</span>
+          </div>
+          <button type="button" class="ai-quick-btn" id="btn-ai-shopping-recs" style="border:1px solid var(--c-volt); background:transparent; color:var(--c-volt); white-space:nowrap; align-self:center;">
+            🛍️ RECOMENDACIONES DE COMPRA IA
+          </button>
         </div>
 
         <!-- BOTÓN GENERAR -->
         <div style="margin-top:14px;">
           <button type="button" class="btn-open-ai-nutrition" id="btn-run-ai-generation" style="width:100%; justify-content:center; padding:12px 18px; font-size:0.95rem;">
             ⚡ GENERAR MENÚ PERSONALIZADO AL GRAMO CON IA
+          </button>
+        </div>
+
+        <!-- PANEL RECOMENDACIONES DE COMPRA -->
+        <div id="ai-shopping-recs-panel" style="display:none; margin-top:12px; background:rgba(212,255,0,0.05); border:1px solid rgba(212,255,0,0.2); border-radius:8px; padding:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:0.8rem; font-weight:700; color:var(--c-volt); letter-spacing:0.05em;">🛍️ RECOMENDACIONES IA PARA TU PRÓXIMA COMPRA</span>
+            <button type="button" id="btn-close-shopping-recs" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1rem;">✕</button>
+          </div>
+          <div id="ai-shopping-recs-content" style="font-size:0.78rem; color:var(--text-sub); line-height:1.6;">
+            <!-- Generado por JS -->
+          </div>
+          <button type="button" class="btn-editor-save" id="btn-add-recs-to-list" style="margin-top:10px; font-size:0.75rem; padding:7px 14px; display:none;">
+            ✅ AÑADIR A MI LISTA DE INGREDIENTES
           </button>
         </div>
 
@@ -1533,6 +1568,6 @@
     <span id="toast-msg">MENSAJE</span>
   </div>
 
-  <script src="js/app.js?v=18"></script>
+  <script src="js/app.js?v=19"></script>
 </body>
 </html>

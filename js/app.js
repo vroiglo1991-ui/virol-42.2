@@ -2262,7 +2262,7 @@ async function runAINutritionEngine() {
 
   const targetKcal = parseInt(document.getElementById('ai-target-calories')?.value || 2850, 10);
   const targetPro = parseInt(document.getElementById('ai-target-protein')?.value || 150, 10);
-  const geminiKey = document.getElementById('ai-gemini-key')?.value.trim();
+  const geminiKey = document.getElementById('ai-gemini-key')?.value.trim() || localStorage.getItem('virol_gemini_key') || '';
 
   const resultsBox = document.getElementById('ai-generation-results');
   const previewGrid = document.getElementById('ai-preview-grid-cards');
@@ -2360,53 +2360,262 @@ function initAINutritionModule() {
   const btnApply = document.getElementById('btn-apply-ai-meals');
   const btnLoadMarket = document.getElementById('btn-ai-load-market-list');
 
-  // Open & Close
+  // ── Open & Close ─────────────────────────────────────────────
   if (btnOpenBanner) btnOpenBanner.addEventListener('click', openAINutritionModal);
-  if (btnOpenHead) btnOpenHead.addEventListener('click', openAINutritionModal);
-  if (btnClose) btnClose.addEventListener('click', closeAINutritionModal);
-  if (btnCancel) btnCancel.addEventListener('click', closeAINutritionModal);
+  if (btnOpenHead)   btnOpenHead.addEventListener('click', openAINutritionModal);
+  if (btnClose)      btnClose.addEventListener('click', closeAINutritionModal);
+  if (btnCancel)     btnCancel.addEventListener('click', closeAINutritionModal);
+  if (modalOverlay)  modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeAINutritionModal(); });
 
-  if (modalOverlay) {
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) closeAINutritionModal();
+  // ── Gemini Key: cargar de localStorage al abrir ───────────────
+  const geminiInput = document.getElementById('ai-gemini-key');
+  const keyBadge = document.getElementById('ai-key-status-badge');
+  const savedKey = localStorage.getItem('virol_gemini_key') || '';
+  if (geminiInput && savedKey) {
+    geminiInput.value = savedKey;
+    if (keyBadge) { keyBadge.textContent = '✅ GUARDADA'; keyBadge.style.background = 'rgba(50,215,75,0.18)'; keyBadge.style.color = '#32D74B'; }
+  }
+  const btnSaveKey = document.getElementById('btn-save-gemini-key');
+  if (btnSaveKey) {
+    btnSaveKey.addEventListener('click', () => {
+      const val = geminiInput?.value.trim() || '';
+      if (!val) { showToast('⚠️ Pega tu clave API de Gemini antes de guardar'); return; }
+      localStorage.setItem('virol_gemini_key', val);
+      if (keyBadge) { keyBadge.textContent = '✅ GUARDADA'; keyBadge.style.background = 'rgba(50,215,75,0.18)'; keyBadge.style.color = '#32D74B'; }
+      showToast('🔑 ¡Clave Gemini guardada en tu dispositivo!');
+      playSuccessSound();
     });
   }
 
-  // Toggle Chips
-  const chips = document.querySelectorAll('#ai-ingredient-chips .ingredient-chip');
-  chips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      chip.classList.toggle('selected');
+  // ── Helper: crear un chip editable ───────────────────────────
+  function createChip(label, itemValue, selected = false) {
+    const span = document.createElement('span');
+    span.className = 'ingredient-chip' + (selected ? ' selected' : '');
+    span.dataset.item = itemValue || label;
+    span.innerHTML = `${label} <span class="chip-remove" title="Quitar">✕</span>`;
+
+    // Click en el chip → toggle selected
+    span.addEventListener('click', (e) => {
+      if (e.target.classList.contains('chip-remove')) {
+        span.remove();
+        playCheckSound();
+        return;
+      }
+      span.classList.toggle('selected');
       playCheckSound();
     });
-  });
+    return span;
+  }
 
-  // Load from Mercadona
+  // Añadir listeners chip-remove a los chips ya existentes en el HTML
+  function bindExistingChips() {
+    document.querySelectorAll('#ai-ingredient-chips .ingredient-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        if (e.target.classList.contains('chip-remove')) { chip.remove(); playCheckSound(); return; }
+        chip.classList.toggle('selected');
+        playCheckSound();
+      });
+    });
+  }
+  bindExistingChips();
+
+  // ── Seleccionar todos / Vaciar ────────────────────────────────
   if (btnLoadMarket) {
     btnLoadMarket.addEventListener('click', () => {
-      chips.forEach(chip => chip.classList.add('selected'));
+      document.querySelectorAll('#ai-ingredient-chips .ingredient-chip').forEach(c => c.classList.add('selected'));
       playCheckSound();
-      showToast('🛒 ¡TODOS LOS PRODUCTOS DE MERCADONA SELECCIONADOS!');
+      showToast('🛒 ¡TODOS LOS PRODUCTOS SELECCIONADOS!');
+    });
+  }
+  const btnClear = document.getElementById('btn-ai-clear-chips');
+  if (btnClear) {
+    btnClear.addEventListener('click', () => {
+      document.querySelectorAll('#ai-ingredient-chips .ingredient-chip').forEach(c => c.classList.remove('selected'));
+      playCheckSound();
+      showToast('🗑️ Lista vaciada. Selecciona los que tienes.');
     });
   }
 
-  // Run AI Generation
+  // ── Añadir nuevo producto ─────────────────────────────────────
+  const btnAddIngredient = document.getElementById('btn-ai-add-ingredient');
+  const addRow = document.getElementById('ai-add-ingredient-row');
+  const newIngInput = document.getElementById('ai-new-ingredient-input');
+  const btnConfirmAdd = document.getElementById('btn-ai-confirm-add');
+  const chipsContainer = document.getElementById('ai-ingredient-chips');
+
+  if (btnAddIngredient && addRow) {
+    btnAddIngredient.addEventListener('click', () => {
+      addRow.classList.toggle('visible');
+      if (newIngInput && addRow.classList.contains('visible')) newIngInput.focus();
+    });
+  }
+
+  function confirmAddChip() {
+    const val = newIngInput?.value.trim();
+    if (!val) return;
+    const chip = createChip(val, val, true);
+    chipsContainer?.appendChild(chip);
+    newIngInput.value = '';
+    addRow.classList.remove('visible');
+    playSuccessSound();
+    showToast(`✅ "${val}" añadido a tu lista`);
+  }
+
+  if (btnConfirmAdd) btnConfirmAdd.addEventListener('click', confirmAddChip);
+  if (newIngInput) {
+    newIngInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirmAddChip(); } });
+  }
+
+  // ── Recomendaciones de compra IA ─────────────────────────────
+  const btnShoppingRecs = document.getElementById('btn-ai-shopping-recs');
+  const recsPanel = document.getElementById('ai-shopping-recs-panel');
+  const recsContent = document.getElementById('ai-shopping-recs-content');
+  const btnCloseRecs = document.getElementById('btn-close-shopping-recs');
+  const btnAddRecs = document.getElementById('btn-add-recs-to-list');
+
+  let pendingRecsItems = [];
+
+  if (btnCloseRecs && recsPanel) {
+    btnCloseRecs.addEventListener('click', () => { recsPanel.style.display = 'none'; });
+  }
+
+  if (btnShoppingRecs) {
+    btnShoppingRecs.addEventListener('click', async () => {
+      if (!recsPanel || !recsContent) return;
+
+      const ingredients = getSelectedIngredientsList();
+      const key = localStorage.getItem('virol_gemini_key') || geminiInput?.value.trim();
+
+      recsPanel.style.display = 'block';
+      recsContent.innerHTML = '<span style="color:var(--c-volt);">⏳ Analizando tu lista y generando recomendaciones...</span>';
+      if (btnAddRecs) btnAddRecs.style.display = 'none';
+      pendingRecsItems = [];
+
+      if (key) {
+        // Recomendaciones con Gemini
+        try {
+          const prompt = `Eres un nutricionista deportivo experto en running y maratón.
+Un corredor de 73 kg prepara la Maratón de Valencia y actualmente tiene estos ingredientes en casa:
+${ingredients.join(', ')}.
+
+Analiza su lista y recomiéndame exactamente 6-8 productos que le FALTAN o que mejorarían notablemente su nutrición deportiva (recuperación, hidratación, proteína, carbohidratos de calidad, micronutrientes).
+IMPORTANTE: Solo recomienda productos que se vendan habitualmente en Mercadona o supermercados similares.
+Sé conciso y práctico. Devuelve un JSON con este formato:
+{
+  "recommendations": [
+    {"product": "nombre del producto", "reason": "por qué lo necesita (máx 1 frase)", "category": "Proteína|Carbohidrato|Grasa|Hidratación|Micronutriente|Suplemento"},
+    ...
+  ],
+  "summary": "Breve resumen de las carencias principales (1-2 frases)"
+}`;
+
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: 'application/json' }
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (rawJson) {
+              const parsed = JSON.parse(rawJson);
+              const recs = parsed.recommendations || [];
+              pendingRecsItems = recs.map(r => r.product);
+
+              const categoryColors = {
+                'Proteína': '#FF5A00', 'Carbohidrato': '#C8FF00', 'Grasa': '#FFD60A',
+                'Hidratación': '#5AC8FA', 'Micronutriente': '#BF5AF2', 'Suplemento': '#FF375F'
+              };
+
+              recsContent.innerHTML = `
+                ${parsed.summary ? `<p style="margin:0 0 10px; font-style:italic; color:var(--text-muted);">${parsed.summary}</p>` : ''}
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  ${recs.map(r => `
+                    <div style="display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                      <span style="background:${categoryColors[r.category] || '#888'}22; color:${categoryColors[r.category] || '#888'}; font-size:0.6rem; font-weight:700; padding:2px 6px; border-radius:20px; white-space:nowrap; margin-top:2px;">${r.category}</span>
+                      <div><strong style="color:#fff;">${r.product}</strong><br><span style="color:var(--text-muted);">${r.reason}</span></div>
+                    </div>
+                  `).join('')}
+                </div>
+              `;
+              if (btnAddRecs && pendingRecsItems.length > 0) btnAddRecs.style.display = 'block';
+            }
+          } else throw new Error('Gemini no disponible');
+
+        } catch (e) {
+          // Fallback local
+          renderLocalShoppingRecs(ingredients, recsContent, btnAddRecs);
+        }
+      } else {
+        // Sin clave: recomendaciones locales inteligentes
+        renderLocalShoppingRecs(ingredients, recsContent, btnAddRecs);
+      }
+    });
+  }
+
+  function renderLocalShoppingRecs(ingredients, container, addBtn) {
+    const has = (kw) => ingredients.some(i => i.toLowerCase().includes(kw.toLowerCase()));
+    const recs = [];
+    if (!has('Claras')) recs.push({ product: 'Claras de huevo en brik', reason: 'Proteína pura de alto valor biológico para el desayuno o postentreno.', category: 'Proteína' });
+    if (!has('Avena')) recs.push({ product: 'Copos de avena', reason: 'Carbohidrato de absorción lenta, ideal para el desayuno del día de carrera.', category: 'Carbohidrato' });
+    if (!has('Yogur')) recs.push({ product: 'Yogur griego 0%', reason: 'Caseína natural para la recuperación nocturna y microbiota intestinal.', category: 'Proteína' });
+    if (!has('Arándano') && !has('Fruta')) recs.push({ product: 'Arándanos o fresas', reason: 'Antioxidantes y vitamina C para reducir inflamación post-entreno.', category: 'Micronutriente' });
+    if (!has('Frutos secos') && !has('Almendra') && !has('Nuez')) recs.push({ product: 'Nueces o almendras crudas', reason: 'Omega-3 vegetal y grasas saludables para articulaciones y hormonas.', category: 'Grasa' });
+    if (!has('Magnesio') && !has('suplemento')) recs.push({ product: 'Magnesio (bisglicinato o citrato)', reason: 'Esencial para el sueño profundo y la contracción muscular.', category: 'Suplemento' });
+    if (!has('Bebida isotónica') && !has('Electro')) recs.push({ product: 'Electrolitos / Bebida isotónica', reason: 'Imprescindible para hidratación en rodajes largos de más de 10 km.', category: 'Hidratación' });
+    if (!has('Miel')) recs.push({ product: 'Miel de flores o dátiles', reason: 'Azúcar de absorción rápida para la hora previa a la carrera.', category: 'Carbohidrato' });
+
+    pendingRecsItems = recs.map(r => r.product);
+    const catColors = { 'Proteína': '#FF5A00', 'Carbohidrato': '#C8FF00', 'Grasa': '#FFD60A', 'Hidratación': '#5AC8FA', 'Micronutriente': '#BF5AF2', 'Suplemento': '#FF375F' };
+
+    container.innerHTML = `
+      <p style="margin:0 0 10px; font-style:italic; color:var(--text-muted);">Basado en tu lista actual, te faltan estos productos clave para optimizar tu rendimiento:</p>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        ${recs.map(r => `
+          <div style="display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+            <span style="background:${catColors[r.category] || '#888'}22; color:${catColors[r.category] || '#888'}; font-size:0.6rem; font-weight:700; padding:2px 6px; border-radius:20px; white-space:nowrap; margin-top:2px;">${r.category}</span>
+            <div><strong style="color:#fff;">${r.product}</strong><br><span style="color:var(--text-muted);">${r.reason}</span></div>
+          </div>
+        `).join('')}
+      </div>
+      <p style="margin-top:8px; font-size:0.7rem; color:var(--text-muted);">💡 Añade tu clave Gemini para recomendaciones personalizadas con IA real.</p>
+    `;
+    if (addBtn && recs.length > 0) addBtn.style.display = 'block';
+  }
+
+  // Añadir recomendaciones como chips nuevos
+  if (btnAddRecs) {
+    btnAddRecs.addEventListener('click', () => {
+      if (!pendingRecsItems.length || !chipsContainer) return;
+      let added = 0;
+      pendingRecsItems.forEach(prod => {
+        // No duplicar
+        const exists = [...chipsContainer.querySelectorAll('.ingredient-chip')].some(c => c.dataset.item === prod);
+        if (!exists) { chipsContainer.appendChild(createChip(prod, prod, false)); added++; }
+      });
+      if (recsPanel) recsPanel.style.display = 'none';
+      showToast(`✅ ${added} producto${added !== 1 ? 's' : ''} añadido${added !== 1 ? 's' : ''} a tu lista`);
+      playSuccessSound();
+    });
+  }
+
+  // ── Run AI Generation ─────────────────────────────────────────
   if (btnRun) btnRun.addEventListener('click', runAINutritionEngine);
 
-  // Apply Generated Meals
+  // ── Apply Generated Meals ─────────────────────────────────────
   if (btnApply) {
     btnApply.addEventListener('click', () => {
       if (!pendingGeneratedMeals) return;
-
       appState.customMeals = pendingGeneratedMeals;
       saveState(appState);
       playSuccessSound();
-
-      // Refresh screens
       renderMealsTab();
       renderMealChecklist(selectedDayIndex);
       updateProgressHUD(selectedDayIndex);
-
       closeAINutritionModal();
       showToast('🚀 ¡NUEVO MENÚ IA APLICADO A TU APP Y SINCRONIZADO!');
     });
