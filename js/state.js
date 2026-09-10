@@ -113,9 +113,11 @@ function getTodayKey(dayIndex) {
 
 function saveState(state, triggerCloud = true) {
   try {
-    state.lastUpdated = Date.now();
+    const targetState = state || (typeof appState !== 'undefined' ? appState : null);
+    if (!targetState) return;
+    targetState.lastUpdated = Date.now();
     const key = (typeof STORAGE_KEY !== 'undefined') ? STORAGE_KEY : 'valencia_42k_victor_prod_v1';
-    localStorage.setItem(key, JSON.stringify(state));
+    localStorage.setItem(key, JSON.stringify(targetState));
     if (triggerCloud && typeof scheduleCloudPush === 'function') {
       scheduleCloudPush();
     }

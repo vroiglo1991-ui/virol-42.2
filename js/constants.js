@@ -263,5 +263,5 @@ const DEFAULT_PROFILE = {
 };
 
 const STORAGE_KEY = 'valencia_42k_victor_prod_v1';
-const CLOUD_SYNC_URL = 'https://extendsclass.com/api/json-storage/bin/dfddcab';
-const DEFAULT_STRAVA_TOKEN = 'e879a9119db61a2e1c8edaa6bf2c10faa9bad366';
+const CLOUD_SYNC_URL = '/api/sync';
+const DEFAULT_STRAVA_TOKEN = '';

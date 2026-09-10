@@ -34,7 +34,7 @@ function scheduleCloudPush() {
 async function pushToCloud() {
   try {
     updateSyncStatus('syncing', 'SUBIENDO...');
-    const syncUrl = (typeof CLOUD_SYNC_URL !== 'undefined') ? CLOUD_SYNC_URL : 'https://extendsclass.com/api/json-storage/bin/dfddcab';
+    const syncUrl = (typeof CLOUD_SYNC_URL !== 'undefined') ? CLOUD_SYNC_URL : '/api/sync';
     
     const payload = {
       version: 1,
@@ -77,7 +77,7 @@ async function syncFromCloud(silent = false) {
   if (!silent) updateSyncStatus('syncing', 'ACTUALIZANDO...');
 
   try {
-    const syncUrl = (typeof CLOUD_SYNC_URL !== 'undefined') ? CLOUD_SYNC_URL : 'https://extendsclass.com/api/json-storage/bin/dfddcab';
+    const syncUrl = (typeof CLOUD_SYNC_URL !== 'undefined') ? CLOUD_SYNC_URL : '/api/sync';
     const storageKey = (typeof STORAGE_KEY !== 'undefined') ? STORAGE_KEY : 'valencia_42k_victor_prod_v1';
 
     const res = await fetch(syncUrl, { cache: 'no-cache' });

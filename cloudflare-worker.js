@@ -95,6 +95,80 @@ export default {
       }
     }
 
+    // ─── 1.5. GET, PUT, POST /api/sync — Sincronización en la Nube PC ↔ Móvil ───
+    if (url.pathname === '/api/sync') {
+      const userId = 'u_victor';
+
+      // Asegurar tabla app_state en D1 si existe binding
+      if (env.DB) {
+        try {
+          await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS app_state (
+              user_id TEXT PRIMARY KEY,
+              state_json TEXT NOT NULL,
+              last_updated INTEGER NOT NULL,
+              updated_at TEXT DEFAULT (datetime('now'))
+            )
+          `).run();
+        } catch (_) {}
+      }
+
+      // GET /api/sync: Descargar último estado guardado
+      if (request.method === 'GET') {
+        try {
+          if (env.DB) {
+            const row = await env.DB.prepare(
+              'SELECT state_json, last_updated FROM app_state WHERE user_id = ?'
+            ).bind(userId).first();
+
+            if (row && row.state_json) {
+              try {
+                const parsed = JSON.parse(row.state_json);
+                return corsResponse(parsed, 200);
+              } catch (_) {
+                return new Response(row.state_json, {
+                  headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+                });
+              }
+            }
+          }
+          return corsResponse({ message: 'No hay datos previos', lastUpdated: 0 }, 200);
+        } catch (err) {
+          return corsResponse({ error: true, message: err.message }, 500);
+        }
+      }
+
+      // PUT / POST /api/sync: Guardar estado desde PC o Móvil
+      if (request.method === 'PUT' || request.method === 'POST') {
+        try {
+          let body = {};
+          try { body = await request.json(); } catch (_) {
+            return corsResponse({ error: 'Payload no es JSON válido' }, 400);
+          }
+
+          const lastUpdated = body.lastUpdated || Date.now();
+          const stateStr = JSON.stringify(body);
+
+          if (env.DB) {
+            await env.DB.prepare(`
+              INSERT INTO app_state (user_id, state_json, last_updated, updated_at)
+              VALUES (?, ?, ?, datetime('now'))
+              ON CONFLICT(user_id) DO UPDATE SET
+                state_json = excluded.state_json,
+                last_updated = excluded.last_updated,
+                updated_at = datetime('now')
+            `).bind(userId, stateStr, lastUpdated).run();
+
+            return corsResponse({ success: true, lastUpdated, message: 'Sincronizado en D1' }, 200);
+          }
+
+          return corsResponse({ success: true, lastUpdated, message: 'Recibido sin DB' }, 200);
+        } catch (err) {
+          return corsResponse({ error: true, message: err.message }, 500);
+        }
+      }
+    }
+
     // ─── 2. GET /api/entrenamientos — Proxy Strava & Rate Limits ────────────────
     if (url.pathname === '/api/entrenamientos') {
       try {
@@ -271,8 +345,16 @@ export default {
         let body = {};
         try { body = await request.json(); } catch (_) {}
 
-        const clientId = body.client_id || env.STRAVA_CLIENT_ID || '243799';
-        const clientSecret = body.client_secret || env.STRAVA_CLIENT_SECRET || '74c79e75d6bbe253d1f91606ee06f074262fe096';
+        const clientId = env.STRAVA_CLIENT_ID || '243799';
+        const clientSecret = env.STRAVA_CLIENT_SECRET;
+
+        if (!clientSecret) {
+          return corsResponse({
+            error: true,
+            message: 'STRAVA_CLIENT_SECRET no configurada en las variables de entorno de Cloudflare'
+          }, 500);
+        }
+
         const refreshToken = body.refresh_token || env.STRAVA_REFRESH_TOKEN;
 
         if (!refreshToken) {
@@ -337,7 +419,15 @@ export default {
 
       if (code) {
         const clientId = env.STRAVA_CLIENT_ID || '243799';
-        const clientSecret = env.STRAVA_CLIENT_SECRET || '74c79e75d6bbe253d1f91606ee06f074262fe096';
+        const clientSecret = env.STRAVA_CLIENT_SECRET;
+
+        if (!clientSecret) {
+          return new Response(`<html><body style="font-family:sans-serif; background:#0B0E14; color:#fff; padding:30px; text-align:center;">
+            <h2 style="color:#EF4444;">❌ Error de configuración</h2>
+            <p>STRAVA_CLIENT_SECRET no está configurada en Cloudflare Secrets.</p>
+            <a href="/" style="color:#FC4C02; font-weight:bold;">Volver a BIOFLOW</a>
+          </body></html>`, { headers: { 'Content-Type': 'text/html; charset=utf-8' }, status: 500 });
+        }
 
         try {
           const tokenRes = await fetch('https://www.strava.com/api/v3/oauth/token', {
@@ -404,7 +494,10 @@ export default {
         if (!code) return corsResponse({ error: true, message: 'Falta código OAuth' }, 400);
 
         const clientId = env.STRAVA_CLIENT_ID || '243799';
-        const clientSecret = env.STRAVA_CLIENT_SECRET || '74c79e75d6bbe253d1f91606ee06f074262fe096';
+        const clientSecret = env.STRAVA_CLIENT_SECRET;
+        if (!clientSecret) {
+          return corsResponse({ error: true, message: 'STRAVA_CLIENT_SECRET no configurada en las variables de entorno de Cloudflare' }, 500);
+        }
 
         const tokenRes = await fetch('https://www.strava.com/api/v3/oauth/token', {
           method: 'POST',
@@ -565,8 +658,7 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
           'gemini-3.6-flash',
           'gemini-3.5-flash',
           'gemini-3.5-flash-lite',
-          'gemini-flash-latest',
-          'gemini-2.5-flash'
+          'gemini-flash-latest'
         ];
         let geminiData = null;
         let lastErrorText = '';
@@ -995,22 +1087,39 @@ Tienes acceso a herramientas para consultar y modificar directamente los entrena
           parts: [{ text: userMessage }]
         });
 
-        const geminiRes1 = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents,
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            tools: geminiTools
-          })
+        const callGeminiWithFallback = async (payload) => {
+          const candidateModels = [
+            'gemini-3.6-flash',
+            'gemini-3.5-flash',
+            'gemini-flash-latest'
+          ];
+          let lastErrText = '';
+          for (const model of candidateModels) {
+            try {
+              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              if (res.ok) {
+                return await res.json();
+              }
+              const errTxt = await res.text();
+              lastErrText = `(${model} ${res.status}): ${errTxt}`;
+              console.warn(`Fallback modelo Gemini ${model} falló:`, res.status, errTxt);
+            } catch (err) {
+              lastErrText = `(${model}): ${err.message}`;
+            }
+          }
+          throw new Error(`Gemini API error: ${lastErrText}`);
+        };
+
+        const geminiData1 = await callGeminiWithFallback({
+          contents,
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          tools: geminiTools
         });
 
-        if (!geminiRes1.ok) {
-          const errTxt = await geminiRes1.text();
-          throw new Error(`Gemini API error (${geminiRes1.status}): ${errTxt}`);
-        }
-
-        const geminiData1 = await geminiRes1.json();
         const candidate = geminiData1.candidates?.[0];
         const parts = candidate?.content?.parts || [];
         const functionCallPart = parts.find(p => p.functionCall);
@@ -1043,18 +1152,14 @@ Tienes acceso a herramientas para consultar y modificar directamente los entrena
             }]
           });
 
-          const geminiRes2 = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+          try {
+            const geminiData2 = await callGeminiWithFallback({
               contents,
               systemInstruction: { parts: [{ text: systemInstruction }] }
-            })
-          });
-
-          if (geminiRes2.ok) {
-            const geminiData2 = await geminiRes2.json();
+            });
             finalReply = geminiData2.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          } catch (e) {
+            console.warn('Error en segunda vuelta Gemini:', e.message);
           }
         } else {
           finalReply = parts.map(p => p.text || '').join('\n');
@@ -1093,7 +1198,12 @@ Tienes acceso a herramientas para consultar y modificar directamente los entrena
 // Helper: refresco automático de token OAuth Strava y persistencia en D1
 async function refreshStravaOAuthToken(refreshToken, env) {
   const clientId = env.STRAVA_CLIENT_ID || '243799';
-  const clientSecret = env.STRAVA_CLIENT_SECRET || '74c79e75d6bbe253d1f91606ee06f074262fe096';
+  const clientSecret = env.STRAVA_CLIENT_SECRET;
+
+  if (!clientSecret) {
+    console.error('STRAVA_CLIENT_SECRET no configurada en Cloudflare Secrets');
+    return null;
+  }
 
   if (!refreshToken) return null;
 
@@ -1140,7 +1250,7 @@ function corsResponse(body, status = 200) {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Strava-Refresh-Token',
     },
   });

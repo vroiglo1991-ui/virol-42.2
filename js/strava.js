@@ -633,49 +633,106 @@ function initStravaModule() {
     });
   }
 
-  // Interceptar retorno de OAuth con tokens desde el Worker o con código temporal
+  // Interceptar retorno de OAuth con tokens desde el Worker (?strava_connected=1&access_token=...&refresh_token=...&expires_at=...)
   try {
     const urlParams = new URLSearchParams(window.location.search);
     const isConnected = urlParams.get('strava_connected');
     const newAccess = urlParams.get('access_token');
     const newRefresh = urlParams.get('refresh_token');
     const newExpires = urlParams.get('expires_at');
-    const incomingCode = urlParams.get('strava_code') || urlParams.get('code');
+    const incomingCode = urlParams.get('code') || urlParams.get('strava_code');
 
-    if (isConnected === '1' && newAccess) {
+    if (newAccess) {
+      console.group('🚴 [STRAVA OAUTH] Redirección detectada desde el Worker');
+      console.log('📥 Parámetros en URL:', {
+        strava_connected: isConnected,
+        access_token: newAccess.substring(0, 10) + '...',
+        refresh_token: newRefresh ? (newRefresh.substring(0, 10) + '...') : '(ninguno)',
+        expires_at: newExpires
+      });
+
       if (!appState.strava) appState.strava = {};
       appState.strava.token = newAccess;
       if (newRefresh) appState.strava.refreshToken = newRefresh;
-      if (newExpires) appState.strava.expiresAt = parseInt(newExpires, 10);
+      if (newExpires) {
+        const exp = parseInt(newExpires, 10);
+        if (!isNaN(exp)) appState.strava.expiresAt = exp;
+      }
+
+      // Sincronizar inputs del modal en el DOM
+      const tokenInput = document.getElementById('strava-token-input');
+      const refreshInput = document.getElementById('strava-refresh-token-input');
+      if (tokenInput) tokenInput.value = newAccess;
+      if (refreshInput && newRefresh) refreshInput.value = newRefresh;
+
+      // 1. Guardar estado en localStorage
       saveState(appState);
+      console.log('💾 Tokens guardados en appState.strava y persistidos con saveState()');
+
+      // 2. Actualizar badge de la cabecera
       updateStravaHeaderBadge();
       updateStravaDiagnosticHUD('CONECTADO ⚡ (OAUTH OK)', '200,2000', '0,0', null, true);
-      showToast('⚡ ¡Strava conectado y sincronizado con éxito!');
+      console.log('🏷️ Badge de cabecera actualizado a STRAVA OK ⚡');
+
+      // 3. Limpiar parámetros de la URL sin recargar
       window.history.replaceState({}, document.title, window.location.pathname);
+      console.log('🧹 URL saneada con history.replaceState()');
+
+      showToast('⚡ ¡Strava conectado y sincronizado con éxito!');
+      console.log('🚀 Iniciando sincronización de actividades reales...');
+      console.groupEnd();
+
+      // 4. Lanzar sincronización real
       setTimeout(() => fetchStravaActivities(), 400);
+
     } else if (incomingCode) {
+      console.group('🚴 [STRAVA OAUTH] Código recibido en frontend. Iniciando canje...');
+      console.log('📡 Código OAuth:', incomingCode);
+      
       fetch('/api/strava/exchange', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: incomingCode })
       })
-      .then(res => res.json())
+      .then(res => {
+        console.log('📡 Respuesta de /api/strava/exchange:', res.status, res.statusText);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         if (data.access_token) {
           if (!appState.strava) appState.strava = {};
           appState.strava.token = data.access_token;
           if (data.refresh_token) appState.strava.refreshToken = data.refresh_token;
           if (data.expires_at) appState.strava.expiresAt = data.expires_at;
+
+          const tokenInput = document.getElementById('strava-token-input');
+          const refreshInput = document.getElementById('strava-refresh-token-input');
+          if (tokenInput) tokenInput.value = data.access_token;
+          if (refreshInput && data.refresh_token) refreshInput.value = data.refresh_token;
+
           saveState(appState);
           updateStravaHeaderBadge();
+          updateStravaDiagnosticHUD('CONECTADO ⚡ (OAUTH OK)', '200,2000', '0,0', null, true);
           showToast('⚡ ¡Strava conectado con éxito!');
-          fetchStravaActivities();
+          console.log('💾 Tokens guardados en appState.strava. Lanzando sincronización...');
+          setTimeout(() => fetchStravaActivities(), 400);
+        } else {
+          showToast('⚠️ No se recibieron tokens válidos de Strava');
         }
       })
-      .catch(console.error);
-      window.history.replaceState({}, document.title, window.location.pathname);
+      .catch(err => {
+        console.error('❌ Error en canje de código Strava:', err);
+        showToast('❌ Error en autorización con Strava');
+      })
+      .finally(() => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        console.groupEnd();
+      });
     }
-  } catch (_) {}
+  } catch (err) {
+    console.error('Error al procesar parámetros de retorno OAuth:', err);
+  }
 
   if (btnSave) {
     btnSave.addEventListener('click', () => {

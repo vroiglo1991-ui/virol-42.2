@@ -39,8 +39,8 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Do not intercept or cache cloud sync or Strava API calls
-  if (event.request.url.includes('extendsclass.com') || event.request.url.includes('strava.com')) {
+  // Do not intercept or cache /api/ endpoints, cloud sync, or external services
+  if (event.request.url.includes('/api/') || event.request.url.includes('extendsclass.com') || event.request.url.includes('strava.com')) {
     return;
   }
 
