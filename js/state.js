@@ -30,7 +30,6 @@ function getStoredState() {
     goal: 'VALENCIA 42K PRO'
   };
 
-  const stravaToken = (typeof DEFAULT_STRAVA_TOKEN !== 'undefined') ? DEFAULT_STRAVA_TOKEN : 'e879a9119db61a2e1c8edaa6bf2c10faa9bad366';
   const storageKey = (typeof STORAGE_KEY !== 'undefined') ? STORAGE_KEY : 'valencia_42k_victor_prod_v1';
 
   try {
@@ -41,9 +40,12 @@ function getStoredState() {
       if (!parsed.history) parsed.history = [];
       if (!parsed.lastUpdated) parsed.lastUpdated = 0;
       if (!parsed.strava) {
-        parsed.strava = { token: stravaToken, autoCheck: true, tolerance: 70 };
+        parsed.strava = { token: '', refreshToken: '', autoCheck: true, tolerance: 70 };
       } else {
-        parsed.strava.token = stravaToken;
+        // Eliminar token hardcodeado caducado si sigue almacenado
+        if (parsed.strava.token === 'e879a9119db61a2e1c8edaa6bf2c10faa9bad366') {
+          parsed.strava.token = '';
+        }
       }
       if (!parsed.profile) {
         parsed.profile = defaultProfile;
@@ -72,7 +74,7 @@ function getStoredState() {
     lastUpdated: 0,
     themeSetting: 'auto',
     soundEnabled: true,
-    strava: { token: stravaToken, autoCheck: true, tolerance: 70 },
+    strava: { token: '', refreshToken: '', autoCheck: true, tolerance: 70 },
     profile: defaultProfile,
     alarms: defaultAlarms,
     running: defaultRunning,

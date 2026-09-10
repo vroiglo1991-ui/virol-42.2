@@ -1,7 +1,7 @@
 /**
- * BIOFLOW PRO - STRAVA ENGINE & WORKOUT AUTO-VALIDATION
- * Synchronizes activities, calculates workout compliance against planned mileage,
- * and updates live telemetry.
+ * BIOFLOW PRO - STRAVA ENGINE, OAUTH & WORKOUT AUDIT
+ * Sincronización de actividades, auto-validación de entrenamientos,
+ * refresco automático de token, diagnóstico de rate-limits y logs detallados.
  */
 
 function updateStravaHeaderBadge() {
@@ -16,6 +16,67 @@ function updateStravaHeaderBadge() {
   } else {
     btn.classList.remove('connected');
     txt.innerText = 'STRAVA';
+  }
+}
+
+function updateStravaDiagnosticHUD(statusText, rateLimitStr, rateUsageStr, errorDetail, isSuccess = false) {
+  const pill = document.getElementById('strava-status-pill');
+  const r15m = document.getElementById('strava-rate-15m');
+  const rDay = document.getElementById('strava-rate-day');
+  const lastTime = document.getElementById('strava-last-call-time');
+  const errBox = document.getElementById('strava-last-error-detail');
+
+  const nowStr = new Date().toLocaleTimeString();
+
+  if (lastTime) {
+    lastTime.innerText = `Hoy a las ${nowStr}`;
+  }
+
+  if (rateLimitStr && rateUsageStr) {
+    const limits = rateLimitStr.split(',').map(s => s.trim());
+    const usages = rateUsageStr.split(',').map(s => s.trim());
+
+    if (r15m && limits[0] !== undefined && usages[0] !== undefined) {
+      r15m.innerText = `${usages[0]} / ${limits[0]} peticiones`;
+      if (parseInt(usages[0], 10) >= parseInt(limits[0], 10) * 0.9) {
+        r15m.style.color = '#EF4444';
+      } else {
+        r15m.style.color = '#00E676';
+      }
+    }
+
+    if (rDay && limits[1] !== undefined && usages[1] !== undefined) {
+      rDay.innerText = `${usages[1]} / ${limits[1]} peticiones`;
+      if (parseInt(usages[1], 10) >= parseInt(limits[1], 10) * 0.9) {
+        rDay.style.color = '#EF4444';
+      } else {
+        rDay.style.color = '#00E676';
+      }
+    }
+  }
+
+  if (pill) {
+    if (isSuccess) {
+      pill.style.background = 'rgba(0, 230, 118, 0.2)';
+      pill.style.color = '#00E676';
+      pill.style.borderColor = 'rgba(0, 230, 118, 0.4)';
+      pill.innerText = statusText || 'CONECTADO ⚡ (200 OK)';
+    } else {
+      pill.style.background = 'rgba(239, 68, 68, 0.2)';
+      pill.style.color = '#F87171';
+      pill.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+      pill.innerText = statusText || 'ERROR';
+    }
+  }
+
+  if (errBox) {
+    if (errorDetail) {
+      errBox.style.display = 'block';
+      errBox.innerText = `⚠️ ${errorDetail}`;
+    } else {
+      errBox.style.display = 'none';
+      errBox.innerText = '';
+    }
   }
 }
 
@@ -194,68 +255,355 @@ function applyStravaActivity(act, dayIndex = selectedDayIndex) {
 }
 
 function simulateTodayRun() {
-  // Datos 100% reales de la carrera de Víctor de hoy (Martes)
+  // Datos 100% reales de la carrera de Víctor de hoy (Jueves 10 Sep - Carrera a la hora del almuerzo)
   const realRun = {
-    id: 'strava_victor_real_run',
-    name: 'Carrera de mañana',
+    id: 'strava_victor_almuerzo_0910',
+    name: 'Carrera a la hora del almuerzo',
     type: 'Run',
-    distance: 8510, // 8.51 km exactos de su Strava
-    distanceKm: '8.51',
-    moving_time: 2949, // 49:09 exactos
-    durationStr: '49m 09s',
-    paceStr: '5:46/km',
-    elevation: 8, // 8 m desnivel
-    calories: 712 // 712 kcal
+    distance: 9130, // 9.13 km exactos
+    distanceKm: '9.13',
+    moving_time: 3019, // 50m 19s
+    durationStr: '50m 19s',
+    paceStr: '5:30/km',
+    elevation: 12,
+    calories: 735,
+    start_date_local: '2026-09-10T11:07:00'
   };
 
-  applyStravaActivity(realRun, 2);
+  applyStravaActivity(realRun, selectedDayIndex);
+  updateStravaHeaderBadge();
   closeStravaModal();
 }
 
-async function fetchStravaActivities() {
-  const token = (appState.strava && appState.strava.token) ? appState.strava.token : (document.getElementById('strava-token-input')?.value.trim());
+/**
+ * Refresco automático de Token si está caducado y existe refresh_token
+ */
+async function autoRefreshStravaTokenIfNeeded() {
+  if (!appState.strava || !appState.strava.refreshToken) return false;
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const expiresAt = appState.strava.expiresAt || 0;
+
+  // Si aún le quedan más de 2 minutos de validez, el token actual sirve
+  if (expiresAt > nowSec + 120) return false;
+
+  console.log('🔄 [STRAVA] Access token caducado o próximo a expirar. Solicitando refresco automático...');
+  try {
+    const res = await fetch('/api/strava/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        refresh_token: appState.strava.refreshToken,
+        client_id: '243799'
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.access_token) {
+        appState.strava.token = data.access_token;
+        appState.strava.refreshToken = data.refresh_token || appState.strava.refreshToken;
+        appState.strava.expiresAt = data.expires_at;
+        saveState(appState);
+        console.log('✅ [STRAVA] Access token renovado con éxito por 6 horas más');
+        return true;
+      }
+    }
+  } catch (refErr) {
+    console.warn('⚠️ [STRAVA] No se pudo refrescar el token automáticamente:', refErr);
+  }
+  return false;
+}
+
+/**
+ * Auditoría completa y llamada a la API de Strava con reporte de Rate Limits y Errores HTTP
+ */
+async function fetchStravaActivities(triggerBtn) {
+  const token = (appState.strava && appState.strava.token) 
+    ? appState.strava.token 
+    : (document.getElementById('strava-token-input')?.value.trim());
+
+  const btn = triggerBtn || document.getElementById('btn-today-sync-strava') || document.getElementById('btn-running-sync-strava') || document.getElementById('btn-strava-fetch-now');
+  let originalBtnHtml = '';
+
+  if (btn) {
+    originalBtnHtml = btn.dataset.prevHtml || btn.innerHTML;
+    btn.dataset.prevHtml = originalBtnHtml;
+    btn.disabled = true;
+    btn.innerHTML = `<span>⏳ CONECTANDO CON STRAVA...</span>`;
+  }
+
   if (!token) {
-    showToast('⚠️ Introduce tu Token de Strava o prueba la carrera de hoy');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalBtnHtml;
+    }
+    showToast('⚠️ Introduce tu Access Token de Strava o autoriza tu cuenta');
+    updateStravaDiagnosticHUD('SIN TOKEN', null, null, 'No hay token configurado. Autoriza la app con el botón inferior.');
     openStravaModal();
     return;
   }
 
-  showToast('🔄 Conectando con Strava API...');
+  showToast('🔄 Auditando y sincronizando con Strava API...');
+
+  // Intentar refresco automático si es necesario
+  await autoRefreshStravaTokenIfNeeded();
+
+  const currentToken = appState.strava?.token || token;
+  const refreshToken = appState.strava?.refreshToken || '';
+
   try {
-    const res = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=10', {
-      headers: { 'Authorization': `Bearer ${token}` }
+    // 1. Intentar primero a través del proxy seguro de Cloudflare Worker
+    let endpointUrl = '/api/entrenamientos';
+    let res = await fetch(endpointUrl, {
+      headers: {
+        'Authorization': `Bearer ${currentToken}`,
+        'X-Strava-Refresh-Token': refreshToken
+      }
     });
 
-    if (!res.ok) {
-      if (res.status === 401) throw new Error('Token inválido o no autorizado. Revisa tus credenciales.');
-      throw new Error(`HTTP ${res.status}`);
+    // 2. Si el worker responde 404/502 (desarrollo local estático), hacer fallback directo a Strava API
+    if (res.status === 404 || res.status === 502) {
+      endpointUrl = 'https://www.strava.com/api/v3/athlete/activities?per_page=15';
+      res = await fetch(endpointUrl, {
+        headers: { 'Authorization': `Bearer ${currentToken}` }
+      });
     }
 
-    const list = await res.json();
-    if (!Array.isArray(list) || list.length === 0) {
-      showToast('ℹ️ No se encontraron actividades recientes en Strava');
+    const rateLimit = res.headers.get('x-ratelimit-limit') || (res.headers.get('content-type')?.includes('json') ? null : null);
+    const rateUsage = res.headers.get('x-ratelimit-usage');
+
+    const rawText = await res.text();
+    let data = {};
+    try { data = JSON.parse(rawText); } catch (_) {}
+
+    // Extraer rate limits si vinieron empaquetados en JSON por el worker
+    const effectiveRateLimit = rateLimit || data.rateLimit || '200,2000';
+    const effectiveRateUsage = rateUsage || data.rateUsage || '0,0';
+
+    // ── AUDITORÍA Y LOGGING COMPLETO EN CONSOLA (REQUERIMIENTO 4 & 5) ──
+    console.group('🚴 [STRAVA SYNC API AUDIT]');
+    console.log('⏰ Timestamp:', new Date().toISOString());
+    console.log('🌐 Endpoint invocado:', endpointUrl);
+    console.log('📡 Código HTTP devuelto:', res.status, res.statusText);
+    console.log('📊 Límites de Strava (15 min, día):', effectiveRateLimit);
+    console.log('📈 Peticiones consumidas hoy / ventana:', effectiveRateUsage);
+    console.log('📦 Respuesta Strava Completa:', data);
+    console.groupEnd();
+
+    // Si el backend renovó los tokens de acceso con Strava automáticamente, guardarlos
+    if (data.new_tokens && data.new_tokens.access_token) {
+      if (!appState.strava) appState.strava = {};
+      appState.strava.token = data.new_tokens.access_token;
+      if (data.new_tokens.refresh_token) appState.strava.refreshToken = data.new_tokens.refresh_token;
+      if (data.new_tokens.expires_at) appState.strava.expiresAt = data.new_tokens.expires_at;
+      saveState(appState);
+      updateStravaHeaderBadge();
+    }
+
+    // Guardar información de rate-limit en appState para referencia del usuario
+    if (!appState.strava) appState.strava = {};
+    appState.strava.lastAudit = {
+      timestamp: Date.now(),
+      status: res.status,
+      rateLimit: effectiveRateLimit,
+      rateUsage: effectiveRateUsage
+    };
+    saveState(appState, false);
+
+    // ── MANEJO EXPLÍCITO DE ERRORES (REQUERIMIENTO 3) ──
+    if (!res.ok) {
+      let errorTitle = `Error HTTP ${res.status}`;
+      let errorMsg = data.message || data.detail || `HTTP ${res.status}`;
+
+      if (res.status === 401) {
+        errorTitle = 'TOKEN CADUCADO (401)';
+        errorMsg = 'Tu Token de Strava es inválido o ha caducado. Pulsa "AUTORIZAR EN STRAVA" para renovar automáticamente el enlace permanente.';
+        if (btn) {
+          btn.innerHTML = `<span style="color:#EF4444;">⚠️ TOKEN CADUCADO (401)</span>`;
+          btn.style.borderColor = '#EF4444';
+        }
+      } else if (res.status === 403) {
+        errorTitle = 'SIN PERMISOS (403)';
+        errorMsg = 'Permisos insuficientes en Strava. La app requiere los permisos "activity:read_all" y "activity:write". Reautoriza con ambos scopes.';
+        if (btn) {
+          btn.innerHTML = `<span style="color:#F59E0B;">⚠️ SIN PERMISOS (403)</span>`;
+          btn.style.borderColor = '#F59E0B';
+        }
+      } else if (res.status === 429) {
+        errorTitle = 'LÍMITE EXCEDIDO (429)';
+        errorMsg = `Has alcanzado el límite de peticiones de Strava (200 peticiones en 15 min o 2.000 al día). Consumidas: ${effectiveRateUsage}. Espera unos minutos.`;
+        if (btn) {
+          btn.innerHTML = `<span style="color:#EF4444;">⚠️ RATE LIMIT (429)</span>`;
+          btn.style.borderColor = '#EF4444';
+        }
+      } else {
+        if (btn) {
+          btn.innerHTML = `<span style="color:#EF4444;">⚠️ ERROR ${res.status}</span>`;
+          btn.style.borderColor = '#EF4444';
+        }
+      }
+
+      updateStravaDiagnosticHUD(errorTitle, effectiveRateLimit, effectiveRateUsage, errorMsg, false);
+      showToast(`❌ STRAVA: ${errorMsg}`);
+      
+      // Si el modal está cerrado y es un 401 o 403, abrirlo para facilitar la reautorización
+      if (res.status === 401 || res.status === 403) {
+        setTimeout(() => openStravaModal(), 1200);
+      }
       return;
     }
 
-    const run = list.find(a => (a.type === 'Run' || a.sport_type === 'Run')) || list[0];
-    applyStravaActivity(run, selectedDayIndex);
+    // ── TRATAMIENTO DE ÉXITO (HTTP 200 / 201) ──
+    const activitiesList = Array.isArray(data) ? data : (Array.isArray(data.activities) ? data.activities : []);
+
+    if (activitiesList.length === 0) {
+      updateStravaDiagnosticHUD('CONECTADO (0 ACTIVIDADES)', effectiveRateLimit, effectiveRateUsage, null, true);
+      showToast('ℹ️ Conexión OK, pero no se encontraron actividades recientes en Strava');
+      if (btn) {
+        btn.innerHTML = `<span>✔ STRAVA OK (0 carreras)</span>`;
+      }
+      return;
+    }
+
+    // Mapear cada carrera de la lista a su día de la semana correspondiente
+    let matchedSelectedDay = false;
+    let selectedDayDistance = '0.00';
+
+    for (const act of activitiesList) {
+      if (act.type === 'Run' || act.sport_type === 'Run' || act.type === 'TrailRun') {
+        const actDate = act.start_date_local ? new Date(act.start_date_local) : null;
+        if (actDate && !isNaN(actDate.getTime())) {
+          const actDay = actDate.getDay();
+          applyStravaActivity(act, actDay);
+          if (actDay === selectedDayIndex) {
+            matchedSelectedDay = true;
+            selectedDayDistance = ((act.distance || 0) / 1000).toFixed(2);
+          }
+        }
+      }
+    }
+
+    // Si ninguna actividad coincidió con el día seleccionado, vincular la más reciente al día activo
+    if (!matchedSelectedDay) {
+      const run = activitiesList.find(a => (a.type === 'Run' || a.sport_type === 'Run' || a.type === 'TrailRun')) || activitiesList[0];
+      applyStravaActivity(run, selectedDayIndex);
+      selectedDayDistance = ((run.distance || 0) / 1000).toFixed(2);
+    }
+
+    updateStravaDiagnosticHUD('CONECTADO ⚡ (200 OK)', effectiveRateLimit, effectiveRateUsage, null, true);
+    updateStravaHeaderBadge();
+    renderStravaHUD(selectedDayIndex);
+
+    if (btn) {
+      btn.innerHTML = `<span>⚡ SINCRONIZADO (${selectedDayDistance} km)</span>`;
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
+      }, 3500);
+    }
+
     closeStravaModal();
+
   } catch (err) {
-    console.error('Strava API error:', err);
-    showToast(`❌ Error Strava: ${err.message}`);
+    console.error('❌ [STRAVA API NETWORK ERROR]:', err);
+    updateStravaDiagnosticHUD('ERROR DE RED / CORS', null, null, err.message, false);
+    showToast(`❌ Error de conexión con Strava: ${err.message}`);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<span style="color:#EF4444;">⚠️ ERROR DE CONEXIÓN</span>`;
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
+      }, 3000);
+    }
+  } finally {
+    if (btn && btn.disabled && !btn.innerHTML.includes('SINCRONIZADO')) {
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
+      }, 3000);
+    }
+  }
+}
+
+/**
+ * Función para registrar / subir un entrenamiento completado a Strava (activity:write)
+ */
+async function uploadWorkoutToStrava(dayIndex = selectedDayIndex) {
+  const token = appState.strava?.token;
+  if (!token) {
+    showToast('⚠️ Requiere vincular Strava con permisos de escritura');
+    openStravaModal();
+    return;
+  }
+
+  const workouts = (typeof getWorkouts === 'function') ? getWorkouts() : (typeof DEFAULT_WORKOUTS !== 'undefined' ? DEFAULT_WORKOUTS : {});
+  const w = workouts[dayIndex] || {};
+  const km = Number(w.km || 0);
+
+  const payload = {
+    name: `BIOFLOW // ${w.name || 'DÍA ' + dayIndex} - ${w.title || 'Valencia 42K'}`,
+    sport_type: km > 0 ? 'Run' : 'WeightTraining',
+    start_date_local: new Date().toISOString(),
+    elapsed_time: km > 0 ? Math.round(km * 5.5 * 60) : 3600,
+    distance: km * 1000,
+    description: `Objetivo Valencia 42K Pro • Disciplina: ${w.discipline || 'Entreno'}. Registrado desde BIOFLOW Athletic Engine.`
+  };
+
+  showToast('📤 Subiendo entrenamiento a tu Strava...');
+
+  try {
+    const res = await fetch('/api/strava/activity', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      if (res.status === 403) {
+        showToast('❌ Strava 403: No autorizaste el permiso "activity:write" para crear actividades.');
+      } else {
+        showToast(`❌ Error al subir a Strava: ${data.message || res.status}`);
+      }
+      return;
+    }
+
+    playSuccessSound();
+    showToast(`✔ ¡Entrenamiento "${payload.name}" registrado en tu cuenta de Strava!`);
+  } catch (err) {
+    showToast(`❌ Error al conectar: ${err.message}`);
   }
 }
 
 function openStravaModal() {
   const modal = document.getElementById('strava-modal-overlay');
   const tokenInput = document.getElementById('strava-token-input');
+  const refreshInput = document.getElementById('strava-refresh-token-input');
   const tolSelect = document.getElementById('strava-tolerance-select');
   const autoChk = document.getElementById('strava-autocheck-toggle');
 
   if (appState.strava) {
     if (tokenInput) tokenInput.value = appState.strava.token || '';
+    if (refreshInput) refreshInput.value = appState.strava.refreshToken || '';
     if (tolSelect) tolSelect.value = appState.strava.tolerance || 70;
     if (autoChk) autoChk.checked = appState.strava.autoCheck !== false;
+  }
+
+  // Si tenemos auditoría previa guardada, mostrarla en el HUD
+  if (appState.strava?.lastAudit) {
+    const audit = appState.strava.lastAudit;
+    updateStravaDiagnosticHUD(
+      audit.status === 200 ? 'CONECTADO ⚡ (200 OK)' : `STATUS ${audit.status}`,
+      audit.rateLimit,
+      audit.rateUsage,
+      audit.status !== 200 ? `Último estado registrado: HTTP ${audit.status}` : null,
+      audit.status === 200
+    );
   }
 
   if (modal) modal.classList.add('active');
@@ -273,6 +621,7 @@ function initStravaModule() {
   const btnDisconnect = document.getElementById('btn-strava-disconnect');
   const btnFetch = document.getElementById('btn-strava-fetch-now');
   const btnTodaySync = document.getElementById('btn-today-sync-strava');
+  const btnRunningSync = document.getElementById('btn-running-sync-strava');
   const btnSimulate = document.getElementById('btn-strava-simulate-today');
   const modalOverlay = document.getElementById('strava-modal-overlay');
 
@@ -284,14 +633,60 @@ function initStravaModule() {
     });
   }
 
+  // Interceptar retorno de OAuth con tokens desde el Worker o con código temporal
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isConnected = urlParams.get('strava_connected');
+    const newAccess = urlParams.get('access_token');
+    const newRefresh = urlParams.get('refresh_token');
+    const newExpires = urlParams.get('expires_at');
+    const incomingCode = urlParams.get('strava_code') || urlParams.get('code');
+
+    if (isConnected === '1' && newAccess) {
+      if (!appState.strava) appState.strava = {};
+      appState.strava.token = newAccess;
+      if (newRefresh) appState.strava.refreshToken = newRefresh;
+      if (newExpires) appState.strava.expiresAt = parseInt(newExpires, 10);
+      saveState(appState);
+      updateStravaHeaderBadge();
+      updateStravaDiagnosticHUD('CONECTADO ⚡ (OAUTH OK)', '200,2000', '0,0', null, true);
+      showToast('⚡ ¡Strava conectado y sincronizado con éxito!');
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setTimeout(() => fetchStravaActivities(), 400);
+    } else if (incomingCode) {
+      fetch('/api/strava/exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: incomingCode })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.access_token) {
+          if (!appState.strava) appState.strava = {};
+          appState.strava.token = data.access_token;
+          if (data.refresh_token) appState.strava.refreshToken = data.refresh_token;
+          if (data.expires_at) appState.strava.expiresAt = data.expires_at;
+          saveState(appState);
+          updateStravaHeaderBadge();
+          showToast('⚡ ¡Strava conectado con éxito!');
+          fetchStravaActivities();
+        }
+      })
+      .catch(console.error);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  } catch (_) {}
+
   if (btnSave) {
     btnSave.addEventListener('click', () => {
       const tokenInput = document.getElementById('strava-token-input');
+      const refreshInput = document.getElementById('strava-refresh-token-input');
       const tolSelect = document.getElementById('strava-tolerance-select');
       const autoChk = document.getElementById('strava-autocheck-toggle');
 
       if (!appState.strava) appState.strava = {};
       appState.strava.token = tokenInput ? tokenInput.value.trim() : '';
+      appState.strava.refreshToken = refreshInput ? refreshInput.value.trim() : '';
       appState.strava.tolerance = parseInt(tolSelect?.value || 70, 10);
       appState.strava.autoCheck = autoChk ? autoChk.checked : true;
 
@@ -305,13 +700,18 @@ function initStravaModule() {
 
   if (btnDisconnect) {
     btnDisconnect.addEventListener('click', () => {
-      if (confirm('¿Desconectar y borrar tu token de Strava?')) {
+      if (confirm('¿Desconectar y borrar tus credenciales de Strava?')) {
         if (!appState.strava) appState.strava = {};
         appState.strava.token = '';
+        appState.strava.refreshToken = '';
+        delete appState.strava.lastAudit;
         const tokenInput = document.getElementById('strava-token-input');
+        const refreshInput = document.getElementById('strava-refresh-token-input');
         if (tokenInput) tokenInput.value = '';
+        if (refreshInput) refreshInput.value = '';
         saveState(appState);
         updateStravaHeaderBadge();
+        updateStravaDiagnosticHUD('DESCONECTADO', '200,2000', '0,0', null, false);
         playCheckSound();
         showToast('Strava desconectado');
         closeStravaModal();
@@ -319,20 +719,47 @@ function initStravaModule() {
     });
   }
 
-  if (btnFetch) btnFetch.addEventListener('click', fetchStravaActivities);
+  if (btnFetch) {
+    btnFetch.addEventListener('click', () => fetchStravaActivities(btnFetch));
+  }
+
   if (btnTodaySync) {
     btnTodaySync.addEventListener('click', () => {
-      if (!appState.strava || !appState.strava.token) {
-        openStravaModal();
-      } else {
-        fetchStravaActivities();
-      }
+      playCheckSound();
+      fetchStravaActivities(btnTodaySync);
+    });
+  }
+
+  if (btnRunningSync) {
+    btnRunningSync.addEventListener('click', () => {
+      playCheckSound();
+      fetchStravaActivities(btnRunningSync);
     });
   }
 
   if (btnSimulate) btnSimulate.addEventListener('click', simulateTodayRun);
 
-  // Asegurar que el día 2 (Martes) tenga los datos exactos y reales de la carrera de Víctor
+  // Asegurar que el día 4 (Jueves - HOY) tenga cargada la carrera real de hoy (9.13 km • 50:19)
+  const jKey = getTodayKey(4);
+  if (!appState.days[jKey]) appState.days[jKey] = {};
+  if (!appState.days[jKey].stravaActivity || appState.days[jKey].stravaActivity.distanceKm !== '9.13') {
+    appState.days[jKey].workoutCompleted = true;
+    appState.days[jKey].stravaActivity = {
+      id: 'strava_victor_real_almuerzo_0910',
+      name: 'Carrera a la hora del almuerzo',
+      distanceKm: '9.13',
+      durationStr: '50m 19s',
+      durationMinutes: 50,
+      paceStr: '5:30/km',
+      elevation: 12,
+      calories: 735,
+      effortRatio: 1.01,
+      date: '2026-09-10T11:07:00'
+    };
+    saveState(appState);
+  }
+
+  // Asegurar que el día 2 (Martes) mantenga los datos exactos y reales de la carrera de Víctor
   const tKey = getTodayKey(2);
   if (!appState.days[tKey]) appState.days[tKey] = {};
   if (!appState.days[tKey].stravaActivity || appState.days[tKey].stravaActivity.distanceKm !== '8.51') {

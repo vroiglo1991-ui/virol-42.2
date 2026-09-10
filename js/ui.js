@@ -174,6 +174,11 @@ function syncCheckboxes(dayIndex) {
   if (sleepInput) {
     sleepInput.value = dayData.sleepHours || 8;
   }
+
+  const rpeInput = document.getElementById('daily-rpe');
+  if (rpeInput) {
+    rpeInput.value = dayData.rpe !== undefined ? dayData.rpe : 7;
+  }
 }
 
 function renderMealChecklist(dayIndex) {
@@ -626,56 +631,276 @@ function updateWeekHUD() {
   }
 }
 
-// ARCHIVE & HISTORY
+// ARCHIVE & HISTORY (LONGITUDINAL TREND CHART & METRIC SNAPSHOTS)
+function generateHistoryChartSVG(history) {
+  const data = [...history].reverse(); // Oldest to newest (left to right)
+  const N = data.length;
+  if (N === 0) return '';
+
+  const W = 680;
+  const H = 220;
+  const padL = 48;
+  const padR = 48;
+  const padT = 30;
+  const padB = 35;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  const maxKmVal = Math.max(...data.map(d => parseFloat(d.km) || 0), 10);
+  const maxKm = Math.ceil(maxKmVal / 10) * 10 || 50;
+  const maxRPE = 10;
+
+  const points = data.map((d, i) => {
+    const x = N === 1 ? padL + plotW / 2 : padL + (i / (N - 1)) * plotW;
+    const km = parseFloat(d.km) || 0;
+    const rpe = parseFloat(d.avgRPE !== undefined ? d.avgRPE : 7.0);
+    const sleep = parseFloat(d.avgSleep !== undefined ? d.avgSleep : 8.0);
+    const vdot = parseFloat(d.vdot !== undefined ? d.vdot : 38.6);
+
+    const yKm = padT + plotH - (km / maxKm) * plotH;
+    const yRpe = padT + plotH - (rpe / maxRPE) * plotH;
+
+    return {
+      x,
+      yKm: Math.min(padT + plotH, Math.max(padT, yKm)),
+      yRpe: Math.min(padT + plotH, Math.max(padT, yRpe)),
+      km,
+      rpe,
+      sleep,
+      vdot,
+      date: d.date || `Semana ${i + 1}`,
+      weekNum: i + 1,
+      origIdx: history.length - 1 - i
+    };
+  });
+
+  // Grid lines (0, 25%, 50%, 75%, 100%)
+  let gridLines = '';
+  for (let k = 0; k <= 4; k++) {
+    const ratio = k / 4;
+    const y = padT + plotH - ratio * plotH;
+    const kmVal = Math.round(ratio * maxKm);
+    const rpeVal = (ratio * 10).toFixed(1).replace('.0', '');
+    gridLines += `
+      <line x1="${padL}" y1="${y}" x2="${padL + plotW}" y2="${y}" stroke="var(--border-card)" stroke-dasharray="3,3" stroke-width="1" opacity="0.35" />
+      <text x="${padL - 8}" y="${y + 4}" font-size="10" fill="var(--c-volt)" text-anchor="end" font-family="monospace" font-weight="700">${kmVal}k</text>
+      <text x="${padL + plotW + 8}" y="${y + 4}" font-size="10" fill="var(--c-orange)" text-anchor="start" font-family="monospace" font-weight="700">${rpeVal}</text>
+    `;
+  }
+
+  const kmPolyPoints = points.map(p => `${p.x.toFixed(1)},${p.yKm.toFixed(1)}`).join(' ');
+  const kmAreaPoints = `${points[0].x.toFixed(1)},${padT + plotH} ` + kmPolyPoints + ` ${points[points.length - 1].x.toFixed(1)},${padT + plotH}`;
+  const rpePolyPoints = points.map(p => `${p.x.toFixed(1)},${p.yRpe.toFixed(1)}`).join(' ');
+
+  let kmDots = '';
+  let rpeDots = '';
+  let xLabels = '';
+
+  points.forEach(p => {
+    xLabels += `
+      <text x="${p.x.toFixed(1)}" y="${H - 10}" font-size="10" fill="var(--text-muted)" text-anchor="middle" font-family="sans-serif" font-weight="700">SEM ${p.weekNum}</text>
+    `;
+
+    kmDots += `
+      <g class="chart-point" data-info="Semana #${p.weekNum} (${p.date}) • 🏃 ${p.km} KM • 🔥 RPE ${p.rpe} • 💤 ${p.sleep}h Sueño • ⚡ VDOT ${p.vdot}">
+        <circle cx="${p.x.toFixed(1)}" cy="${p.yKm.toFixed(1)}" r="6" fill="#0b0f19" stroke="var(--c-volt)" stroke-width="3" style="cursor:pointer;" />
+        <text x="${p.x.toFixed(1)}" y="${(p.yKm - 10).toFixed(1)}" font-size="10" fill="var(--c-volt)" font-weight="900" text-anchor="middle" font-family="sans-serif">${p.km}k</text>
+      </g>
+    `;
+
+    rpeDots += `
+      <g class="chart-point" data-info="Semana #${p.weekNum} (${p.date}) • 🔥 RPE ${p.rpe}/10">
+        <circle cx="${p.x.toFixed(1)}" cy="${p.yRpe.toFixed(1)}" r="5" fill="#0b0f19" stroke="var(--c-orange)" stroke-width="2.5" style="cursor:pointer;" />
+        <text x="${p.x.toFixed(1)}" y="${(p.yRpe + 14).toFixed(1)}" font-size="9" fill="var(--c-orange)" font-weight="900" text-anchor="middle" font-family="sans-serif">${p.rpe}</text>
+      </g>
+    `;
+  });
+
+  return `
+    <div class="history-chart-card">
+      <div class="history-chart-top">
+        <div class="chart-legend-row">
+          <span class="legend-item"><span class="legend-dot volt"></span> <strong>KM SEMANALES (VOLUMEN)</strong></span>
+          <span class="legend-item"><span class="legend-dot orange"></span> <strong>RPE MEDIO (ESFUERZO 1-10)</strong></span>
+        </div>
+        <div class="chart-axis-info">
+          <span style="color:var(--c-volt); font-size:0.75rem; font-family:monospace; font-weight:700;">◄ Eje Izq: KM</span>
+          <span style="color:var(--c-orange); font-size:0.75rem; font-family:monospace; font-weight:700;">Eje Der: RPE (1-10) ►</span>
+        </div>
+      </div>
+      <div class="chart-svg-container">
+        <svg viewBox="0 0 ${W} ${H}" class="history-line-svg" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="histKmAreaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--c-volt)" stop-opacity="0.3" />
+              <stop offset="100%" stop-color="var(--c-volt)" stop-opacity="0.0" />
+            </linearGradient>
+          </defs>
+          ${gridLines}
+          <polygon points="${kmAreaPoints}" fill="url(#histKmAreaGrad)" />
+          <polyline points="${kmPolyPoints}" fill="none" stroke="var(--c-volt)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+          <polyline points="${rpePolyPoints}" fill="none" stroke="var(--c-orange)" stroke-width="2.5" stroke-dasharray="6,3" stroke-linecap="round" stroke-linejoin="round" />
+          ${kmDots}
+          ${rpeDots}
+          ${xLabels}
+        </svg>
+      </div>
+      <div id="history-chart-tooltip" class="history-chart-tooltip" style="display:none;"></div>
+    </div>
+  `;
+}
+
 function renderHistory() {
   const container = document.getElementById('history-list');
+  const chartWrapper = document.getElementById('history-chart-wrapper');
+  const summaryStats = document.getElementById('history-summary-stats');
   if (!container) return;
 
   const history = appState.history || [];
+
   if (history.length === 0) {
-    container.innerHTML = `<div class="history-empty">Aún no has archivado semanas. Al terminar el domingo, pulsa 'ARCHIVAR SEMANA'.</div>`;
+    if (chartWrapper) chartWrapper.innerHTML = '';
+    if (summaryStats) summaryStats.innerHTML = '';
+    container.innerHTML = `<div class="history-empty">Aún no has archivado semanas. Al terminar el domingo, pulsa 'ARCHIVAR SEMANA' para registrar tu progreso histórico y ver tus gráficas de tendencia.</div>`;
     return;
   }
 
-  container.innerHTML = history.map((item, idx) => `
-    <div class="history-item">
-      <div>
-        <span class="history-week-num">SEMANA #${history.length - idx} • ${item.date}</span>
-        <span class="history-sub" style="display:block; font-size:0.75rem; color:var(--text-muted);">${item.sessionsDone} sesiones completadas • Sueño prom: ${item.avgSleep}h</span>
+  // Summary stats badges
+  const totalKmSum = history.reduce((acc, it) => acc + (parseFloat(it.km) || 0), 0).toFixed(1);
+  const avgRpeHist = (history.reduce((acc, it) => acc + (parseFloat(it.avgRPE !== undefined ? it.avgRPE : 7.0)), 0) / history.length).toFixed(1);
+  const latestVDOT = history[0].vdot !== undefined ? history[0].vdot : 38.6;
+
+  if (summaryStats) {
+    summaryStats.innerHTML = `
+      <span class="badge-volt-black" title="Semanas completas registradas">${history.length} SEMANAS</span>
+      <span class="badge-volt-black" title="Kilómetros acumulados en el historial">${totalKmSum} KM TOTALES</span>
+      <span class="badge-orange-black" title="RPE promedio de todas las semanas archivadas">RPE HISTÓRICO: ${avgRpeHist}</span>
+    `;
+  }
+
+  // Render SVG Chart
+  if (chartWrapper) {
+    chartWrapper.innerHTML = generateHistoryChartSVG(history);
+
+    // Attach interactive hover tooltips
+    const tooltipEl = document.getElementById('history-chart-tooltip');
+    chartWrapper.querySelectorAll('.chart-point').forEach(pt => {
+      pt.addEventListener('mouseenter', (e) => {
+        if (tooltipEl) {
+          tooltipEl.innerText = pt.getAttribute('data-info') || '';
+          tooltipEl.style.display = 'block';
+        }
+      });
+      pt.addEventListener('mouseleave', () => {
+        if (tooltipEl) tooltipEl.style.display = 'none';
+      });
+      pt.addEventListener('click', (e) => {
+        if (tooltipEl) {
+          tooltipEl.innerText = pt.getAttribute('data-info') || '';
+          tooltipEl.style.display = 'block';
+        }
+      });
+    });
+  }
+
+  // Render History List Cards
+  container.innerHTML = history.map((item, idx) => {
+    const weekNumber = history.length - idx;
+    const km = parseFloat(item.km || 0).toFixed(1);
+    const rpe = item.avgRPE !== undefined ? item.avgRPE : '7.0';
+    const sleep = item.avgSleep !== undefined ? item.avgSleep : '8.0';
+    const vdot = item.vdot !== undefined ? item.vdot : '38.6';
+    const sessions = item.sessionsDone !== undefined ? item.sessionsDone : '-';
+
+    return `
+      <div class="history-item">
+        <div class="history-item-left">
+          <div class="history-week-num">SEMANA #${weekNumber} • <span style="color:var(--text-muted); font-weight:normal;">${item.date}</span></div>
+          <div class="history-metrics-pills">
+            <span class="hist-pill pill-sessions">🏃 ${sessions} sesiones</span>
+            <span class="hist-pill pill-rpe">🔥 RPE ${rpe}</span>
+            <span class="hist-pill pill-sleep">💤 ${sleep}h sueño</span>
+            <span class="hist-pill pill-vdot">⚡ VDOT ${vdot}</span>
+          </div>
+        </div>
+        <div class="history-item-right">
+          <div class="history-km">${km} <span style="font-size:0.9rem; color:var(--text-muted);">KM</span></div>
+          <button class="btn-del-history" onclick="deleteHistoryWeek(${idx})" title="Eliminar registro de esta semana">
+            <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="history-km">${item.km} KM</div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
+
+function deleteHistoryWeek(index) {
+  if (!appState.history || !appState.history[index]) return;
+  const item = appState.history[index];
+  if (!confirm(`¿Eliminar del historial la semana #${appState.history.length - index} (${item.date} • ${item.km} km)?`)) {
+    return;
+  }
+  appState.history.splice(index, 1);
+  saveState(appState);
+  renderHistory();
+  showToast('🗑️ Semana eliminada del historial.');
+}
+window.deleteHistoryWeek = deleteHistoryWeek;
 
 function archiveCurrentWeek() {
   let totalKm = 0;
   let sessionsDone = 0;
   let sleepSum = 0;
+  let rpeSum = 0;
+  let rpeCount = 0;
 
   [1, 2, 3, 4, 5, 6, 0].forEach(d => {
     const key = getTodayKey(d);
     const dayData = appState.days[key] || {};
+    const plan = (typeof WORKOUT_PLANS !== 'undefined' && WORKOUT_PLANS[d]) || {};
     if (dayData.workoutCompleted) {
-      totalKm += WORKOUT_PLANS[d].km;
+      totalKm += parseFloat(plan.km || 0);
       sessionsDone++;
     }
     sleepSum += parseFloat(dayData.sleepHours || 8);
+
+    if (dayData.rpe !== undefined && dayData.rpe !== null && dayData.rpe !== '') {
+      rpeSum += parseFloat(dayData.rpe);
+      rpeCount++;
+    } else if (dayData.workoutCompleted) {
+      const estRPE = plan.isRest ? 3.0 : (plan.km > 15 ? 8.0 : (plan.km > 0 ? 7.0 : 7.5));
+      rpeSum += estRPE;
+      rpeCount++;
+    }
   });
 
-  const avgSleep = (sleepSum / 7).toFixed(1);
+  const avgSleep = parseFloat((sleepSum / 7).toFixed(1));
+  const avgRPE = rpeCount > 0 ? parseFloat((rpeSum / rpeCount).toFixed(1)) : 7.0;
+
+  // Calculate current VDOT at this moment
+  let currentVDOT = 38.6;
+  if (typeof calculateVDOT === 'function' && appState.running && appState.running.benchmark) {
+    const bm = appState.running.benchmark;
+    const distM = (parseFloat(bm.distanceKm) || 8.51) * 1000;
+    const timeS = parseInt(bm.movingTimeSec, 10) || 2949;
+    currentVDOT = parseFloat(calculateVDOT(distM, timeS).toFixed(1));
+  }
+
   const dateStr = new Date().toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  if (!confirm(`¿Archivar la semana con ${totalKm} km y resetear los checks para una nueva semana?`)) {
+  if (!confirm(`¿Archivar la semana con ${totalKm.toFixed(1)} km completados (RPE medio: ${avgRPE}, Sueño medio: ${avgSleep}h, VDOT: ${currentVDOT}) y reiniciar checks para una nueva semana?`)) {
     return;
   }
 
   if (!appState.history) appState.history = [];
   appState.history.unshift({
     date: dateStr,
-    km: totalKm,
+    timestamp: Date.now(),
+    km: parseFloat(totalKm.toFixed(1)),
     sessionsDone,
-    avgSleep
+    avgSleep,
+    avgRPE,
+    vdot: currentVDOT
   });
 
   // Reset current week days
@@ -685,7 +910,7 @@ function archiveCurrentWeek() {
   playSuccessSound();
   renderMission(selectedDayIndex);
   renderHistory();
-  showToast(`📁 ¡SEMANA ARCHIVADA CON ÉXITO (${totalKm} KM SUMADOS)!`);
+  showToast(`📁 ¡SEMANA ARCHIVADA (${totalKm.toFixed(1)} KM • RPE ${avgRPE} • VDOT ${currentVDOT})!`);
 }
 
 // ALARMS UI & NOTIFICATION PERMISSIONS

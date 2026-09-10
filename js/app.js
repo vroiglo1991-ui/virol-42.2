@@ -46,6 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
       p.classList.add('active');
       selectedDayIndex = day;
       renderMission(selectedDayIndex);
+      if (typeof updateChatForSelectedDay === 'function') {
+        updateChatForSelectedDay();
+      }
       playCheckSound();
     });
   });
@@ -136,13 +139,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // 12. Supplement Checkboxes listeners
   initSupplementsChecklist();
 
-  // 13. Sleep hours input listener
+  // 13. Sleep hours & RPE input listeners
   const sleepInput = document.getElementById('sleep-hours');
   if (sleepInput) {
     sleepInput.addEventListener('change', () => {
       const todayKey = getTodayKey(selectedDayIndex);
       if (!appState.days[todayKey]) appState.days[todayKey] = {};
       appState.days[todayKey].sleepHours = parseFloat(sleepInput.value) || 8;
+      saveState(appState);
+    });
+  }
+
+  const rpeInput = document.getElementById('daily-rpe');
+  if (rpeInput) {
+    rpeInput.addEventListener('change', () => {
+      const todayKey = getTodayKey(selectedDayIndex);
+      if (!appState.days[todayKey]) appState.days[todayKey] = {};
+      appState.days[todayKey].rpe = parseFloat(rpeInput.value) || 7;
       saveState(appState);
     });
   }

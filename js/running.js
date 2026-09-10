@@ -266,7 +266,11 @@ function initRunningModule() {
   if (btnSync) {
     btnSync.addEventListener('click', () => {
       playCheckSound();
-      openStravaModal();
+      if (typeof fetchStravaActivities === 'function') {
+        fetchStravaActivities(btnSync);
+      } else if (typeof openStravaModal === 'function') {
+        openStravaModal();
+      }
     });
   }
 

@@ -100,7 +100,12 @@ async function syncFromCloud(silent = false) {
         if (cloudData.customMeals) appState.customMeals = cloudData.customMeals;
         if (cloudData.customWorkouts) appState.customWorkouts = cloudData.customWorkouts;
         if (cloudData.mercadonaList) appState.mercadonaList = cloudData.mercadonaList;
-        if (cloudData.strava) appState.strava = cloudData.strava;
+        if (cloudData.strava) {
+          if (cloudData.strava.token === 'e879a9119db61a2e1c8edaa6bf2c10faa9bad366') {
+            cloudData.strava.token = '';
+          }
+          appState.strava = cloudData.strava;
+        }
         if (cloudData.alarms) {
           appState.alarms = Object.assign({}, appState.alarms, cloudData.alarms);
           if (typeof updateAlarmsUI === 'function') updateAlarmsUI();

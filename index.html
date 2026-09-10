@@ -329,6 +329,14 @@
             </div>
             <span class="stat-note">Objetivo 7-8h completas</span>
           </div>
+          <div class="stat-box box-rpe">
+            <span class="stat-title">ESFUERZO / RPE</span>
+            <div class="sleep-input-row">
+              <input type="number" id="daily-rpe" min="1" max="10" step="0.5" value="7" class="brutal-input-small" style="color:var(--c-orange);">
+              <span class="sleep-txt">ESCALA BORG (1-10)</span>
+            </div>
+            <span class="stat-note">Fatiga / Esfuerzo de la sesión</span>
+          </div>
         </div>
 
         <!-- DAILY CHECKLIST: SUPLEMENTOS & COMIDAS -->
@@ -847,10 +855,18 @@
 
         <!-- WEEKLY ARCHIVE HISTORY -->
         <div class="history-section" id="history-container">
-          <h3 class="history-title">
-            <svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-            <span>HISTORIAL DE SEMANAS ACUMULADAS</span>
-          </h3>
+          <div class="history-header-row">
+            <h3 class="history-title">
+              <svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              <span>HISTORIAL DE SEMANAS ACUMULADAS</span>
+            </h3>
+            <div id="history-summary-stats" class="history-summary-badges"></div>
+          </div>
+
+          <!-- HISTORICAL TREND CHART (KM & RPE) -->
+          <div id="history-chart-wrapper" class="history-chart-box"></div>
+
+          <!-- HISTORICAL ARCHIVED LIST -->
           <div class="history-list" id="history-list">
             <div class="history-empty">Aún no has archivado semanas. Al terminar el domingo, pulsa 'ARCHIVAR SEMANA'.</div>
           </div>
@@ -1333,11 +1349,36 @@
         </div>
 
         <div class="editor-field">
-          <label class="editor-label">TOKEN DE ACCESO STRAVA (PERSONAL ACCESS TOKEN):</label>
-          <input type="password" id="strava-token-input" class="editor-input" value="e879a9119db61a2e1c8edaa6bf2c10faa9bad366" placeholder="Pega tu token de Strava (ej: 8a7f9...)">
+          <label class="editor-label">TOKEN DE ACCESO STRAVA (ACCESS TOKEN):</label>
+          <input type="password" id="strava-token-input" class="editor-input" value="e879a9119db61a2e1c8edaa6bf2c10faa9bad366" placeholder="Pega tu Access Token de Strava">
           <span style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; display:block;">
-            ¿Dónde conseguirlo? En tu cuenta de Strava ➔ <a href="https://www.strava.com/settings/api" target="_blank" style="color:var(--c-strava); text-decoration:underline;">Ajustes ➔ Mi API</a> o genera uno con permisos <code>activity:read_all</code>.
+            ¿Dónde conseguirlo? En <a href="https://www.strava.com/settings/api" target="_blank" style="color:var(--c-strava); text-decoration:underline;">Strava ➔ Ajustes ➔ Mi API</a> o autorizando abajo con scopes <code>read,activity:read_all,activity:write</code>.
           </span>
+        </div>
+
+        <div class="editor-field">
+          <label class="editor-label">REFRESH TOKEN DE STRAVA (RENOVACIÓN AUTOMÁTICA):</label>
+          <input type="password" id="strava-refresh-token-input" class="editor-input" placeholder="Pega tu Refresh Token para renovar cada 6h">
+          <span style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; display:block;">
+            Permite renovar el Access Token automáticamente cada 6 horas sin que caduque la conexión.
+          </span>
+        </div>
+
+        <!-- DIAGNÓSTICO EN TIEMPO REAL & RATE LIMIT DE STRAVA -->
+        <div id="strava-diagnostic-box" style="background:#0B0E14; border:1px solid #1E293B; padding:12px; margin-bottom:12px; border-radius:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:0.75rem; font-weight:900; color:var(--c-strava); letter-spacing:0.5px;">ESTADO DE LA CONEXIÓN API:</span>
+            <span id="strava-status-pill" style="font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:4px; background:rgba(239,68,68,0.2); color:#F87171; border:1px solid rgba(239,68,68,0.4);">
+              TOKEN CADUCADO (401)
+            </span>
+          </div>
+          <div style="font-size:0.74rem; color:#94A3B8; display:flex; flex-direction:column; gap:4px;" id="strava-ratelimit-info">
+            <div>📊 <strong>Límite Strava (15 min):</strong> <span id="strava-rate-15m">0 / 200 peticiones</span></div>
+            <div>📅 <strong>Límite Strava (Día):</strong> <span id="strava-rate-day">0 / 2.000 peticiones</span></div>
+            <div>🕒 <strong>Última llamada:</strong> <span id="strava-last-call-time">Sin llamadas registradas hoy</span></div>
+          </div>
+          <div id="strava-last-error-detail" style="margin-top:8px; font-size:0.72rem; color:#F87171; background:rgba(239,68,68,0.08); padding:6px 8px; border-radius:4px; border:1px solid rgba(239,68,68,0.2); display:none;">
+          </div>
         </div>
 
         <div class="editor-field">
@@ -1359,22 +1400,22 @@
 
         <!-- VINCULACIÓN DIRECTA OAUTH & RECARGA DE HOY -->
         <div style="border-top:1px dashed var(--border-light); margin-top:14px; padding-top:14px;">
-          <label class="editor-label" style="color:var(--c-strava);">1. CONEXIÓN DIRECTA CON TU CUENTA DE STRAVA:</label>
+          <label class="editor-label" style="color:var(--c-strava);">1. VINCULACIÓN OAUTH 2.0 (SCOPES: LECTURA + ESCRITURA):</label>
           <p style="font-size:0.78rem; color:var(--text-sub); margin-bottom:10px;">
-            Para que Strava permita leer tus carreras automáticamente, requiere el permiso <code>activity:read_all</code>. Pulsa el botón para autorizar el acceso:
+            Autoriza la app con los permisos <code>activity:read_all</code> (leer privadas) y <code>activity:write</code> (registrar entrenamientos):
           </p>
-          <a href="https://www.strava.com/oauth/authorize?client_id=243799&response_type=code&redirect_uri=https://virol.v-roiglo1991.workers.dev/&approval_prompt=force&scope=activity:read_all" target="_blank" class="action-btn-strava-sync" style="width:100%; justify-content:center; text-decoration:none; margin-bottom:14px;">
+          <a href="https://www.strava.com/oauth/authorize?client_id=243799&response_type=code&redirect_uri=https://virol.v-roiglo1991.workers.dev/api/strava/callback&approval_prompt=force&scope=read,activity:read_all,activity:write" target="_blank" class="action-btn-strava-sync" style="width:100%; justify-content:center; text-decoration:none; margin-bottom:14px;">
             <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
-            <span>🔗 AUTORIZAR LECTURA DE ACTIVIDADES EN STRAVA</span>
+            <span>🔗 AUTORIZAR LECTURA Y REGISTRO EN STRAVA</span>
           </a>
 
           <label class="editor-label" style="color:var(--c-volt);">2. CARGAR CARRERA DE HOY (DATOS REALES DE TU FOTO):</label>
           <p style="font-size:0.78rem; color:var(--text-sub); margin-bottom:10px;">
-            Carga tus métricas exactas registradas en Strava a las 10:26: <strong>8,51 km • 49:09 • 5:46 /km • 8m • 712 kcal</strong>.
+            Carga tus métricas exactas registradas en Strava hoy a las 11:07 AM: <strong>9,13 km • 50:19 • 5:30 /km • 12m • 735 kcal</strong>.
           </p>
           <button type="button" class="btn-open-ai-nutrition" id="btn-strava-simulate-today" style="background:var(--c-volt); color:#000; border-color:#000; width:100%; justify-content:center; font-weight:900;">
             <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
-            <span>APLICAR CARRERA REAL DE HOY (8,51 KM • 49:09)</span>
+            <span>APLICAR CARRERA DE HOY (9,13 KM • 50:19 • 5:30/KM)</span>
           </button>
         </div>
       </div>
@@ -1579,18 +1620,23 @@
 
   <div class="editor-modal-overlay" id="chat-modal-overlay">
     <div class="editor-modal chat-modal-container" style="max-width:550px; height: 80vh; display: flex; flex-direction: column;">
-      <div class="editor-modal-head chat-modal-head" style="background: #0B0E14; border-bottom: 2px solid var(--c-orange); flex-shrink: 0; padding: 12px 14px;">
+      <div class="editor-modal-head chat-modal-head" style="background: #0B0E14; border-bottom: 2px solid var(--c-orange); flex-shrink: 0; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
         <div class="editor-modal-title" style="display: flex; align-items: center; gap: 10px;">
           <img src="img/coach_gorilla.webp" alt="Gorila Coach" class="chat-header-avatar">
           <div>
             <div style="font-size: 1rem; font-family: var(--font-sub); font-weight: 900; letter-spacing: 0.05em; color: #FFFFFF; line-height: 1.1;">VIROL AI COACH</div>
             <div style="font-size: 0.68rem; color: #94A3B8; font-weight: 800; display: flex; align-items: center; gap: 6px;">
               <span class="online-indicator"></span>
-              <span style="color: #38BDF8;">GORILA IRON // EN LÍNEA</span>
+              <span style="color: #38BDF8;" id="chat-header-day-tag">GORILA IRON // EN LÍNEA</span>
             </div>
           </div>
         </div>
-        <button class="editor-btn-close" id="btn-close-chat-modal" style="color: #FFFFFF; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 4px;">✕</button>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" id="btn-clear-chat-history" class="chat-clear-btn" title="Borrar historial de conversación de este día">
+            🗑️ <span>Limpiar</span>
+          </button>
+          <button class="editor-btn-close" id="btn-close-chat-modal" style="color: #FFFFFF; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 4px;">✕</button>
+        </div>
       </div>
       
       <div class="editor-body chat-messages" id="chat-messages" style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.2);">
@@ -1617,15 +1663,15 @@
     <span id="toast-msg">MENSAJE</span>
   </div>
 
-  <script src="js/constants.js?v=28"></script>
-  <script src="js/state.js?v=28"></script>
-  <script src="js/sync.js?v=28"></script>
-  <script src="js/alarms.js?v=28"></script>
-  <script src="js/running.js?v=28"></script>
-  <script src="js/strava.js?v=28"></script>
-  <script src="js/ui.js?v=28"></script>
-  <script src="js/ai-nutrition.js?v=28"></script>
-  <script src="js/chat.js?v=28"></script>
-  <script src="js/app.js?v=28"></script>
+  <script src="js/constants.js?v=31"></script>
+  <script src="js/state.js?v=31"></script>
+  <script src="js/sync.js?v=31"></script>
+  <script src="js/alarms.js?v=31"></script>
+  <script src="js/running.js?v=31"></script>
+  <script src="js/strava.js?v=31"></script>
+  <script src="js/ui.js?v=31"></script>
+  <script src="js/ai-nutrition.js?v=31"></script>
+  <script src="js/chat.js?v=31"></script>
+  <script src="js/app.js?v=31"></script>
 </body>
 </html>

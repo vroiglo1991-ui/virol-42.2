@@ -970,7 +970,7 @@ body.brutalist-theme {
 /* STATS BANNER */
 .stats-banner {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   margin-bottom: 1.5rem;
 }
@@ -1411,7 +1411,7 @@ body.brutalist-theme {
   border-left: 6px solid var(--c-red);
 }
 
-/* HISTORY SECTION */
+/* HISTORY SECTION & LONGITUDINAL TREND CHART */
 .history-section {
   background: var(--bg-card);
   border: 3px solid var(--border-card);
@@ -1419,15 +1419,126 @@ body.brutalist-theme {
   box-shadow: var(--shadow-chunky);
 }
 
+.history-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border-light);
+}
+
 .history-title {
   font-family: var(--font-sub);
   font-weight: 900;
   font-size: 0.95rem;
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 2px solid var(--border-light);
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
+.history-summary-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.badge-orange-black {
+  background: var(--c-orange);
+  color: #000000;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px #000;
+}
+
+/* CHART CONTAINER */
+.history-chart-card {
+  background: var(--bg-step);
+  border: 2px solid var(--border-card);
+  padding: 12px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-hard);
+}
+
+.history-chart-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border-card);
+}
+
+.chart-legend-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  font-family: var(--font-sub);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border: 1px solid #000;
+}
+
+.legend-dot.volt {
+  background: var(--c-volt);
+}
+
+.legend-dot.orange {
+  background: var(--c-orange);
+}
+
+.chart-axis-info {
+  display: flex;
+  gap: 12px;
+}
+
+.chart-svg-container {
+  width: 100%;
+  overflow-x: auto;
+  position: relative;
+}
+
+.history-line-svg {
+  width: 100%;
+  height: 220px;
+  min-width: 320px;
+  display: block;
+}
+
+.history-chart-tooltip {
+  background: #000;
+  color: var(--c-volt);
+  border: 2px solid var(--c-volt);
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* HISTORY LIST */
 .history-list {
   display: flex;
   flex-direction: column;
@@ -1438,32 +1549,97 @@ body.brutalist-theme {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: var(--bg-step);
   border: 1px solid var(--border-card);
+  gap: 12px;
+  transition: transform 0.15s ease;
+}
+
+.history-item:hover {
+  border-color: var(--c-volt);
+}
+
+.history-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .history-week-num {
   font-family: var(--font-sub);
   font-weight: 900;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
+  letter-spacing: 0.05em;
+}
+
+.history-metrics-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.hist-pill {
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  padding: 2px 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  color: var(--text-muted);
+}
+
+.hist-pill.pill-rpe {
+  color: var(--c-orange);
+  border-color: var(--c-orange);
+}
+
+.hist-pill.pill-vdot {
+  color: var(--c-volt);
+  border-color: var(--c-volt);
+}
+
+.history-item-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .history-km {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   color: var(--c-volt);
+  white-space: nowrap;
 }
 
 [data-theme="light"] .history-km {
   color: var(--c-orange);
 }
 
+.btn-del-history {
+  background: transparent;
+  border: 1px solid var(--border-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-del-history:hover {
+  background: var(--c-red);
+  color: #fff;
+  border-color: var(--c-red);
+}
+
 .history-empty {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
   font-style: italic;
-  padding: 8px 0;
+  padding: 12px 4px;
 }
 
 /* TAB 3: DIETA 73KG */
@@ -3551,3 +3727,27 @@ body.brutalist-theme {
   transform: translate(1px, 1px);
   box-shadow: 1px 1px 0px #000;
 }
+
+.chat-clear-btn {
+  background: rgba(239, 68, 68, 0.12);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  font-family: var(--font-sub);
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.chat-clear-btn:hover {
+  background: #EF4444;
+  color: #FFFFFF;
+  border-color: #EF4444;
+  transform: translate(-1px, -1px);
+}
+
