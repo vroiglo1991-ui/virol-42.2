@@ -138,7 +138,7 @@ export default {
         }
       }
 
-      // PUT / POST /api/sync: Guardar estado desde PC o Móvil
+      // PUT / POST /api/sync: Guardar estado desde PC o Móvil con fusión granular
       if (request.method === 'PUT' || request.method === 'POST') {
         try {
           let body = {};
@@ -146,10 +146,24 @@ export default {
             return corsResponse({ error: 'Payload no es JSON válido' }, 400);
           }
 
-          const lastUpdated = body.lastUpdated || Date.now();
-          const stateStr = JSON.stringify(body);
-
           if (env.DB) {
+            let mergedState = { ...body };
+            try {
+              const existingRow = await env.DB.prepare(
+                'SELECT state_json, last_updated FROM app_state WHERE user_id = ?'
+              ).bind(userId).first();
+
+              if (existingRow && existingRow.state_json) {
+                const prevState = JSON.parse(existingRow.state_json);
+                mergedState = mergeAppStates(prevState, body);
+              }
+            } catch (mergeErr) {
+              console.warn('Advertencia al fusionar estado en D1:', mergeErr.message);
+            }
+
+            const lastUpdated = mergedState.lastUpdated || Date.now();
+            const stateStr = JSON.stringify(mergedState);
+
             await env.DB.prepare(`
               INSERT INTO app_state (user_id, state_json, last_updated, updated_at)
               VALUES (?, ?, ?, datetime('now'))
@@ -159,9 +173,15 @@ export default {
                 updated_at = datetime('now')
             `).bind(userId, stateStr, lastUpdated).run();
 
-            return corsResponse({ success: true, lastUpdated, message: 'Sincronizado en D1' }, 200);
+            return corsResponse({
+              success: true,
+              lastUpdated,
+              state: mergedState,
+              message: 'Sincronizado y fusionado en D1'
+            }, 200);
           }
 
+          const lastUpdated = body.lastUpdated || Date.now();
           return corsResponse({ success: true, lastUpdated, message: 'Recibido sin DB' }, 200);
         } catch (err) {
           return corsResponse({ error: true, message: err.message }, 500);
@@ -468,7 +488,18 @@ export default {
             }
           }
 
-          const redirectUrl = new URL('/', url.origin);
+          let redirectBase = url.origin;
+          const stateParam = url.searchParams.get('state');
+          if (stateParam) {
+            try {
+              const parsed = new URL(stateParam);
+              if (parsed.hostname.includes('github.io') || parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname.includes('workers.dev')) {
+                redirectBase = stateParam;
+              }
+            } catch (_) {}
+          }
+
+          const redirectUrl = new URL(redirectBase);
           redirectUrl.searchParams.set('strava_connected', '1');
           redirectUrl.searchParams.set('access_token', tokenData.access_token);
           redirectUrl.searchParams.set('refresh_token', tokenData.refresh_token || '');
@@ -558,6 +589,209 @@ export default {
         });
       } catch (err) {
         return corsResponse({ error: err.message }, 500);
+      }
+    }
+
+    // ─── 3.1. POST /api/archive-week — Archivo Relacional en SQLite D1 ──────────
+    if (url.pathname === '/api/archive-week' && request.method === 'POST') {
+      try {
+        const userId = 'u_victor';
+        let body = {};
+        try { body = await request.json(); } catch (_) {
+          return corsResponse({ error: 'Payload JSON no válido' }, 400);
+        }
+
+        if (!env.DB) {
+          return corsResponse({ success: true, message: 'Recibido sin DB binding activo' }, 200);
+        }
+
+        // Asegurar tablas necesarias en D1
+        await env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS weekly_archives (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            week_start TEXT NOT NULL,
+            week_end TEXT NOT NULL,
+            total_km REAL,
+            sessions_completed INTEGER,
+            sessions_total INTEGER,
+            avg_sleep_hours REAL,
+            summary_json TEXT,
+            archived_at TEXT DEFAULT (datetime('now'))
+          )
+        `).run().catch(() => {});
+
+        await env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS session_logs (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            session_id TEXT,
+            log_date TEXT NOT NULL,
+            completed INTEGER DEFAULT 0,
+            strava_activity_id TEXT,
+            distance_km REAL,
+            duration_sec INTEGER,
+            avg_pace_sec_km INTEGER,
+            perceived_effort INTEGER,
+            sleep_hours REAL,
+            notes TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+          )
+        `).run().catch(() => {});
+
+        await env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS supplement_logs (
+            id TEXT PRIMARY KEY,
+            supplement_id TEXT NOT NULL,
+            log_date TEXT NOT NULL,
+            taken INTEGER DEFAULT 0,
+            taken_at TEXT
+          )
+        `).run().catch(() => {});
+
+        const archiveId = `wa_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const weekStart = body.week_start || new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+        const weekEnd = body.week_end || new Date().toISOString().split('T')[0];
+
+        // 1. Insertar resumen en weekly_archives
+        await env.DB.prepare(`
+          INSERT INTO weekly_archives (id, user_id, week_start, week_end, total_km, sessions_completed, sessions_total, avg_sleep_hours, summary_json, archived_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `).bind(
+          archiveId,
+          userId,
+          weekStart,
+          weekEnd,
+          Number(body.total_km || 0),
+          Number(body.sessions_completed || 0),
+          Number(body.sessions_total || 7),
+          Number(body.avg_sleep_hours || 8),
+          JSON.stringify(body.summary_json || {})
+        ).run();
+
+        // 2. Insertar sesiones individuales si vienen en el payload
+        if (Array.isArray(body.sessions)) {
+          for (const s of body.sessions) {
+            const slogId = `slog_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+            await env.DB.prepare(`
+              INSERT INTO session_logs (id, user_id, log_date, completed, strava_activity_id, distance_km, duration_sec, avg_pace_sec_km, perceived_effort, sleep_hours, notes, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            `).bind(
+              slogId,
+              userId,
+              s.log_date || weekEnd,
+              s.completed ? 1 : 0,
+              s.strava_activity_id || null,
+              Number(s.distance_km || 0),
+              Number(s.duration_sec || 0),
+              s.avg_pace_sec_km ? Number(s.avg_pace_sec_km) : null,
+              s.perceived_effort ? Number(s.perceived_effort) : null,
+              s.sleep_hours ? Number(s.sleep_hours) : null,
+              s.notes || null
+            ).run().catch(() => {});
+          }
+        }
+
+        // 3. Insertar registros de suplementación
+        if (Array.isArray(body.supplements)) {
+          for (const sup of body.supplements) {
+            const suplogId = `suplog_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+            await env.DB.prepare(`
+              INSERT INTO supplement_logs (id, supplement_id, log_date, taken, taken_at)
+              VALUES (?, ?, ?, ?, datetime('now'))
+            `).bind(
+              suplogId,
+              sup.supplement_id || 'sup_general',
+              sup.log_date || weekEnd,
+              sup.taken ? 1 : 0
+            ).run().catch(() => {});
+          }
+        }
+
+        return corsResponse({
+          success: true,
+          archiveId,
+          message: 'Semana archivada con éxito en SQLite D1 relacional'
+        }, 200);
+
+      } catch (err) {
+        return corsResponse({ error: true, message: err.message }, 500);
+      }
+    }
+
+    // ─── 3.2. GET /api/archives — Consultar historial archivado en D1 ───────────
+    if (url.pathname === '/api/archives' && request.method === 'GET') {
+      try {
+        const userId = 'u_victor';
+        if (!env.DB) return corsResponse({ archives: [] }, 200);
+        const rows = await env.DB.prepare(`
+          SELECT * FROM weekly_archives WHERE user_id = ? ORDER BY archived_at DESC LIMIT 20
+        `).bind(userId).all();
+        return corsResponse({ success: true, archives: rows.results || [] }, 200);
+      } catch (err) {
+        return corsResponse({ error: true, message: err.message }, 500);
+      }
+    }
+
+    // ─── 3.3. POST /api/ai/nutrition-menu — Proxy Gemini para Menú Zero-Waste ────
+    if (url.pathname === '/api/ai/nutrition-menu' && request.method === 'POST') {
+      try {
+        let body = {};
+        try { body = await request.json(); } catch (_) {}
+
+        const ingredients = Array.isArray(body.ingredients) ? body.ingredients : [];
+        const targetKcal = body.targetKcal || 2850;
+        const targetProtein = body.targetProtein || 150;
+
+        if (ingredients.length === 0) {
+          return corsResponse({ error: 'Debes proporcionar al menos un ingrediente' }, 400);
+        }
+
+        const systemInstruction = `Eres un nutricionista deportivo de élite para un maratoniano de 73 kg preparando la Maratón de Valencia.
+Objetivo: Generar un menú diario con 5 comidas (desayuno, snack, comida, merienda, cena) alcanzando exactamente ~${targetKcal} kcal y ~${targetProtein}g de proteína.
+CRUCIAL: Debes utilizar ÚNICAMENTE o prioritariamente los siguientes ingredientes de su compra:
+${ingredients.join(', ')}.
+Devuelve estrictamente un JSON válido con las claves exactas: "desayuno", "snack", "comida", "merienda", "cena". Cada comida debe contener: "name", "time", "desc" y un array "items" con objetos {"qty": "...", "text": "..."}.`;
+
+        const userPrompt = `Genera el menú deportivo con los ingredientes disponibles: ${ingredients.join(', ')}. Objetivo: ${targetKcal} kcal y ${targetProtein}g de proteína.`;
+
+        const generatedMenu = await callGeminiApi(userPrompt, systemInstruction, true, env);
+        return corsResponse({ success: true, menu: generatedMenu }, 200);
+
+      } catch (err) {
+        return corsResponse({ error: true, message: err.message }, 500);
+      }
+    }
+
+    // ─── 3.4. POST /api/ai/shopping-recs — Proxy Gemini para Recomendaciones Compra ──
+    if (url.pathname === '/api/ai/shopping-recs' && request.method === 'POST') {
+      try {
+        let body = {};
+        try { body = await request.json(); } catch (_) {}
+
+        const ingredients = Array.isArray(body.ingredients) ? body.ingredients : [];
+
+        const systemInstruction = `Eres un nutricionista deportivo experto en running y maratón.
+Un corredor de 73 kg prepara la Maratón de Valencia y actualmente tiene estos ingredientes en casa:
+${ingredients.join(', ')}.
+
+Analiza su lista y recomiéndale exactamente 6-8 productos que le FALTAN o que mejorarían notablemente su nutrición deportiva (recuperación, hidratación, proteína, carbohidratos de calidad, micronutrientes).
+IMPORTANTE: Solo recomienda productos que se vendan habitualmente en Mercadona o supermercados similares.
+Devuelve OBLIGATORIAMENTE un JSON válido con la estructura estricta:
+{
+  "recommendations": [
+    {"product": "nombre del producto", "reason": "por qué lo necesita (máx 1 frase)", "category": "Proteína|Carbohidrato|Grasa|Hidratación|Micronutriente|Suplemento"}
+  ],
+  "summary": "Breve resumen de las carencias principales (1-2 frases)"
+}`;
+
+        const userPrompt = `Analiza estos ingredientes actuales y recomienda la lista de la compra deportiva óptima: ${ingredients.join(', ')}`;
+
+        const recs = await callGeminiApi(userPrompt, systemInstruction, true, env);
+        return corsResponse({ success: true, ...recs }, 200);
+
+      } catch (err) {
+        return corsResponse({ error: true, message: err.message }, 500);
       }
     }
 
@@ -654,10 +888,9 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
         };
 
         const models = [
-          'gemini-3.7-flash',
-          'gemini-3.6-flash',
-          'gemini-3.5-flash',
-          'gemini-3.5-flash-lite',
+          'gemini-2.0-flash',
+          'gemini-1.5-flash',
+          'gemini-1.5-pro',
           'gemini-flash-latest'
         ];
         let geminiData = null;
@@ -731,10 +964,10 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
         }
 
         const anthropicApiKey = env.ANTHROPIC_API_KEY || env.CLAUDE_API_KEY || body.anthropicApiKey;
-        const geminiApiKey = env.GEMINI_API_KEY;
+        const geminiApiKey = env.GEMINI_API_KEY || body.geminiApiKey;
 
         if (!anthropicApiKey && !geminiApiKey) {
-          return corsResponse({ error: 'Ninguna API Key configurada (se requiere ANTHROPIC_API_KEY o GEMINI_API_KEY)' }, 500);
+          return corsResponse({ error: 'Ninguna API Key configurada (se requiere ANTHROPIC_API_KEY o GEMINI_API_KEY en Cloudflare Secrets o en el cliente)' }, 500);
         }
 
         const userMessage = body.message || '';
@@ -787,6 +1020,10 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
           return null;
         }
 
+        const modifiedWorkouts = [];
+        const toolExecutions = [];
+        const clientActions = [];
+
         function executeConsultarEntrenamiento(args, workouts, currentDayIdx) {
           const diaStr = args?.dia;
           const dayIdx = resolveDayIndex(diaStr, currentDayIdx);
@@ -829,7 +1066,7 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
           if (dayIdx === null || dayIdx === undefined) {
             return {
               success: false,
-              error: `El día '${diaStr}' no es válido. No se puede modificar el entrenamiento. Especifica: lunes, martes, miércoles, jueves, viernes, sábado, domingo, hoy o mañana.`
+              error: `El día '${diaStr}' no es válido. Especifica: lunes, martes, miércoles, jueves, viernes, sábado, domingo, hoy o mañana.`
             };
           }
 
@@ -860,20 +1097,180 @@ Genera el diagnóstico de estado para la preparación de la Maratón Valencia 42
           });
 
           const prev = workouts[dayIdx] || DEFAULT_WORKOUTS_FALLBACK[dayIdx] || { name: `DÍA ${dayIdx}` };
+          const modo = args?.modo || 'reemplazar';
+
+          let finalSteps = parsedSteps;
+          if (modo === 'anadir' && Array.isArray(prev.steps)) {
+            finalSteps = [...prev.steps, ...parsedSteps];
+          }
+
           const updatedWorkout = {
             ...prev,
-            steps: parsedSteps
+            discipline: args?.disciplina || prev.discipline || '',
+            title: args?.titulo || prev.title || '',
+            steps: finalSteps
           };
           workouts[dayIdx] = updatedWorkout;
+
+          clientActions.push({
+            type: 'ADJUST_WORKOUT',
+            dayIdx,
+            km: updatedWorkout.km || 0,
+            note: updatedWorkout.title || ''
+          });
 
           return {
             success: true,
             dia: updatedWorkout.name || diaStr,
             dia_indice: dayIdx,
-            mensaje: `Entrenamiento de ${updatedWorkout.name || diaStr} actualizado con éxito con ${parsedSteps.length} ejercicios.`,
-            steps: parsedSteps,
+            mensaje: `Entrenamiento de ${updatedWorkout.name || diaStr} actualizado con éxito (${finalSteps.length} ejercicios).`,
+            steps: finalSteps,
             updatedWorkout
           };
+        }
+
+        function executeModificarMercadona(args) {
+          const accion = (args?.accion || 'anadir').toLowerCase();
+          const nombre = String(args?.nombre || '').trim();
+          if (!nombre) {
+            return { success: false, error: 'Debes indicar el nombre del producto de Mercadona.' };
+          }
+          const peso = String(args?.peso_o_cantidad || '1 ud').trim();
+          let cat = (args?.categoria || '').toLowerCase().trim();
+          if (!['fresh', 'pantry', 'supplements', 'snacks'].includes(cat)) {
+            const nLow = nombre.toLowerCase();
+            if (nLow.includes('creatina') || nLow.includes('proteina') || nLow.includes('whey') || nLow.includes('magnesio') || nLow.includes('omega') || nLow.includes('suplemento')) {
+              cat = 'supplements';
+            } else if (nLow.includes('avena') || nLow.includes('arroz') || nLow.includes('pasta') || nLow.includes('pan') || nLow.includes('aceite') || nLow.includes('atun') || nLow.includes('legumbre') || nLow.includes('garbanzo') || nLow.includes('lenteja')) {
+              cat = 'pantry';
+            } else if (nLow.includes('fruto') || nLow.includes('nuez') || nLow.includes('almendra') || nLow.includes('tortita') || nLow.includes('chocolate') || nLow.includes('snack') || nLow.includes('barrita')) {
+              cat = 'snacks';
+            } else {
+              cat = 'fresh';
+            }
+          }
+
+          if (accion === 'eliminar') {
+            clientActions.push({ type: 'REMOVE_MERCADONA_ITEM', name: nombre });
+            return { success: true, mensaje: `Producto '${nombre}' marcado para retirar de Mercadona.` };
+          } else {
+            clientActions.push({ type: 'ADD_MERCADONA_ITEM', name: nombre, weight: peso, category: cat });
+            return { success: true, mensaje: `Producto '${nombre}' (${peso}) añadido a ${cat} de Mercadona.` };
+          }
+        }
+
+        function executeModificarComida(args) {
+          const accion = (args?.accion || 'anadir').toLowerCase();
+          const comida = (args?.comida || 'snack').toLowerCase().trim();
+          const nombre = String(args?.nombre || '').trim();
+          if (!nombre) {
+            return { success: false, error: 'Debes indicar el nombre del alimento.' };
+          }
+          const cantidad = String(args?.cantidad || '1 ud').trim();
+
+          if (accion === 'eliminar') {
+            clientActions.push({ type: 'REMOVE_MEAL_ITEM', meal: comida, text: nombre });
+            return { success: true, mensaje: `Alimento '${nombre}' retirado de la comida '${comida}'.` };
+          } else {
+            clientActions.push({ type: 'ADD_MEAL_ITEM', meal: comida, qty: cantidad, text: nombre });
+            return { success: true, mensaje: `Alimento '${nombre}' (${cantidad}) añadido a la comida '${comida}'.` };
+          }
+        }
+
+        function executeMarcarChecklist(args) {
+          const elemento = String(args?.elemento || '').toLowerCase().trim();
+          const completado = args?.completado !== false;
+
+          const mapKeys = {
+            creatina: 'supp_creatina',
+            omega3: 'supp_omega3',
+            whey: 'supp_whey',
+            magnesio: 'supp_magnesio',
+            desayuno: 'meal_desayuno',
+            snack: 'meal_snack',
+            comida: 'meal_comida',
+            merienda: 'meal_merienda',
+            cena: 'meal_cena',
+            entrenamiento: 'workoutCompleted',
+            entreno: 'workoutCompleted'
+          };
+
+          const key = mapKeys[elemento];
+          if (!key) {
+            return {
+              success: false,
+              error: `Elemento '${elemento}' desconocido. Opciones válidas: creatina, omega3, whey, magnesio, desayuno, snack, comida, merienda, cena, entrenamiento.`
+            };
+          }
+
+          clientActions.push({ type: completado ? 'CHECK_ITEM' : 'UNCHECK_ITEM', key });
+          return {
+            success: true,
+            mensaje: `Elemento '${elemento}' ${completado ? 'marcado como completado' : 'desmarcado'}.`
+          };
+        }
+
+        function executeRegistrarMetricas(args) {
+          const act = { type: 'LOG_DAILY_METRIC' };
+          const items = [];
+
+          if (args?.sueno_horas !== undefined && args.sueno_horas !== null && args.sueno_horas !== '') {
+            act.sleepHours = Number(args.sueno_horas);
+            items.push(`Sueño: ${act.sleepHours}h`);
+          }
+          if (args?.rpe !== undefined && args.rpe !== null && args.rpe !== '') {
+            act.rpe = Math.min(10, Math.max(1, Number(args.rpe)));
+            items.push(`RPE: ${act.rpe}/10`);
+          }
+          if (args?.peso_kg !== undefined && args.peso_kg !== null && args.peso_kg !== '') {
+            act.weight = Number(args.peso_kg);
+            items.push(`Peso: ${act.weight} kg`);
+          }
+
+          if (items.length === 0) {
+            return { success: false, error: 'No se indicaron métricas válidas (sueno_horas, rpe, peso_kg).' };
+          }
+
+          clientActions.push(act);
+          return { success: true, mensaje: `Métricas registradas: ${items.join(' • ')}` };
+        }
+
+        function executeProgramarAlarma(args) {
+          const alarma = (args?.alarma || 'workout').toLowerCase();
+          const hora = args?.hora;
+          if (!hora || !/^\d{1,2}:\d{2}$/.test(hora)) {
+            return { success: false, error: 'Formato de hora inválido. Usa formato HH:MM (ej. 08:30 o 21:00).' };
+          }
+          clientActions.push({
+            type: 'SET_ALARM',
+            alarm: alarma,
+            time: hora,
+            title: args?.titulo || undefined
+          });
+          return { success: true, mensaje: `Alarma '${alarma}' programada para las ${hora}.` };
+        }
+
+        function executeToolByName(name, args) {
+          let result = null;
+          if (name === 'consultar_entrenamiento') {
+            result = executeConsultarEntrenamiento(args, currentWorkouts, selectedDayIndex);
+          } else if (name === 'modificar_entrenamiento') {
+            result = executeModificarEntrenamiento(args, currentWorkouts, selectedDayIndex);
+            if (result.success) modifiedWorkouts.push(result);
+          } else if (name === 'modificar_mercadona') {
+            result = executeModificarMercadona(args);
+          } else if (name === 'modificar_comida') {
+            result = executeModificarComida(args);
+          } else if (name === 'marcar_checklist') {
+            result = executeMarcarChecklist(args);
+          } else if (name === 'registrar_metricas') {
+            result = executeRegistrarMetricas(args);
+          } else if (name === 'programar_alarma') {
+            result = executeProgramarAlarma(args);
+          } else {
+            result = { success: false, error: `Herramienta '${name}' no implementada.` };
+          }
+          return result;
         }
 
         const contextStr = JSON.stringify(contextData, null, 2);
@@ -884,50 +1281,53 @@ Eres directo, riguroso, de corte militar-atlético brutalista y científico: sin
 CONTEXTO DEL ATLETA:
 ${contextStr}
 
-CAPACIDAD DE ACCIÓN REAL (TOOL USE / FUNCTION CALLING):
-Tienes acceso a herramientas para consultar y modificar directamente los entrenamientos del plan semanal de la app (la misma estructura que alimenta la pestaña "Plan 7 días" y el día activo):
-1. "consultar_entrenamiento": Úsala cuando el atleta pregunte por su entrenamiento de un día o antes de modificarlo para conocer la rutina actual y evitar inventar ejercicios inexistentes.
-2. "modificar_entrenamiento": Úsala cuando el usuario pida cambiar o ajustar un entrenamiento (ej: "cámbiame el entreno de pierna de mañana", "ponme sentadilla búlgara el viernes").
-   - Debes indicar el "dia" y la lista de "ejercicios" con su nombre, series, reps y notas.
-   - REGLA ESTRICTA: Confirma al usuario el cambio REALIZADO ÚNICAMENTE DESPUÉS de que la herramienta se haya ejecutado con éxito en el sistema. Nunca antes.
-   - Si la herramienta falla (por ejemplo, si el día es inválido), debes explicarle explícitamente al usuario el motivo del fallo y qué días son válidos, sin dar confirmaciones falsas.`;
+CAPACIDAD DE ACCIÓN TOTAL EN EL SISTEMA (HERRAMIENTAS / FUNCTION CALLING):
+Tienes acceso a herramientas reales conectadas a la base de datos y la interfaz de la app:
+1. "consultar_entrenamiento": Consulta los ejercicios de cualquier día antes de modificarlos para no inventar ni borrar rutinas previas.
+2. "modificar_entrenamiento": Modifica o añade ejercicios a un día de la semana. Puedes usar modo "anadir" para sumar ejercicios a los existentes o "reemplazar" para sustituir la lista.
+3. "modificar_mercadona": Añade o retira productos de la lista de la compra de Mercadona en la app (con su peso/unidad y categoría).
+4. "modificar_comida": Añade o retira alimentos de las 5 comidas diarias (desayuno, snack, comida, merienda, cena).
+5. "marcar_checklist": Marca o desmarca suplementos tomados (creatina, omega3, whey, magnesio), comidas o el entreno de hoy.
+6. "registrar_metricas": Registra horas de sueño de anoche, RPE de esfuerzo de la sesión (1-10) o peso corporal.
+7. "programar_alarma": Ajusta y activa alarmas (workout, creatina, hidratacion, magnesio) con hora HH:MM.
+
+REGLAS DE ORO:
+- Si el usuario te pide añadir o modificar algo, EJECUTA SIEMPRE la herramienta correspondiente.
+- NUNCA respondas diciendo "Hecho" o "Te lo he apuntado" si no has ejecutado antes la herramienta. Confirma la acción REALIZADA basándote en el resultado que te devuelva la herramienta.`;
 
         // ── Claude API Tools definition (Anthropic JSON Schema) ──
         const CLAUDE_TOOLS = [
           {
             name: 'consultar_entrenamiento',
-            description: 'Consulta el entrenamiento programado para un día específico de la semana (ej. "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo", "hoy", "mañana"). Devuelve la disciplina, título, kilometraje y lista detallada de ejercicios actuales.',
+            description: 'Consulta el entrenamiento programado para un día específico de la semana (ej. "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo", "hoy", "mañana").',
             input_schema: {
               type: 'object',
               properties: {
-                dia: {
-                  type: 'string',
-                  description: 'Día de la semana a consultar (ej: "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo", "hoy", "mañana")'
-                }
+                dia: { type: 'string', description: 'Día de la semana a consultar' }
               },
               required: ['dia']
             }
           },
           {
             name: 'modificar_entrenamiento',
-            description: 'Modifica y actualiza directamente el plan de entrenamiento de un día de la semana en la app. Actualiza la estructura de datos que alimenta la pestaña "Plan 7 días" y el día seleccionado, sustituyendo o reprogramando los ejercicios de ese día.',
+            description: 'Modifica o añade ejercicios al entrenamiento de un día de la semana en la app.',
             input_schema: {
               type: 'object',
               properties: {
-                dia: {
-                  type: 'string',
-                  description: 'Día de la semana a modificar (ej: "lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo", "hoy", "mañana")'
-                },
+                dia: { type: 'string', description: 'Día a modificar' },
+                modo: { type: 'string', enum: ['reemplazar', 'anadir'], description: 'Si es "anadir" conserva los ejercicios actuales y suma los nuevos. Si es "reemplazar" sustituye todos.' },
+                disciplina: { type: 'string', description: 'Nombre de la disciplina (opcional)' },
+                titulo: { type: 'string', description: 'Título de la sesión (opcional)' },
                 ejercicios: {
                   type: 'array',
-                  description: 'Array de ejercicios que compondrán el entrenamiento',
+                  description: 'Array de ejercicios',
                   items: {
                     type: 'object',
                     properties: {
-                      nombre: { type: 'string', description: 'Nombre del ejercicio (ej. Sentadilla búlgara, Press militar)' },
-                      series: { type: 'string', description: 'Número de series (ej. "4", "3-4")' },
-                      reps: { type: 'string', description: 'Repeticiones o tiempo (ej. "8-10 reps", "15 reps", "45 seg")' },
-                      notas: { type: 'string', description: 'Notas técnicas o RPE (ej. "descanso 90s, control excéntrico 2s")' }
+                      nombre: { type: 'string', description: 'Nombre del ejercicio' },
+                      series: { type: 'string', description: 'Número de series' },
+                      reps: { type: 'string', description: 'Repeticiones o tiempo' },
+                      notas: { type: 'string', description: 'Notas técnicas o RPE' }
                     },
                     required: ['nombre']
                   }
@@ -935,14 +1335,186 @@ Tienes acceso a herramientas para consultar y modificar directamente los entrena
               },
               required: ['dia', 'ejercicios']
             }
+          },
+          {
+            name: 'modificar_mercadona',
+            description: 'Añade o elimina productos de la lista de la compra de Mercadona en la app.',
+            input_schema: {
+              type: 'object',
+              properties: {
+                accion: { type: 'string', enum: ['anadir', 'eliminar'], description: 'Acción a realizar' },
+                nombre: { type: 'string', description: 'Nombre del producto de Mercadona' },
+                peso_o_cantidad: { type: 'string', description: 'Peso o cantidad (ej. "1 kg", "500g", "2 botes")' },
+                categoria: { type: 'string', enum: ['fresh', 'pantry', 'supplements', 'snacks'], description: 'Categoría en Mercadona' }
+              },
+              required: ['accion', 'nombre']
+            }
+          },
+          {
+            name: 'modificar_comida',
+            description: 'Añade o retira alimentos de una comida del plan diario (desayuno, snack, comida, merienda, cena).',
+            input_schema: {
+              type: 'object',
+              properties: {
+                accion: { type: 'string', enum: ['anadir', 'eliminar'], description: 'Acción a realizar' },
+                comida: { type: 'string', enum: ['desayuno', 'snack', 'comida', 'merienda', 'cena'], description: 'Comida a modificar' },
+                nombre: { type: 'string', description: 'Nombre del alimento' },
+                cantidad: { type: 'string', description: 'Cantidad o ración' }
+              },
+              required: ['accion', 'comida', 'nombre']
+            }
+          },
+          {
+            name: 'marcar_checklist',
+            description: 'Marca o desmarca elementos completados hoy (suplementos, comidas o entreno).',
+            input_schema: {
+              type: 'object',
+              properties: {
+                elemento: { type: 'string', enum: ['creatina', 'omega3', 'whey', 'magnesio', 'desayuno', 'snack', 'comida', 'merienda', 'cena', 'entrenamiento'], description: 'Elemento a marcar' },
+                completado: { type: 'boolean', description: 'true para marcar completado, false para desmarcar' }
+              },
+              required: ['elemento']
+            }
+          },
+          {
+            name: 'registrar_metricas',
+            description: 'Registra métricas diarias del atleta: horas de sueño de anoche, RPE de esfuerzo percibido (1-10) o peso corporal en kg.',
+            input_schema: {
+              type: 'object',
+              properties: {
+                sueno_horas: { type: 'number', description: 'Horas de sueño dormidas' },
+                rpe: { type: 'number', description: 'Nivel de esfuerzo percibido (1 a 10)' },
+                peso_kg: { type: 'number', description: 'Peso corporal en kg' }
+              }
+            }
+          },
+          {
+            name: 'programar_alarma',
+            description: 'Configura la hora y activa una alarma en la app.',
+            input_schema: {
+              type: 'object',
+              properties: {
+                alarma: { type: 'string', enum: ['workout', 'creatina', 'hidratacion', 'magnesio'], description: 'Tipo de alarma' },
+                hora: { type: 'string', description: 'Hora en formato HH:MM (ej. 09:30)' },
+                titulo: { type: 'string', description: 'Título personalizado opcional' }
+              },
+              required: ['alarma', 'hora']
+            }
           }
         ];
 
-        const modifiedWorkouts = [];
-        const toolExecutions = [];
+        // ── Gemini API Tools definition ──
+        const geminiTools = [{
+          function_declarations: [
+            {
+              name: 'consultar_entrenamiento',
+              description: 'Consulta el entrenamiento de un día de la semana (lunes a domingo, hoy o mañana).',
+              parameters: {
+                type: 'OBJECT',
+                properties: {
+                  dia: { type: 'STRING', description: 'Día de la semana a consultar' }
+                },
+                required: ['dia']
+              }
+            },
+            {
+              name: 'modificar_entrenamiento',
+              description: 'Modifica o añade ejercicios al plan de entrenamiento de un día específico en la app.',
+              parameters: {
+                type: 'OBJECT',
+                properties: {
+                  dia: { type: 'STRING', description: 'Día de la semana a modificar' },
+                  modo: { type: 'STRING', description: 'reemplazar o anadir' },
+                  disciplina: { type: 'STRING', description: 'Disciplina del entrenamiento' },
+                  titulo: { type: 'STRING', description: 'Título de la sesión' },
+                  ejercicios: {
+                    type: 'ARRAY',
+                    description: 'Lista de ejercicios a programar',
+                    items: {
+                      type: 'OBJECT',
+                      properties: {
+                        nombre: { type: 'STRING', description: 'Nombre del ejercicio' },
+                        series: { type: 'STRING', description: 'Número de series' },
+                        reps: { type: 'STRING', description: 'Repeticiones' },
+                        notas: { type: 'STRING', description: 'Notas técnicas' }
+                      },
+                      required: ['nombre']
+                    }
+                  }
+                },
+                required: ['dia', 'ejercicios']
+              }
+            },
+            {
+              name: 'modificar_mercadona',
+              description: 'Añade o elimina productos de la lista de la compra de Mercadona en la app.',
+              parameters: {
+                type: 'OBJECT',
+                properties: {
+                  accion: { type: 'STRING', description: 'anadir o eliminar' },
+                  nombre: { type: 'STRING', description: 'Nombre del producto de Mercadona' },
+                  peso_o_cantidad: { type: 'STRING', description: 'Peso o cantidad (ej. 1 kg, 500g)' },
+                  categoria: { type: 'STRING', description: 'fresh, pantry, supplements o snacks' }
+                },
+                required: ['accion', 'nombre']
+              }
+            },
+            {
+              name: 'modificar_comida',
+              description: 'Añade o retira alimentos de una comida del plan diario (desayuno, snack, comida, merienda, cena).',
+              parameters: {
+                type: 'OBJECT',
+                properties: {
+                  accion: { type: 'STRING', description: 'anadir o eliminar' },
+                  comida: { type: 'STRING', description: 'desayuno, snack, comida, merienda o cena' },
+                  nombre: { type: 'STRING', description: 'Nombre del alimento' },
+                  cantidad: { type: 'STRING', description: 'Cantidad o ración' }
+                },
+                required: ['accion', 'comida', 'nombre']
+              }
+            },
+            {
+              name: 'marcar_checklist',
+              description: 'Marca o desmarca elementos completados hoy (suplementos, comidas o entreno).',
+              parameters: {
+                type: 'OBJECT',
+                properties: {
+                  elemento: { type: 'STRING', description: 'creatina, omega3, whey, magnesio, desayuno, snack, comida, merienda, cena, o entrenamiento' },
+                  completado: { type: 'BOOLEAN', description: 'true para completado, false para desmarcar' }
+                },
+                required: ['elemento']
+              }
+            },
+            {
+              name: 'registrar_metricas',
+              description: 'Registra horas de sueño, nivel RPE (1-10) o peso corporal en kg.',
+              parameters: {
+                type: 'OBJECT',
+                properties: {
+                  sueno_horas: { type: 'NUMBER', description: 'Horas de sueño' },
+                  rpe: { type: 'NUMBER', description: 'RPE 1-10' },
+                  peso_kg: { type: 'NUMBER', description: 'Peso en kg' }
+                }
+              }
+            },
+            {
+              name: 'programar_alarma',
+              description: 'Configura y activa una alarma en la app.',
+              parameters: {
+                type: 'OBJECT',
+                properties: {
+                  alarma: { type: 'STRING', description: 'workout, creatina, hidratacion o magnesio' },
+                  hora: { type: 'STRING', description: 'Hora en formato HH:MM (ej. 09:30)' },
+                  titulo: { type: 'STRING', description: 'Título personalizado opcional' }
+                },
+                required: ['alarma', 'hora']
+              }
+            }
+          ]
+        }];
 
         // ════════════════════════════════════════════════════════════════
-        // CAMINO A: CLAUDE API (Anthropic Messages API con Tool Use)
+        // CAMINO A: CLAUDE API (Anthropic Messages API con Tool Use Multi-Turn)
         // ════════════════════════════════════════════════════════════════
         if (anthropicApiKey) {
           const claudeMessages = [];
@@ -995,18 +1567,7 @@ Tienes acceso a herramientas para consultar y modificar directamente los entrena
               const toolResultBlocks = [];
 
               for (const tu of toolUseBlocks) {
-                let result = null;
-                if (tu.name === 'consultar_entrenamiento') {
-                  result = executeConsultarEntrenamiento(tu.input, currentWorkouts, selectedDayIndex);
-                } else if (tu.name === 'modificar_entrenamiento') {
-                  result = executeModificarEntrenamiento(tu.input, currentWorkouts, selectedDayIndex);
-                  if (result.success) {
-                    modifiedWorkouts.push(result);
-                  }
-                } else {
-                  result = { success: false, error: `Herramienta '${tu.name}' no implementada.` };
-                }
-
+                const result = executeToolByName(tu.name, tu.input);
                 toolExecutions.push({ id: tu.id, name: tu.name, input: tu.input, result });
                 toolResultBlocks.push({
                   type: 'tool_result',
@@ -1024,57 +1585,16 @@ Tienes acceso a herramientas para consultar y modificar directamente los entrena
           }
 
           return corsResponse({
-            reply: finalReply || 'Entrenamiento procesado correctamente por el Coach.',
+            reply: finalReply || 'Petición procesada correctamente por el Coach.',
             modified_workouts: modifiedWorkouts,
             tool_executions: toolExecutions,
-            actions: modifiedWorkouts.map(m => `Entreno de ${m.dia} actualizado en la app (${m.steps.length} ejercicios)`)
+            actions: clientActions
           }, 200);
         }
 
         // ════════════════════════════════════════════════════════════════
-        // CAMINO B: GEMINI FUNCTION CALLING (Fallback resiliente)
+        // CAMINO B: GEMINI FUNCTION CALLING (Bucle Multi-Turn con Tools Activos)
         // ════════════════════════════════════════════════════════════════
-        const geminiTools = [{
-          function_declarations: [
-            {
-              name: 'consultar_entrenamiento',
-              description: 'Consulta el entrenamiento de un día de la semana (lunes a domingo, hoy o mañana).',
-              parameters: {
-                type: 'OBJECT',
-                properties: {
-                  dia: { type: 'STRING', description: 'Día de la semana a consultar' }
-                },
-                required: ['dia']
-              }
-            },
-            {
-              name: 'modificar_entrenamiento',
-              description: 'Modifica los ejercicios del plan de entrenamiento de un día específico en la app.',
-              parameters: {
-                type: 'OBJECT',
-                properties: {
-                  dia: { type: 'STRING', description: 'Día de la semana a modificar' },
-                  ejercicios: {
-                    type: 'ARRAY',
-                    description: 'Lista de ejercicios a programar',
-                    items: {
-                      type: 'OBJECT',
-                      properties: {
-                        nombre: { type: 'STRING', description: 'Nombre del ejercicio' },
-                        series: { type: 'STRING', description: 'Número de series' },
-                        reps: { type: 'STRING', description: 'Repeticiones' },
-                        notas: { type: 'STRING', description: 'Notas técnicas' }
-                      },
-                      required: ['nombre']
-                    }
-                  }
-                },
-                required: ['dia', 'ejercicios']
-              }
-            }
-          ]
-        }];
-
         const contents = [];
         for (const h of conversationHistory.slice(-4)) {
           contents.push({
@@ -1089,8 +1609,9 @@ Tienes acceso a herramientas para consultar y modificar directamente los entrena
 
         const callGeminiWithFallback = async (payload) => {
           const candidateModels = [
-            'gemini-3.6-flash',
-            'gemini-3.5-flash',
+            'gemini-2.0-flash',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro',
             'gemini-flash-latest'
           ];
           let lastErrText = '';
@@ -1114,62 +1635,49 @@ Tienes acceso a herramientas para consultar y modificar directamente los entrena
           throw new Error(`Gemini API error: ${lastErrText}`);
         };
 
-        const geminiData1 = await callGeminiWithFallback({
-          contents,
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-          tools: geminiTools
-        });
-
-        const candidate = geminiData1.candidates?.[0];
-        const parts = candidate?.content?.parts || [];
-        const functionCallPart = parts.find(p => p.functionCall);
-
         let finalReply = '';
+        let turns = 0;
 
-        if (functionCallPart && functionCallPart.functionCall) {
-          const fc = functionCallPart.functionCall;
-          let result = null;
-
-          if (fc.name === 'consultar_entrenamiento') {
-            result = executeConsultarEntrenamiento(fc.args, currentWorkouts, selectedDayIndex);
-          } else if (fc.name === 'modificar_entrenamiento') {
-            result = executeModificarEntrenamiento(fc.args, currentWorkouts, selectedDayIndex);
-            if (result.success) {
-              modifiedWorkouts.push(result);
-            }
-          }
-
-          toolExecutions.push({ name: fc.name, input: fc.args, result });
-
-          contents.push(candidate.content);
-          contents.push({
-            role: 'user',
-            parts: [{
-              functionResponse: {
-                name: fc.name,
-                response: result
-              }
-            }]
+        while (turns < 4) {
+          const geminiData = await callGeminiWithFallback({
+            contents,
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            tools: geminiTools
           });
 
-          try {
-            const geminiData2 = await callGeminiWithFallback({
-              contents,
-              systemInstruction: { parts: [{ text: systemInstruction }] }
+          const candidate = geminiData.candidates?.[0];
+          const parts = candidate?.content?.parts || [];
+          const functionCallPart = parts.find(p => p.functionCall);
+
+          if (functionCallPart && functionCallPart.functionCall) {
+            const fc = functionCallPart.functionCall;
+            const result = executeToolByName(fc.name, fc.args);
+
+            toolExecutions.push({ name: fc.name, input: fc.args, result });
+
+            contents.push(candidate.content);
+            contents.push({
+              role: 'user',
+              parts: [{
+                functionResponse: {
+                  name: fc.name,
+                  response: result
+                }
+              }]
             });
-            finalReply = geminiData2.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          } catch (e) {
-            console.warn('Error en segunda vuelta Gemini:', e.message);
+
+            turns++;
+          } else {
+            finalReply = parts.map(p => p.text || '').join('\n');
+            break;
           }
-        } else {
-          finalReply = parts.map(p => p.text || '').join('\n');
         }
 
         return corsResponse({
-          reply: finalReply || 'Entrenamiento procesado correctamente.',
+          reply: finalReply || 'Petición procesada correctamente por el Coach.',
           modified_workouts: modifiedWorkouts,
           tool_executions: toolExecutions,
-          actions: modifiedWorkouts.map(m => `Entreno de ${m.dia} actualizado en la app (${m.steps.length} ejercicios)`)
+          actions: clientActions
         }, 200);
 
       } catch (err) {
@@ -1255,3 +1763,133 @@ function corsResponse(body, status = 200) {
     },
   });
 }
+
+// Helper: fusión inteligente y granular de estados entre clientes (PC/Móvil) y D1
+function mergeAppStates(prev = {}, incoming = {}) {
+  const merged = { ...prev, ...incoming };
+
+  // 1. Fusión granular de días
+  merged.days = { ...(prev.days || {}) };
+  if (incoming.days && typeof incoming.days === 'object') {
+    for (const [dayKey, inDay] of Object.entries(incoming.days)) {
+      if (!merged.days[dayKey]) {
+        merged.days[dayKey] = { ...inDay };
+      } else {
+        merged.days[dayKey] = {
+          ...merged.days[dayKey],
+          ...inDay
+        };
+        // Preservar actividad Strava si el estado entrante no la traía pero el previo sí
+        if (!inDay.stravaActivity && merged.days[dayKey].stravaActivity) {
+          merged.days[dayKey].stravaActivity = merged.days[dayKey].stravaActivity;
+        }
+      }
+    }
+  }
+
+  // 2. Fusión de lista de la compra de Mercadona
+  if (incoming.mercadonaList && typeof incoming.mercadonaList === 'object') {
+    merged.mercadonaList = { ...(prev.mercadonaList || {}) };
+    for (const [catKey, inCat] of Object.entries(incoming.mercadonaList)) {
+      if (!merged.mercadonaList[catKey]) {
+        merged.mercadonaList[catKey] = inCat;
+      } else if (Array.isArray(inCat.items)) {
+        const prevItems = prev.mercadonaList?.[catKey]?.items || [];
+        const inItems = inCat.items || [];
+        const itemMap = new Map();
+        for (const it of prevItems) {
+          if (it && it.name) itemMap.set(it.name.trim().toLowerCase(), { ...it });
+        }
+        for (const it of inItems) {
+          if (it && it.name) {
+            const key = it.name.trim().toLowerCase();
+            const existing = itemMap.get(key);
+            itemMap.set(key, { ...(existing || {}), ...it });
+          }
+        }
+        merged.mercadonaList[catKey] = {
+          ...inCat,
+          items: Array.from(itemMap.values())
+        };
+      }
+    }
+  }
+
+  // 3. Fusión de historial semanal (único por timestamp o fecha)
+  if (Array.isArray(incoming.history) || Array.isArray(prev.history)) {
+    const histMap = new Map();
+    for (const h of (prev.history || [])) {
+      if (h) histMap.set(String(h.timestamp || h.date), h);
+    }
+    for (const h of (incoming.history || [])) {
+      if (h) histMap.set(String(h.timestamp || h.date), h);
+    }
+    merged.history = Array.from(histMap.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  }
+
+  // 4. Timestamp consolidado
+  merged.lastUpdated = Math.max(prev.lastUpdated || 0, incoming.lastUpdated || 0, Date.now());
+
+  return merged;
+}
+
+// Helper: llamada unificada y resiliente a la API de Gemini con fallback de modelos
+async function callGeminiApi(prompt, systemInstruction = '', jsonMimeType = true, env) {
+  const geminiApiKey = env.GEMINI_API_KEY;
+  if (!geminiApiKey) {
+    throw new Error('GEMINI_API_KEY no configurada en las variables o secretos de Cloudflare');
+  }
+
+  const payload = {
+    contents: [{
+      parts: [{
+        text: systemInstruction ? `${systemInstruction}\n\n${prompt}` : prompt
+      }]
+    }]
+  };
+
+  if (jsonMimeType) {
+    payload.generationConfig = { response_mime_type: 'application/json' };
+  }
+
+  const candidateModels = [
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-flash-latest'
+  ];
+
+  let lastErrorText = '';
+  for (const model of candidateModels) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          if (jsonMimeType) {
+            try {
+              return JSON.parse(rawText);
+            } catch (_) {
+              return { raw_text: rawText };
+            }
+          }
+          return rawText;
+        }
+      } else {
+        lastErrorText = await res.text();
+        console.warn(`Fallback modelo Gemini ${model} falló:`, res.status, lastErrorText);
+      }
+    } catch (err) {
+      lastErrorText = err.message;
+    }
+  }
+
+  throw new Error(`Error en llamada a Gemini API: ${lastErrorText}`);
+}
+

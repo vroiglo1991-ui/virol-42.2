@@ -125,3 +125,38 @@ function saveState(state, triggerCloud = true) {
     console.error('Error saving local state:', e);
   }
 }
+
+function getMondayDateStr(date = new Date()) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(d.setDate(diff));
+  return monday.toISOString().split('T')[0];
+}
+
+function checkWeekRollover() {
+  if (typeof appState === 'undefined') return;
+  const currentMonday = getMondayDateStr();
+  if (appState.currentWeekStart && appState.currentWeekStart !== currentMonday) {
+    console.log(`📅 [SEMANA NUEVA]: Rollover detectado (${appState.currentWeekStart} -> ${currentMonday})`);
+    let hadActivity = false;
+    if (appState.days) {
+      for (const d of Object.values(appState.days)) {
+        if (d && (d.workoutCompleted || d.supp_creatina || d.supp_omega3 || d.stravaActivity)) {
+          hadActivity = true;
+          break;
+        }
+      }
+    }
+    if (hadActivity && typeof archiveCurrentWeek === 'function') {
+      archiveCurrentWeek(true);
+    } else {
+      appState.days = {};
+    }
+    appState.currentWeekStart = currentMonday;
+    saveState(appState);
+  } else if (!appState.currentWeekStart) {
+    appState.currentWeekStart = currentMonday;
+    saveState(appState, false);
+  }
+}

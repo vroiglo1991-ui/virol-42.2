@@ -234,6 +234,28 @@ function dispatchChatActions(actions) {
         executedNotes.push(newVal ? `${labelMap[itemKey] || itemKey} marcado` : `${itemKey} desmarcado`);
       }
     }
+
+    // 9. LOG_DAILY_METRIC — registra horas de sueño, RPE o peso corporal
+    else if (act.type === 'LOG_DAILY_METRIC') {
+      if (typeof appState !== 'undefined' && typeof getTodayKey === 'function') {
+        const todayKey = getTodayKey(selectedDayIndex);
+        if (!appState.days[todayKey]) appState.days[todayKey] = {};
+        if (act.sleepHours !== undefined && act.sleepHours !== null) {
+          appState.days[todayKey].sleepHours = Number(act.sleepHours);
+          executedNotes.push(`Sueño: ${act.sleepHours}h`);
+        }
+        if (act.rpe !== undefined && act.rpe !== null) {
+          appState.days[todayKey].rpe = Number(act.rpe);
+          executedNotes.push(`RPE: ${act.rpe}/10`);
+        }
+        if (act.weight !== undefined && act.weight !== null) {
+          if (!appState.profile) appState.profile = {};
+          appState.profile.weight = Number(act.weight);
+          executedNotes.push(`Peso: ${act.weight} kg`);
+        }
+        if (typeof updateProgressHUD === 'function') updateProgressHUD(selectedDayIndex);
+      }
+    }
   }
 
   if (executedNotes.length > 0) {
@@ -441,8 +463,10 @@ function initChatbot() {
 
       const activeWorkouts = (typeof getWorkouts === 'function') ? getWorkouts() : (typeof DEFAULT_WORKOUTS !== 'undefined' ? DEFAULT_WORKOUTS : {});
       const localClaudeKey = localStorage.getItem('virol_claude_key') || localStorage.getItem('virol_anthropic_key') || '';
+      const localGeminiKey = localStorage.getItem('virol_gemini_key') || localStorage.getItem('gemini_api_key') || '';
 
-      const res = await fetch('/api/ai/chat', {
+      const chatUrl = (typeof apiUrl === 'function') ? apiUrl('/api/ai/chat') : '/api/ai/chat';
+      const res = await fetch(chatUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -451,7 +475,8 @@ function initChatbot() {
           history: historyPayload,
           workouts: activeWorkouts,
           selectedDayIndex: selectedDayIndex,
-          anthropicApiKey: localClaudeKey
+          anthropicApiKey: localClaudeKey,
+          geminiApiKey: localGeminiKey
         })
       });
 
@@ -467,6 +492,7 @@ function initChatbot() {
       }
       
       let executed = [];
+      let lastModifiedDay = null;
 
       // 1. Aplicar modificaciones reales de entrenamiento (Tool Use: modificar_entrenamiento)
       if (Array.isArray(data.modified_workouts) && data.modified_workouts.length > 0) {
@@ -486,12 +512,17 @@ function initChatbot() {
             }
             const dayLabel = appState.customWorkouts[mod.dia_indice].name || `DÍA ${mod.dia_indice}`;
             executed.push(`Entreno de ${dayLabel} modificado (${mod.steps.length} ejercicios)`);
+            lastModifiedDay = mod.dia_indice;
           }
         }
 
         // Persistir en datos reales de la app y actualizar interfaz
         if (typeof saveState === 'function') saveState(appState, true);
-        if (typeof renderMission === 'function') renderMission(selectedDayIndex);
+        if (lastModifiedDay !== null && typeof selectDay === 'function') {
+          selectDay(lastModifiedDay);
+        } else {
+          if (typeof renderMission === 'function') renderMission(selectedDayIndex);
+        }
         if (typeof renderScheduleCards === 'function') renderScheduleCards();
         if (typeof playSuccessSound === 'function') playSuccessSound();
         if (typeof showToast === 'function') showToast(`🏋️ PLAN ACTUALIZADO: ${executed.join(' • ')}`);
@@ -522,7 +553,23 @@ function initChatbot() {
       }
     } catch (err) {
       document.getElementById(loadingId)?.remove();
-      addMessage(`❌ Error de conexión con el Coach: ${err.message}. Inténtalo de nuevo.`, 'ai');
+
+      // Fallback Offline: ejecutar órdenes sencillas directamente en la app
+      const offlineExecuted = tryExecuteOfflineCommand(text);
+      if (offlineExecuted.length > 0) {
+        const offlineReply = `⚡ [MODO OFFLINE]: No hay conexión con el servidor IA, pero he ejecutado tu orden directamente en el sistema:\n- ${offlineExecuted.join('\n- ')}`;
+        currentHistory.push({
+          role: 'model',
+          content: offlineReply,
+          actions: offlineExecuted,
+          timestamp: Date.now()
+        });
+        saveChatHistoryToStorage(dayKey, currentHistory);
+        addMessage(offlineReply, 'ai', offlineExecuted);
+        if (typeof playCheckSound === 'function') playCheckSound();
+      } else {
+        addMessage(`❌ Error de conexión con el Coach: ${err.message}. Inténtalo de nuevo.`, 'ai');
+      }
     } finally {
       isChatSending = false;
       btnSend.disabled = false;
@@ -535,4 +582,68 @@ function initChatbot() {
   input.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendMessage();
   });
+}
+
+function tryExecuteOfflineCommand(rawText) {
+  const executed = [];
+  const text = (rawText || '').trim().toLowerCase();
+  if (!text) return executed;
+
+  // 1. Mercadona: añadir
+  const addMercMatch = text.match(/(?:añad(?:e|ir|ar)?|apunt(?:a|ar)?|comprar)\s+(.+?)(?:\s+(?:a|en)\s+mercadona)?$/i);
+  if (addMercMatch && (text.includes('mercadona') || text.includes('compra') || text.startsWith('comprar'))) {
+    let item = addMercMatch[1].replace(/(?:a|en)\s+mercadona/i, '').trim();
+    if (item) {
+      const actions = [{ type: 'ADD_MERCADONA_ITEM', name: item, weight: '1 ud', category: 'fresh' }];
+      const res = dispatchChatActions(actions);
+      executed.push(...res);
+    }
+  }
+
+  // 2. Mercadona: eliminar
+  const delMercMatch = text.match(/(?:quit(?:a|ar)?|elimin(?:a|ar)?|borr(?:a|ar)?)\s+(.+?)(?:\s+de\s+mercadona)?$/i);
+  if (delMercMatch && text.includes('mercadona')) {
+    let item = delMercMatch[1].replace(/de\s+mercadona/i, '').trim();
+    if (item) {
+      const actions = [{ type: 'REMOVE_MERCADONA_ITEM', name: item }];
+      const res = dispatchChatActions(actions);
+      executed.push(...res);
+    }
+  }
+
+  // 3. Checklist: suplementos, comidas, entreno
+  const checkTerms = [
+    { regex: /creatina/i, key: 'supp_creatina' },
+    { regex: /omega\s*3/i, key: 'supp_omega3' },
+    { regex: /whey|prote[íi]na/i, key: 'supp_whey' },
+    { regex: /magnesio/i, key: 'supp_magnesio' },
+    { regex: /desayuno/i, key: 'meal_desayuno' },
+    { regex: /snack|media\s*mañana/i, key: 'meal_snack' },
+    { regex: /comida|almuerzo/i, key: 'meal_comida' },
+    { regex: /merienda/i, key: 'meal_merienda' },
+    { regex: /cena/i, key: 'meal_cena' },
+    { regex: /entreno|entrenamiento|corr[ií]|sesi[oó]n/i, key: 'workoutCompleted' }
+  ];
+
+  if (text.includes('marca') || text.includes('tom') || text.includes('hecho') || text.includes('complet')) {
+    for (const term of checkTerms) {
+      if (term.regex.test(text)) {
+        const res = dispatchChatActions([{ type: 'CHECK_ITEM', key: term.key }]);
+        executed.push(...res);
+      }
+    }
+  }
+
+  // 4. Sueño o RPE
+  const sleepMatch = text.match(/(?:dorm[íi]|sueño|dormido)\s+(\d+(?:[.,]\d+)?)\s*h/i);
+  const rpeMatch = text.match(/rpe\s+(\d+)/i);
+  if (sleepMatch || rpeMatch) {
+    const act = { type: 'LOG_DAILY_METRIC' };
+    if (sleepMatch) act.sleepHours = parseFloat(sleepMatch[1].replace(',', '.'));
+    if (rpeMatch) act.rpe = parseInt(rpeMatch[1], 10);
+    const res = dispatchChatActions([act]);
+    executed.push(...res);
+  }
+
+  return executed;
 }

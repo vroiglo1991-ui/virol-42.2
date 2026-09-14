@@ -158,8 +158,8 @@ function checkAlarms(catchUpMode = false) {
     const [alH, alM] = item.time.split(':').map(Number);
     const alarmTotalMin = alH * 60 + alM;
     const nowTotalMin = now.getHours() * 60 + now.getMinutes();
-    const diffMin = nowTotalMin - alarmTotalMin;
-    const inWindow = diffMin >= 0 && diffMin <= (catchUpMode ? 5 : 0);
+    // Ventana de tolerancia de hasta 3 min (o 10 min en catchUp) para no perder alarmas por estrangulamiento de timers en móviles
+    const inWindow = diffMin >= 0 && diffMin <= (catchUpMode ? 10 : 3);
 
     if (inWindow) {
       const todayStr = now.toDateString();

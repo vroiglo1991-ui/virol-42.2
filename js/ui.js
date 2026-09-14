@@ -847,7 +847,7 @@ function deleteHistoryWeek(index) {
 }
 window.deleteHistoryWeek = deleteHistoryWeek;
 
-function archiveCurrentWeek() {
+function archiveCurrentWeek(isSilent = false) {
   let totalKm = 0;
   let sessionsDone = 0;
   let sleepSum = 0;
@@ -888,9 +888,51 @@ function archiveCurrentWeek() {
 
   const dateStr = new Date().toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  if (!confirm(`¿Archivar la semana con ${totalKm.toFixed(1)} km completados (RPE medio: ${avgRPE}, Sueño medio: ${avgSleep}h, VDOT: ${currentVDOT}) y reiniciar checks para una nueva semana?`)) {
-    return;
+  if (!isSilent) {
+    if (!confirm(`¿Archivar la semana con ${totalKm.toFixed(1)} km completados (RPE medio: ${avgRPE}, Sueño medio: ${avgSleep}h, VDOT: ${currentVDOT}) y reiniciar checks para una nueva semana?`)) {
+      return;
+    }
   }
+
+  // Extraer sesiones y suplementos para archivo relacional en SQLite D1
+  const sessionList = [];
+  const supplementList = [];
+  const todayDateObj = new Date();
+
+  [1, 2, 3, 4, 5, 6, 0].forEach((d, idx) => {
+    const key = getTodayKey(d);
+    const dayData = appState.days[key] || {};
+    const plan = (typeof WORKOUT_PLANS !== 'undefined' && WORKOUT_PLANS[d]) || {};
+    const logDate = new Date(todayDateObj.getTime() - (6 - idx) * 86400000).toISOString().split('T')[0];
+
+    sessionList.push({
+      day_of_week: d,
+      log_date: logDate,
+      completed: !!dayData.workoutCompleted,
+      strava_activity_id: dayData.stravaActivity?.id || null,
+      distance_km: parseFloat(dayData.stravaActivity?.distanceKm || (dayData.workoutCompleted ? plan.km : 0) || 0),
+      duration_sec: dayData.stravaActivity?.durationMinutes ? (dayData.stravaActivity.durationMinutes * 60) : 0,
+      perceived_effort: dayData.rpe ? parseFloat(dayData.rpe) : null,
+      sleep_hours: dayData.sleepHours ? parseFloat(dayData.sleepHours) : null,
+      notes: plan.title || null
+    });
+
+    const suppKeys = [
+      { key: 'supp_creatina', id: 'sup_creatina' },
+      { key: 'supp_omega3', id: 'sup_omega3' },
+      { key: 'supp_whey', id: 'sup_whey' },
+      { key: 'supp_magnesio', id: 'sup_magnesio' }
+    ];
+    suppKeys.forEach(sk => {
+      if (dayData[sk.key]) {
+        supplementList.push({
+          supplement_id: sk.id,
+          log_date: logDate,
+          taken: 1
+        });
+      }
+    });
+  });
 
   if (!appState.history) appState.history = [];
   appState.history.unshift({
@@ -903,14 +945,53 @@ function archiveCurrentWeek() {
     vdot: currentVDOT
   });
 
-  // Reset current week days
+  // Enviar archivo relacional a D1 en segundo plano
+  try {
+    const archiveUrl = (typeof apiUrl === 'function') ? apiUrl('/api/archive-week') : '/api/archive-week';
+    const weekStartStr = sessionList[0]?.log_date || new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+    const weekEndStr = sessionList[sessionList.length - 1]?.log_date || new Date().toISOString().split('T')[0];
+
+    fetch(archiveUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        week_start: weekStartStr,
+        week_end: weekEndStr,
+        total_km: parseFloat(totalKm.toFixed(1)),
+        sessions_completed: sessionsDone,
+        sessions_total: 7,
+        avg_sleep_hours: avgSleep,
+        summary_json: {
+          avgRPE,
+          vdot: currentVDOT,
+          archived_from: window.location.hostname
+        },
+        sessions: sessionList,
+        supplements: supplementList
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      console.log('✅ [D1 RELATIONAL] Semana archivada con éxito en weekly_archives, session_logs y supplement_logs:', data);
+    })
+    .catch(err => {
+      console.warn('Nota: guardado relacional en D1:', err.message);
+    });
+  } catch (e) {
+    console.warn('Excepción al archivar en D1:', e);
+  }
+
+  // Reset current week days y sincronizar inicio de semana
   appState.days = {};
+  if (typeof getMondayDateStr === 'function') {
+    appState.currentWeekStart = getMondayDateStr();
+  }
   saveState(appState);
 
   playSuccessSound();
   renderMission(selectedDayIndex);
   renderHistory();
-  showToast(`📁 ¡SEMANA ARCHIVADA (${totalKm.toFixed(1)} KM • RPE ${avgRPE} • VDOT ${currentVDOT})!`);
+  showToast(isSilent ? `📅 ¡NUEVA SEMANA INICIADA! Semana previa archivada (${totalKm.toFixed(1)} km)` : `📁 ¡SEMANA ARCHIVADA (${totalKm.toFixed(1)} KM • RPE ${avgRPE} • VDOT ${currentVDOT})!`);
 }
 
 // ALARMS UI & NOTIFICATION PERMISSIONS

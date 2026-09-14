@@ -262,6 +262,22 @@ const DEFAULT_PROFILE = {
   goal: 'VALENCIA 42K PRO'
 };
 
+// 5. CONFIGURACIÓN DE RED Y BASE URL DE LA API
+const CLOUD_WORKER_ORIGIN = 'https://virol.v-roiglo1991.workers.dev';
+
+const API_BASE_URL = (typeof window !== 'undefined' && (
+  window.location.hostname.includes('github.io') ||
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.protocol === 'file:'
+)) ? CLOUD_WORKER_ORIGIN : '';
+
+function apiUrl(path) {
+  if (!path) return API_BASE_URL;
+  const cleanPath = path.startsWith('/') ? path : '/' + path;
+  return `${API_BASE_URL}${cleanPath}`;
+}
+
 const STORAGE_KEY = 'valencia_42k_victor_prod_v1';
-const CLOUD_SYNC_URL = '/api/sync';
+const CLOUD_SYNC_URL = apiUrl('/api/sync');
 const DEFAULT_STRAVA_TOKEN = '';

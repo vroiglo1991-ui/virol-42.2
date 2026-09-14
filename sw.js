@@ -1,4 +1,4 @@
-const CACHE_NAME = 'virol-42k-v28';
+const CACHE_NAME = 'virol-42k-v33';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -39,8 +39,8 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Do not intercept or cache /api/ endpoints, cloud sync, or external services
-  if (event.request.url.includes('/api/') || event.request.url.includes('extendsclass.com') || event.request.url.includes('strava.com')) {
+  // Do not intercept or cache /api/ endpoints, cloud sync, or external APIs
+  if (event.request.url.includes('/api/') || event.request.url.includes('strava.com') || event.request.url.includes('generativelanguage.googleapis.com')) {
     return;
   }
 

@@ -289,7 +289,8 @@ async function autoRefreshStravaTokenIfNeeded() {
 
   console.log('🔄 [STRAVA] Access token caducado o próximo a expirar. Solicitando refresco automático...');
   try {
-    const res = await fetch('/api/strava/refresh', {
+    const refreshUrl = (typeof apiUrl === 'function') ? apiUrl('/api/strava/refresh') : '/api/strava/refresh';
+    const res = await fetch(refreshUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -354,7 +355,7 @@ async function fetchStravaActivities(triggerBtn) {
 
   try {
     // 1. Intentar primero a través del proxy seguro de Cloudflare Worker
-    let endpointUrl = '/api/entrenamientos';
+    let endpointUrl = (typeof apiUrl === 'function') ? apiUrl('/api/entrenamientos') : '/api/entrenamientos';
     let res = await fetch(endpointUrl, {
       headers: {
         'Authorization': `Bearer ${currentToken}`,
@@ -554,7 +555,8 @@ async function uploadWorkoutToStrava(dayIndex = selectedDayIndex) {
   showToast('📤 Subiendo entrenamiento a tu Strava...');
 
   try {
-    const res = await fetch('/api/strava/activity', {
+    const activityUrl = (typeof apiUrl === 'function') ? apiUrl('/api/strava/activity') : '/api/strava/activity';
+    const res = await fetch(activityUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -633,6 +635,13 @@ function initStravaModule() {
     });
   }
 
+  // Dinamizar enlace de autorización Strava con el origen actual en el parámetro state
+  const linkAuth = document.getElementById('link-strava-oauth-auth');
+  if (linkAuth) {
+    const currentLoc = encodeURIComponent(window.location.href);
+    linkAuth.href = `https://www.strava.com/oauth/authorize?client_id=243799&response_type=code&redirect_uri=https://virol.v-roiglo1991.workers.dev/api/strava/callback&approval_prompt=force&scope=read,activity:read_all,activity:write&state=${currentLoc}`;
+  }
+
   // Interceptar retorno de OAuth con tokens desde el Worker (?strava_connected=1&access_token=...&refresh_token=...&expires_at=...)
   try {
     const urlParams = new URLSearchParams(window.location.search);
@@ -689,7 +698,8 @@ function initStravaModule() {
       console.group('🚴 [STRAVA OAUTH] Código recibido en frontend. Iniciando canje...');
       console.log('📡 Código OAuth:', incomingCode);
       
-      fetch('/api/strava/exchange', {
+      const exchangeUrl = (typeof apiUrl === 'function') ? apiUrl('/api/strava/exchange') : '/api/strava/exchange';
+      fetch(exchangeUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: incomingCode })

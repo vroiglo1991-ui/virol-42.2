@@ -159,9 +159,34 @@ async function runAINutritionEngine() {
 
   let generated = null;
 
-  if (geminiKey) {
+  // 1. Intentar primero a través del proxy seguro de Cloudflare Worker (clave del servidor)
+  try {
+    if (typeof showToast === 'function') showToast('☁️ Invocando Gemini AI a través del Worker...');
+    const menuApiUrl = (typeof apiUrl === 'function') ? apiUrl('/api/ai/nutrition-menu') : '/api/ai/nutrition-menu';
+    const workerRes = await fetch(menuApiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ingredients,
+        targetKcal,
+        targetProtein
+      })
+    });
+
+    if (workerRes.ok) {
+      const data = await workerRes.json();
+      if (data && data.menu) {
+        generated = data.menu;
+      }
+    }
+  } catch (workerErr) {
+    console.warn('Worker nutrition proxy error, intentando respaldo:', workerErr);
+  }
+
+  // 2. Respaldo directo si el worker falla y hay clave local en el navegador
+  if (!generated && geminiKey) {
     try {
-      if (typeof showToast === 'function') showToast('☁️ Invocando Gemini AI para recetas gourmet...');
+      if (typeof showToast === 'function') showToast('☁️ Invocando Gemini AI con clave local...');
       const prompt = `Eres un nutricionista deportivo de élite para un maratoniano de 73 kg preparando la Maratón de Valencia.
 Objetivo: Generar un menú diario con 5 comidas (desayuno, snack, comida, merienda, cena) alcanzando exactamente ~${targetKcal} kcal y ~${targetPro}g de proteína.
 CRUCIAL: Debes utilizar ÚNICAMENTE o prioritariamente los siguientes ingredientes de su compra:
@@ -207,7 +232,7 @@ Devuelve estrictamente un JSON válido con este formato:
     }
   }
 
-  // If no Gemini key or Gemini fallback, use local zero-waste algorithmic engine
+  // 3. Si no hay red ni clave, motor algorítmico local zero-waste garantizado
   if (!generated) {
     generated = generateLocalAIMenu(ingredients, targetKcal, targetPro);
   }
@@ -388,8 +413,26 @@ function initAINutritionModule() {
       if (btnAddRecs) btnAddRecs.style.display = 'none';
       pendingRecsItems = [];
 
-      if (key) {
-        // Recomendaciones con Gemini
+      let recsData = null;
+
+      // 1. Intentar a través del proxy seguro del Cloudflare Worker
+      try {
+        const recsApiUrl = (typeof apiUrl === 'function') ? apiUrl('/api/ai/shopping-recs') : '/api/ai/shopping-recs';
+        const wRes = await fetch(recsApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ingredients })
+        });
+
+        if (wRes.ok) {
+          recsData = await wRes.json();
+        }
+      } catch (wErr) {
+        console.warn('Worker shopping recs proxy notice:', wErr);
+      }
+
+      // 2. Respaldo directo si el worker falla y hay clave local
+      if (!recsData && key) {
         try {
           const prompt = `Eres un nutricionista deportivo experto en running y maratón.
 Un corredor de 73 kg prepara la Maratón de Valencia y actualmente tiene estos ingredientes en casa:
@@ -400,8 +443,7 @@ IMPORTANTE: Solo recomienda productos que se vendan habitualmente en Mercadona o
 Sé conciso y práctico. Devuelve un JSON con este formato:
 {
   "recommendations": [
-    {"product": "nombre del producto", "reason": "por qué lo necesita (máx 1 frase)", "category": "Proteína|Carbohidrato|Grasa|Hidratación|Micronutriente|Suplemento"},
-    ...
+    {"product": "nombre del producto", "reason": "por qué lo necesita (máx 1 frase)", "category": "Proteína|Carbohidrato|Grasa|Hidratación|Micronutriente|Suplemento"}
   ],
   "summary": "Breve resumen de las carencias principales (1-2 frases)"
 }`;
@@ -415,51 +457,37 @@ Sé conciso y práctico. Devuelve un JSON con este formato:
             })
           });
 
-          if (!res.ok) {
-            res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: 'application/json' }
-              })
-            });
-          }
-
           if (res.ok) {
             const data = await res.json();
             const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (rawJson) {
-              const parsed = JSON.parse(rawJson);
-              const recs = parsed.recommendations || [];
-              pendingRecsItems = recs.map(r => r.product);
+            if (rawJson) recsData = JSON.parse(rawJson);
+          }
+        } catch (_) {}
+      }
 
-              const categoryColors = {
-                'Proteína': '#FF5A00', 'Carbohidrato': '#C8FF00', 'Grasa': '#FFD60A',
-                'Hidratación': '#5AC8FA', 'Micronutriente': '#BF5AF2', 'Suplemento': '#FF375F'
-              };
+      // 3. Renderizar resultados de la IA o fallback algorítmico local
+      if (recsData && Array.isArray(recsData.recommendations) && recsData.recommendations.length > 0) {
+        const recs = recsData.recommendations;
+        pendingRecsItems = recs.map(r => r.product);
 
-              recsContent.innerHTML = `
-                ${parsed.summary ? `<p style="margin:0 0 10px; font-style:italic; color:var(--text-muted);">${parsed.summary}</p>` : ''}
-                <div style="display:flex; flex-direction:column; gap:6px;">
-                  ${recs.map(r => `
-                    <div style="display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-                      <span style="background:${categoryColors[r.category] || '#888'}22; color:${categoryColors[r.category] || '#888'}; font-size:0.6rem; font-weight:700; padding:2px 6px; border-radius:20px; white-space:nowrap; margin-top:2px;">${r.category}</span>
-                      <div><strong style="color:#fff;">${r.product}</strong><br><span style="color:var(--text-muted);">${r.reason}</span></div>
-                    </div>
-                  `).join('')}
-                </div>
-              `;
-              if (btnAddRecs && pendingRecsItems.length > 0) btnAddRecs.style.display = 'block';
-            }
-          } else throw new Error('Gemini no disponible');
+        const categoryColors = {
+          'Proteína': '#FF5A00', 'Carbohidrato': '#C8FF00', 'Grasa': '#FFD60A',
+          'Hidratación': '#5AC8FA', 'Micronutriente': '#BF5AF2', 'Suplemento': '#FF375F'
+        };
 
-        } catch (e) {
-          // Fallback local
-          renderLocalShoppingRecs(ingredients, recsContent, btnAddRecs);
-        }
+        recsContent.innerHTML = `
+          ${recsData.summary ? `<p style="margin:0 0 10px; font-style:italic; color:var(--text-muted);">${recsData.summary}</p>` : ''}
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            ${recs.map(r => `
+              <div style="display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                <span style="background:${categoryColors[r.category] || '#888'}22; color:${categoryColors[r.category] || '#888'}; font-size:0.6rem; font-weight:700; padding:2px 6px; border-radius:20px; white-space:nowrap; margin-top:2px;">${r.category}</span>
+                <div><strong style="color:#fff;">${r.product}</strong><br><span style="color:var(--text-muted);">${r.reason}</span></div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        if (btnAddRecs && pendingRecsItems.length > 0) btnAddRecs.style.display = 'block';
       } else {
-        // Sin clave: recomendaciones locales inteligentes
         renderLocalShoppingRecs(ingredients, recsContent, btnAddRecs);
       }
     });
@@ -600,9 +628,7 @@ function initAIWeeklyReviewModule() {
 
     // 1. Llamada a endpoint Cloudflare Worker
     try {
-      const workerUrl = window.location.origin.includes('workers.dev')
-        ? '/api/ai/weekly-review'
-        : 'https://virol.v-roiglo1991.workers.dev/api/ai/weekly-review';
+      const workerUrl = (typeof apiUrl === 'function') ? apiUrl('/api/ai/weekly-review') : '/api/ai/weekly-review';
 
       const res = await fetch(workerUrl, {
         method: 'POST',

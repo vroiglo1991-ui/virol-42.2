@@ -5,6 +5,11 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // 0. Auto-check rollover semanal
+  if (typeof checkWeekRollover === 'function') {
+    checkWeekRollover();
+  }
+
   // 1. Render profile HUD
   renderProfileHUD();
 
@@ -170,10 +175,26 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!name || !name.trim()) return;
       const weight = prompt('Cantidad o peso (ej: 1 kg, 6 latas, 2 uds, 500g):', '1 ud') || '';
       const mList = getMercadonaList();
-      mList.fresh.items.push({ name: name.trim(), weight: weight.trim(), checked: false });
+
+      // Categorización inteligente por palabras clave
+      const nLow = name.toLowerCase();
+      let targetCat = 'fresh';
+      if (nLow.includes('creatina') || nLow.includes('proteina') || nLow.includes('whey') || nLow.includes('magnesio') || nLow.includes('omega') || nLow.includes('suplemento')) {
+        targetCat = 'supplements';
+      } else if (nLow.includes('avena') || nLow.includes('arroz') || nLow.includes('pasta') || nLow.includes('pan') || nLow.includes('aceite') || nLow.includes('atun') || nLow.includes('legumbre') || nLow.includes('garbanzo') || nLow.includes('lenteja')) {
+        targetCat = 'pantry';
+      } else if (nLow.includes('fruto') || nLow.includes('nuez') || nLow.includes('almendra') || nLow.includes('tortita') || nLow.includes('chocolate') || nLow.includes('snack') || nLow.includes('barrita')) {
+        targetCat = 'snacks';
+      }
+
+      if (!mList[targetCat]) targetCat = Object.keys(mList)[0] || 'fresh';
+      if (!Array.isArray(mList[targetCat].items)) mList[targetCat].items = [];
+
+      mList[targetCat].items.push({ name: name.trim(), weight: weight.trim(), checked: false });
       saveState(appState);
       renderMercadonaList();
-      showToast(`🛒 AÑADIDO: ${name.trim()}`);
+      playCheckSound();
+      showToast(`🛒 AÑADIDO: ${name.trim()} (${mList[targetCat].title.split(' ')[0]})`);
     });
   }
 
