@@ -1032,14 +1032,27 @@ function updatePushPermissionUI() {
   }
 
   if (Notification.permission === 'granted') {
-    badge.innerText = 'PERMISOS: CONCEDIDOS ✔ (AVISOS ACTIVOS)';
+    badge.innerText = 'PUSH NATIVO ACTIVADO ✔ (AVISOS CON MÓVIL BLOQUEADO)';
     badge.style.color = 'var(--c-volt)';
-    if (txt) txt.innerText = 'NOTIFICACIONES ACTIVAS';
+    if (txt) txt.innerText = 'PUSH REAL ACTIVADO';
     if (ico) ico.innerText = '✅';
     if (btn) {
       btn.style.background = 'var(--bg-card)';
       btn.style.color = 'var(--text-main)';
       btn.style.borderColor = 'var(--c-volt)';
+    }
+
+    // Comprobar suscripción activa en segundo plano
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+        if (reg.pushManager) {
+          reg.pushManager.getSubscription().then(sub => {
+            if (sub && badge) {
+              badge.innerText = 'PUSH NATIVO ACTIVO ✔ (CONECTADO A SERVIDOR)';
+            }
+          });
+        }
+      }).catch(() => {});
     }
   } else if (Notification.permission === 'denied') {
     badge.innerText = 'PERMISOS: BLOQUEADOS (HABILÍTALOS EN AJUSTES iOS/ANDROID)';
@@ -1049,7 +1062,7 @@ function updatePushPermissionUI() {
   } else {
     badge.innerText = 'PERMISOS: PENDIENTES DE ACTIVAR';
     badge.style.color = 'var(--c-orange)';
-    if (txt) txt.innerText = 'ACTIVAR NOTIFICACIONES MÓVIL';
+    if (txt) txt.innerText = 'ACTIVAR PUSH REAL EN SEGUNDO PLANO';
     if (ico) ico.innerText = '🔔';
   }
 }
@@ -1066,8 +1079,17 @@ async function requestNotificationPermission() {
 
     if (perm === 'granted') {
       playSuccessSound();
-      showToast('🔔 ¡NOTIFICACIONES ACTIVADAS PARA VALENCIA 42K!');
-      triggerSystemNotification('⚡ VIROL 42K PRO', '¡Notificaciones del sistema y sonido táctil activos en tu móvil!');
+      showToast('🔔 Permiso concedido. Registrando en servidor Push...');
+
+      if (typeof subscribeToRealPushNotifications === 'function') {
+        const sub = await subscribeToRealPushNotifications();
+        if (sub) {
+          showToast('⚡ ¡PUSH REAL ACTIVADO! Recibirás alertas con la pantalla apagada.');
+          updatePushPermissionUI();
+          return;
+        }
+      }
+      triggerSystemNotification('⚡ VIROL 42K PRO', '¡Notificaciones activas en tu dispositivo!');
     } else if (perm === 'denied') {
       showToast('⚠️ Permiso denegado. Puedes cambiarlo en los Ajustes de tu móvil.');
     }
@@ -1133,6 +1155,28 @@ function initAlarmsModule() {
         '🚀 TEST DE NOTIFICACIÓN IPHONE // VIROL 42K',
         '¡Notificación nativa y sonido táctil confirmados en tu dispositivo!'
       );
+    });
+  }
+
+  const btnTestServer = document.getElementById('btn-test-push-server');
+  if (btnTestServer) {
+    btnTestServer.addEventListener('click', async () => {
+      if (Notification.permission !== 'granted') {
+        await requestNotificationPermission();
+      }
+      btnTestServer.disabled = true;
+      const originalText = btnTestServer.innerHTML;
+      btnTestServer.innerHTML = '<span>⏳ ¡BLOQUEA TU MÓVIL YA! (Llega en 5s)...</span>';
+      showToast('🔒 ¡Bloquea la pantalla de tu móvil ahora mismo! En 5s te llegará el Push.');
+
+      if (typeof triggerRealPushTest === 'function') {
+        await triggerRealPushTest(5);
+      }
+
+      setTimeout(() => {
+        btnTestServer.disabled = false;
+        btnTestServer.innerHTML = originalText;
+      }, 7000);
     });
   }
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'virol-42k-v33';
+const CACHE_NAME = 'virol-42k-v34';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const ASSETS_TO_CACHE = [
   './js/state.js',
   './js/sync.js',
   './js/alarms.js',
+  './js/cards.js',
   './js/running.js',
   './js/strava.js',
   './js/ui.js',
@@ -62,41 +63,57 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// PUSH NOTIFICATIONS EVENT LISTENER (iOS 16.4+ standalone PWA & Android)
+// PUSH NOTIFICATIONS EVENT LISTENER (iOS 16.4+ standalone PWA, Android & Desktop)
 self.addEventListener('push', event => {
-  let data = {
-    title: 'VIROL 42K PRO',
-    body: '¡Notificación de entrenamiento!',
-    icon: './img/virol_logo.png',
-    badge: './img/virol_logo.png',
-    tag: 'virol-alert',
-    url: './index.html'
+  const handlePush = async () => {
+    let alertData = {
+      title: 'VIROL // VALENCIA 42K PRO',
+      body: '¡Recordatorio de entrenamiento!',
+      icon: './img/virol_logo.png',
+      badge: './img/virol_logo.png',
+      tag: 'virol-alert',
+      url: './index.html'
+    };
+
+    if (event.data) {
+      try {
+        const parsed = event.data.json();
+        alertData = Object.assign(alertData, parsed);
+      } catch (e) {
+        alertData.body = event.data.text() || alertData.body;
+      }
+    } else {
+      // Si el push llega sin payload, consultar última alerta pendiente al Worker
+      try {
+        const res = await fetch('./api/push/pending', { cache: 'no-store' });
+        if (res.ok) {
+          const pending = await res.json();
+          if (pending && pending.title) {
+            alertData.title = pending.title;
+            alertData.body = pending.body || alertData.body;
+            if (pending.tag) alertData.tag = pending.tag;
+            if (pending.url) alertData.url = pending.url;
+          }
+        }
+      } catch (_) {}
+    }
+
+    const options = {
+      body: alertData.body,
+      icon: alertData.icon || './img/virol_logo.png',
+      badge: alertData.badge || './img/virol_logo.png',
+      vibrate: [250, 100, 250],
+      tag: alertData.tag || 'virol-alert',
+      renotify: true,
+      data: {
+        url: alertData.url || './index.html'
+      }
+    };
+
+    return self.registration.showNotification(alertData.title, options);
   };
 
-  if (event.data) {
-    try {
-      const parsed = event.data.json();
-      data = Object.assign(data, parsed);
-    } catch (e) {
-      data.body = event.data.text();
-    }
-  }
-
-  const options = {
-    body: data.body,
-    icon: data.icon || './img/virol_logo.png',
-    badge: data.badge || './img/virol_logo.png',
-    vibrate: [200, 100, 200],
-    tag: data.tag || 'virol-alert',
-    renotify: true,
-    data: {
-      url: data.url || './index.html'
-    }
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
+  event.waitUntil(handlePush());
 });
 
 // FOCUS OR OPEN APP ON NOTIFICATION CLICK

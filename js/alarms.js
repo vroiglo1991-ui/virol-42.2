@@ -174,3 +174,103 @@ function checkAlarms(catchUpMode = false) {
     }
   });
 }
+
+// ─── WEB PUSH REAL EN SEGUNDO PLANO (ESTILO GMAIL / INFOJOBS) ─────
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function subscribeToRealPushNotifications() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    alert('Tu navegador o dispositivo no soporta Web Push en segundo plano.\nEn iPhone: asegúrate de haber añadido la app a la Pantalla de Inicio (PWA en iOS 16.4+).');
+    return false;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (!reg) {
+      alert('Service Worker no listo aún. Espera un segundo y vuelve a intentarlo.');
+      return false;
+    }
+
+    // 1. Pedir permiso explícito al usuario
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      alert('Debes conceder el permiso de Notificaciones para recibir las alertas en tu móvil.');
+      return false;
+    }
+
+    // 2. Obtener clave pública VAPID del Cloudflare Worker
+    const vapidUrl = (typeof apiUrl === 'function') ? apiUrl('/api/push/vapid-public-key') : '/api/push/vapid-public-key';
+    const keyRes = await fetch(vapidUrl);
+    if (!keyRes.ok) throw new Error('No se pudo obtener la clave VAPID');
+    const { publicKey } = await keyRes.json();
+
+    // 3. Suscribirse a Apple/Google Push Manager
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+
+    // 4. Guardar suscripción en D1
+    const subUrl = (typeof apiUrl === 'function') ? apiUrl('/api/push/subscribe') : '/api/push/subscribe';
+    const postRes = await fetch(subUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: sub,
+        userId: 'u_victor'
+      })
+    });
+
+    if (postRes.ok) {
+      if (typeof showToast === 'function') {
+        showToast('🔔 ¡MÓVIL REGISTRADO PARA PUSH EN SEGUNDO PLANO!');
+      }
+      if (typeof playSuccessSound === 'function') playSuccessSound();
+      return true;
+    } else {
+      throw new Error('Error al registrar dispositivo en el servidor');
+    }
+  } catch (err) {
+    console.error('Error al suscribir a Push:', err);
+    alert('Error activando notificaciones push: ' + err.message);
+    return false;
+  }
+}
+
+async function triggerRealPushTest(delaySeconds = 5) {
+  try {
+    const testUrl = (typeof apiUrl === 'function') ? apiUrl('/api/push/test') : '/api/push/test';
+    const res = await fetch(testUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: '⚡ VIROL // VALENCIA 42K PRO',
+        body: '¡PRUEBA REAL EXITOSA! Notificación recibida con el móvil en segundo plano.',
+        delaySeconds: delaySeconds
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      alert(`⏱️ ¡Alerta programada en ${delaySeconds} segundos!\n\nBLOQUEA LA PANTALLA de tu móvil AHORA MISMO para comprobar que suena y vibra en la pantalla de bloqueo.`);
+    } else {
+      alert(data.message || 'No se pudo enviar la prueba. Asegúrate de haber pulsado antes "Activar Notificaciones Push".');
+    }
+  } catch (err) {
+    alert('Error al probar push: ' + err.message);
+  }
+}
+
+window.subscribeToRealPushNotifications = subscribeToRealPushNotifications;
+window.triggerRealPushTest = triggerRealPushTest;

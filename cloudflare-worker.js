@@ -9,7 +9,7 @@
  */
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     // ─── CORS preflight ───────────────────────────────────────────
@@ -1685,6 +1685,107 @@ REGLAS DE ORO:
       }
     }
 
+    // ─── 4.6. RUTAS DE NOTIFICACIONES PUSH EN SEGUNDO PLANO (W3C Push API + VAPID) ───
+    if (url.pathname === '/api/push/vapid-public-key' && request.method === 'GET') {
+      return corsResponse({ publicKey: VAPID_PUBLIC_KEY }, 200);
+    }
+
+    if (url.pathname === '/api/push/subscribe' && request.method === 'POST') {
+      try {
+        let body = {};
+        try { body = await request.json(); } catch (_) {}
+        const sub = body.subscription || body;
+        if (!sub || !sub.endpoint) {
+          return corsResponse({ error: 'Endpoint de suscripción requerido' }, 400);
+        }
+
+        const endpoint = sub.endpoint;
+        const p256dh = sub.keys?.p256dh || '';
+        const auth = sub.keys?.auth || '';
+        const userId = body.userId || 'u_victor';
+
+        if (env.DB) {
+          await ensurePushTables(env);
+          const subId = `sub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          await env.DB.prepare(`
+            INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, updated_at)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(endpoint) DO UPDATE SET
+              p256dh = excluded.p256dh,
+              auth = excluded.auth,
+              updated_at = datetime('now')
+          `).bind(subId, userId, endpoint, p256dh, auth).run();
+        }
+
+        return corsResponse({ success: true, message: 'Dispositivo registrado para Web Push en segundo plano' }, 200);
+      } catch (err) {
+        return corsResponse({ error: err.message }, 500);
+      }
+    }
+
+    if (url.pathname === '/api/push/test' && request.method === 'POST') {
+      try {
+        let body = {};
+        try { body = await request.json(); } catch (_) {}
+        const delaySeconds = parseInt(body.delaySeconds, 10) || 0;
+        const alertData = {
+          title: body.title || '⚡ VIROL // VALENCIA 42K PRO',
+          body: body.body || '¡Prueba en segundo plano! Tu móvil recibe esto con la pantalla apagada.',
+          tag: 'virol-test-alert',
+          url: './index.html'
+        };
+
+        if (!env.DB) {
+          return corsResponse({ error: 'Base de datos D1 no configurada' }, 500);
+        }
+
+        await ensurePushTables(env);
+        const subs = await env.DB.prepare('SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?').bind('u_victor').all();
+        const results = subs.results || [];
+
+        if (results.length === 0) {
+          return corsResponse({
+            success: false,
+            message: 'No hay dispositivos suscritos. Pulsa primero "Activar Notificaciones Push" en la app desde tu móvil.'
+          }, 200);
+        }
+
+        const dispatchAll = async () => {
+          if (delaySeconds > 0) {
+            await new Promise(r => setTimeout(r, delaySeconds * 1000));
+          }
+          for (const s of results) {
+            await sendWebPushNotification(s, alertData, env);
+          }
+        };
+
+        if (ctx && typeof ctx.waitUntil === 'function') {
+          ctx.waitUntil(dispatchAll());
+        } else {
+          await dispatchAll();
+        }
+
+        return corsResponse({
+          success: true,
+          message: delaySeconds > 0 
+            ? `Notificación programada en ${delaySeconds} segundos. ¡Bloquea la pantalla de tu móvil ahora!`
+            : `Notificación enviada a ${results.length} dispositivo(s).`
+        }, 200);
+      } catch (err) {
+        return corsResponse({ error: err.message }, 500);
+      }
+    }
+
+    if (url.pathname === '/api/push/pending' && request.method === 'GET') {
+      try {
+        if (!env.DB) return corsResponse({ title: 'VIROL 42K PRO', body: '¡Recordatorio de entrenamiento!' }, 200);
+        const row = await env.DB.prepare("SELECT title, body, tag, url FROM pending_push_alerts WHERE id = 'latest_alert'").first().catch(() => null);
+        return corsResponse(row || { title: 'VIROL 42K PRO', body: '¡Recordatorio de entrenamiento!' }, 200);
+      } catch (_) {
+        return corsResponse({ title: 'VIROL 42K PRO', body: '¡Recordatorio de entrenamiento!' }, 200);
+      }
+    }
+
     // ─── 5. Archivos estáticos ────────────────────────────────────
     const response = await env.ASSETS.fetch(request);
     const newHeaders = new Headers(response.headers);
@@ -1701,7 +1802,177 @@ REGLAS DE ORO:
       headers: newHeaders,
     });
   },
+
+  async scheduled(event, env, ctx) {
+    const madridDateStr = new Intl.DateTimeFormat('es-ES', {
+      timeZone: 'Europe/Madrid',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).format(new Date());
+
+    console.log(`⏰ [CRON SCHEDULED] Minuto activo en Madrid: ${madridDateStr}`);
+
+    const alarmsMap = {
+      '09:00': { title: '🏋️‍♂️ ENTRENO DEL DÍA', body: 'Víctor, hora de tu sesión de entrenamiento programada.' },
+      '12:00': { title: '⚡ CREATINA & RECUPERACIÓN', body: 'Víctor: 5g de Creatina en agua y batido de 30g de Proteína Whey.' },
+      '16:00': { title: '💧 CONTROL DE HIDRATACIÓN', body: 'Asegura 2.0 L de agua acumulados antes de la tarde.' },
+      '21:30': { title: '🌙 MAGNESIO & DESCANSO', body: 'Víctor: Toma el magnesio y registra tus sensaciones en la app.' }
+    };
+
+    const currentAlarm = alarmsMap[madridDateStr];
+    if (!currentAlarm || !env.DB) return;
+
+    try {
+      await ensurePushTables(env);
+      const subs = await env.DB.prepare('SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?').bind('u_victor').all();
+      const results = subs.results || [];
+      for (const sub of results) {
+        ctx.waitUntil(sendWebPushNotification(sub, currentAlarm, env));
+      }
+    } catch (e) {
+      console.warn('[CRON] Error al despachar alarmas:', e.message);
+    }
+  }
 };
+
+// ─── CONFIGURACIÓN Y HELPERS DE WEB PUSH (VAPID RFC 8292) ────────
+const VAPID_PUBLIC_KEY = 'BAJv4jQOIroFQWmVW5Q-xMYsZeKU7_M4jltMoC4c9NRWKNWcM0Vi96Yt4u_j7tCqbsqqOsy5zrPx82uQswvzeUY';
+const VAPID_PRIVATE_KEY = 'NVWaW1lA9JX33r23nrBGLF1IktN8u64RdjTKzS4CrM0';
+const VAPID_SUBJECT = 'mailto:victor@valencia42k.pro';
+
+function b64UrlToBuf(b64url) {
+  let b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4) b64 += '=';
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+function bufToB64Url(buf) {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function createVapidJwt(audience) {
+  const privRaw = b64UrlToBuf(VAPID_PRIVATE_KEY);
+  const pubRaw = b64UrlToBuf(VAPID_PUBLIC_KEY);
+
+  const jwk = {
+    kty: 'EC',
+    crv: 'P-256',
+    x: bufToB64Url(pubRaw.slice(1, 33)),
+    y: bufToB64Url(pubRaw.slice(33, 65)),
+    d: bufToB64Url(privRaw)
+  };
+
+  const key = await crypto.subtle.importKey(
+    'jwk',
+    jwk,
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    false,
+    ['sign']
+  );
+
+  const header = { alg: 'ES256', typ: 'JWT' };
+  const payload = {
+    aud: audience,
+    exp: Math.floor(Date.now() / 1000) + 12 * 3600,
+    sub: VAPID_SUBJECT
+  };
+
+  const encHeader = bufToB64Url(new TextEncoder().encode(JSON.stringify(header)));
+  const encPayload = bufToB64Url(new TextEncoder().encode(JSON.stringify(payload)));
+  const dataToSign = new TextEncoder().encode(encHeader + '.' + encPayload);
+
+  const sig = await crypto.subtle.sign(
+    { name: 'ECDSA', hash: { name: 'SHA-256' } },
+    key,
+    dataToSign
+  );
+
+  return encHeader + '.' + encPayload + '.' + bufToB64Url(sig);
+}
+
+async function ensurePushTables(env) {
+  if (!env.DB) return;
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT DEFAULT 'u_victor',
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS pending_push_alerts (
+      id TEXT PRIMARY KEY,
+      user_id TEXT DEFAULT 'u_victor',
+      title TEXT,
+      body TEXT,
+      tag TEXT,
+      url TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `).run().catch(() => {});
+}
+
+async function sendWebPushNotification(sub, alertData, env) {
+  const endpoint = sub.endpoint;
+  if (!endpoint) return { success: false, error: 'No endpoint' };
+
+  try {
+    const url = new URL(endpoint);
+    const audience = `${url.protocol}//${url.host}`;
+    const jwt = await createVapidJwt(audience);
+
+    // Guardar última alerta pendiente en D1 para lectura si el push despierta sin payload
+    if (env.DB) {
+      await ensurePushTables(env);
+      await env.DB.prepare(`
+        INSERT OR REPLACE INTO pending_push_alerts (id, user_id, title, body, tag, url, created_at)
+        VALUES ('latest_alert', 'u_victor', ?, ?, ?, ?, datetime('now'))
+      `).bind(
+        alertData.title || 'VIROL 42K PRO',
+        alertData.body || '¡Recordatorio de entrenamiento!',
+        alertData.tag || 'virol-alert',
+        alertData.url || './index.html'
+      ).run().catch(() => {});
+    }
+
+    const headers = {
+      'TTL': '86400',
+      'Urgency': 'high',
+      'Authorization': `vapid t=${jwt}, k=${VAPID_PUBLIC_KEY}`
+    };
+
+    const pushRes = await fetch(endpoint, {
+      method: 'POST',
+      headers
+    });
+
+    console.log(`[PUSH] Disparado a ${endpoint.substring(0, 45)}... HTTP: ${pushRes.status}`);
+
+    if (pushRes.status === 410 || pushRes.status === 404) {
+      if (env.DB) {
+        await env.DB.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').bind(endpoint).run().catch(() => {});
+      }
+      return { success: false, expired: true, status: pushRes.status };
+    }
+
+    return { success: pushRes.ok, status: pushRes.status };
+  } catch (err) {
+    console.error('[PUSH ERROR]:', err);
+    return { success: false, error: err.message };
+  }
+}
 
 // Helper: refresco automático de token OAuth Strava y persistencia en D1
 async function refreshStravaOAuthToken(refreshToken, env) {
