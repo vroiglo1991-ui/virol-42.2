@@ -1,16 +1,16 @@
 /**
  * BIOFLOW - VALENCIA 42K PRO
- * cards.js - Generador de "Brutal Cards" HD (1080 x 1350 px)
- * Tarjetas gráficas de alto impacto atlético para Instagram Stories, WhatsApp y Redes
+ * cards.js - Generador de "Cards" HD (1080 x 1350 px)
+ * Tarjetas gráficas atléticas para Instagram Stories, WhatsApp y Redes
  */
 
 (function () {
   'use strict';
 
-  let currentCardMode = 'today'; // 'today' | 'week'
+  let currentCardMode = 'week'; // 'today' | 'week'
 
   /**
-   * Dibuja una línea o cuadrícula sutil en el canvas
+   * Dibuja la cuadrícula táctica y miras en el canvas
    */
   function drawAthleticGrid(ctx, width, height) {
     ctx.save();
@@ -31,7 +31,7 @@
       ctx.stroke();
     }
 
-    // Dibujar miras tácticas en las 4 esquinas (+)
+    // Miras tácticas (+) en las esquinas
     ctx.strokeStyle = '#D4FF00';
     ctx.lineWidth = 2;
     const corners = [
@@ -84,9 +84,9 @@
   }
 
   /**
-   * Función principal que renderiza la Brutal Card en alta resolución
+   * Función principal que renderiza la Card atlética en alta resolución (1080x1350)
    */
-  async function renderBrutalCard(canvas, options = {}) {
+  async function renderCard(canvas, options = {}) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -105,7 +105,7 @@
     canvas.width = W;
     canvas.height = H;
 
-    const mode = options.mode || currentCardMode || 'today';
+    const mode = options.mode || currentCardMode || 'week';
     const dayIdx = typeof options.dayIndex === 'number' ? options.dayIndex : (typeof selectedDayIndex === 'number' ? selectedDayIndex : new Date().getDay());
 
     const workouts = typeof getWorkouts === 'function' ? getWorkouts() : (typeof DEFAULT_WORKOUTS !== 'undefined' ? DEFAULT_WORKOUTS : {});
@@ -114,7 +114,7 @@
     const dayKey = `day_${dayIdx}`;
     const dayData = (state.days && state.days[dayKey]) || {};
 
-    // 1. FONDO DEEP ATHLETIC GRADIENT
+    // 1. FONDO ATHLETIC DARK GRADIENT
     const bgGrad = ctx.createLinearGradient(0, 0, W, H);
     bgGrad.addColorStop(0, '#06080E');
     bgGrad.addColorStop(0.5, '#0B101B');
@@ -122,17 +122,15 @@
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // 2. CUADRÍCULA Y MIRA TÁCTICA
+    // 2. CUADRÍCULA TÁCTICA
     drawAthleticGrid(ctx, W, H);
 
-    // 3. HEADER SUPERIOR // BRANDING & FECHA
-    // Pastilla izquierda: SISTEMA
+    // 3. HEADER // BRANDING & FECHA
     drawRoundedRect(ctx, 80, 75, 340, 44, 6, 'rgba(212, 255, 0, 0.1)', '#D4FF00', 1.5);
     ctx.fillStyle = '#D4FF00';
     ctx.font = '700 16px "Space Grotesk", sans-serif';
     ctx.fillText('⚡ BIOFLOW // VALENCIA 42K PRO', 100, 103);
 
-    // Pastilla derecha: FECHA / ROAD TO VALENCIA
     const now = new Date();
     const dateFormatted = now.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
     drawRoundedRect(ctx, W - 380, 75, 300, 44, 6, 'rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.2)', 1);
@@ -140,7 +138,7 @@
     ctx.font = '700 16px "Space Grotesk", sans-serif';
     ctx.fillText(`📅 ${dateFormatted}`, W - 355, 103);
 
-    // Línea separadora decorativa con acento Volt
+    // Separador con acento Volt
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -159,7 +157,6 @@
     // RENDERIZADO SEGÚN EL MODO (TODAY vs WEEK)
     // ==========================================
     if (mode === 'today') {
-      // TAG DE DISCIPLINA
       const isRun = workout.km > 0 || (workout.discipline && workout.discipline.includes('RUN'));
       const discTag = (workout.discipline || 'ENTRENAMIENTO').toUpperCase();
       const discColor = isRun ? '#D4FF00' : '#38BDF8';
@@ -169,30 +166,25 @@
       ctx.font = '900 18px "Space Grotesk", sans-serif';
       ctx.fillText(`[ ${discTag} ]`, 100, 212);
 
-      // TÍTULO DE LA SESIÓN EN BEBAS NEUE GIGANTE
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '900 68px "Bebas Neue", sans-serif';
       const sessionTitle = (workout.title || 'ENTRENAMIENTO PROGRAMADO').toUpperCase();
-      // Ajuste de tamaño si el texto es muy largo
       if (sessionTitle.length > 28) {
         ctx.font = '900 54px "Bebas Neue", sans-serif';
       }
       ctx.fillText(sessionTitle, 80, 295);
 
-      // SUBTÍTULO / FOCO
       ctx.fillStyle = '#94A3B8';
       ctx.font = '600 20px "Plus Jakarta Sans", sans-serif';
       const metaText = (workout.meta || workout.intensity || 'Enfoque: Rendimiento y Constancia').toUpperCase();
       ctx.fillText(metaText.length > 56 ? metaText.slice(0, 56) + '...' : metaText, 80, 335);
 
-      // ==========================================
-      // MÉTRICAS HERO EN CAJAS BRUTALISTAS
-      // ==========================================
+      // MÉTRICAS HERO
       const boxW = 440;
       const boxH = 220;
       const yBox = 375;
 
-      // Caja 1: Distancia o Series
+      // Caja 1: Distancia / Volumen
       drawRoundedRect(ctx, 80, yBox, boxW, boxH, 8, '#0B111D', 'rgba(212, 255, 0, 0.35)', 2);
       ctx.fillStyle = '#94A3B8';
       ctx.font = '700 16px "Space Grotesk", sans-serif';
@@ -211,7 +203,7 @@
       ctx.font = '600 15px "Plus Jakarta Sans", sans-serif';
       ctx.fillText(isRun ? 'Ritmo sostenido Zona 2' : 'Sobrecarga progresiva RPE 8', 105, yBox + 185);
 
-      // Caja 2: Intensidad / Ritmo Daniels
+      // Caja 2: Ritmo / Intensidad
       drawRoundedRect(ctx, W - 80 - boxW, yBox, boxW, boxH, 8, '#0B111D', 'rgba(56, 189, 248, 0.35)', 2);
       ctx.fillStyle = '#94A3B8';
       ctx.font = '700 16px "Space Grotesk", sans-serif';
@@ -236,9 +228,7 @@
       ctx.font = '600 15px "Plus Jakarta Sans", sans-serif';
       ctx.fillText(isRun ? 'Calibrado con VDOT Daniels' : 'Hipertrofia & Resistencia', W - 80 - boxW + 25, yBox + 185);
 
-      // ==========================================
-      // ESTADO DE CUMPLIMIENTO / STRAVA BADGE
-      // ==========================================
+      // Estado de cumplimiento
       const isCompleted = !!dayData.workoutCompleted;
       const hasStrava = !!dayData.stravaActivity;
       const yStatus = 635;
@@ -247,7 +237,7 @@
         drawRoundedRect(ctx, 80, yStatus, W - 160, 85, 8, 'rgba(34, 197, 94, 0.12)', '#22C55E', 2);
         ctx.fillStyle = '#22C55E';
         ctx.font = '900 28px "Space Grotesk", sans-serif';
-        ctx.fillText('✔ SESIÓN COMPLETADA Y REGISTRADA CON ÉXITO', 110, yStatus + 52);
+        ctx.fillText('✔ SESIÓN COMPLETADA Y REGISTRADA', 110, yStatus + 52);
 
         if (hasStrava) {
           const act = dayData.stravaActivity;
@@ -260,16 +250,14 @@
         drawRoundedRect(ctx, 80, yStatus, W - 160, 85, 8, 'rgba(255, 90, 0, 0.10)', 'rgba(255, 90, 0, 0.5)', 1.5);
         ctx.fillStyle = '#FF5A00';
         ctx.font = '900 26px "Space Grotesk", sans-serif';
-        ctx.fillText('⚡ MISIÓN PENDIENTE // EN EJECUCIÓN', 110, yStatus + 52);
+        ctx.fillText('⚡ SESIÓN PROGRAMADA // HOY', 110, yStatus + 52);
 
         ctx.fillStyle = '#94A3B8';
         ctx.font = '600 16px "Plus Jakarta Sans", sans-serif';
-        ctx.fillText('Haz clic en la app para validar tu esfuerzo de hoy', W - 460, yStatus + 50);
+        ctx.fillText('Objetivo del día listo para ejecutar', W - 380, yStatus + 50);
       }
 
-      // ==========================================
-      // CHECKLIST DE HÁBITOS Y SUPLEMENTACIÓN
-      // ==========================================
+      // Suplementación
       const ySupps = 755;
       drawRoundedRect(ctx, 80, ySupps, W - 160, 95, 8, '#0E1422', 'rgba(255, 255, 255, 0.08)', 1);
 
@@ -293,29 +281,26 @@
 
     } else {
       // ==========================================
-      // MODO 'WEEK' (RESUMEN SEMANAL)
+      // MODO 'WEEK' (CARD SEMANA)
       // ==========================================
-      drawRoundedRect(ctx, 80, 185, 320, 42, 4, 'rgba(212, 255, 0, 0.15)', '#D4FF00', 1.5);
+      drawRoundedRect(ctx, 80, 185, 300, 42, 4, 'rgba(212, 255, 0, 0.15)', '#D4FF00', 1.5);
       ctx.fillStyle = '#D4FF00';
       ctx.font = '900 18px "Space Grotesk", sans-serif';
       ctx.fillText('[ REPORTE SEMANAL DE CARGA ]', 100, 212);
 
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '900 68px "Bebas Neue", sans-serif';
-      ctx.fillText('VOLUMEN & FATIGA // VALENCIA 42K', 80, 295);
+      ctx.fillText('VOLUMEN & RENDIMIENTO SEMANAL', 80, 295);
 
       ctx.fillStyle = '#94A3B8';
       ctx.font = '600 20px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText('CONTROL DE RENDIMIENTO, RITMOS DE COMPETICIÓN Y PROGRESO', 80, 335);
+      ctx.fillText('OBJETIVO 44 KM DE CARRERA + RUTINA PULL-PUSH-LEGS', 80, 335);
 
-      // ==========================================
-      // HERO BOXES MODO WEEK
-      // ==========================================
+      // MÉTRICAS HERO MODO WEEK
       const boxW = 440;
       const boxH = 220;
       const yBox = 375;
 
-      // Calcular KM totales de la semana
       let weekKm = 0;
       let completedDaysCount = 0;
       for (let i = 0; i < 7; i++) {
@@ -329,7 +314,7 @@
         }
       }
       if (weekKm === 0 && state.running && state.running.benchmark) {
-        weekKm = 8.51; // Valor por defecto representativo
+        weekKm = 8.51;
       }
 
       // Caja 1: KM Semanales
@@ -350,7 +335,7 @@
       const pct = Math.min(100, Math.round((weekKm / 44.0) * 100));
       ctx.fillStyle = '#64748B';
       ctx.font = '600 15px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(`Progreso de volumen: ${pct}% cumplido`, 105, yBox + 185);
+      ctx.fillText(`Progreso de volumen: ${pct}% completado`, 105, yBox + 185);
 
       // Caja 2: Predicción Maratón 42K
       drawRoundedRect(ctx, W - 80 - boxW, yBox, boxW, boxH, 8, '#0B111D', 'rgba(56, 189, 248, 0.35)', 2);
@@ -375,9 +360,7 @@
       ctx.font = '600 15px "Plus Jakarta Sans", sans-serif';
       ctx.fillText('Modelo Fisiológico Riegel + Daniels', W - 80 - boxW + 25, yBox + 185);
 
-      // ==========================================
-      // CALENDARIO DE LOS 7 DÍAS
-      // ==========================================
+      // Calendario de 7 días
       const yDays = 635;
       drawRoundedRect(ctx, 80, yDays, W - 160, 215, 8, '#0E1422', 'rgba(255, 255, 255, 0.08)', 1);
 
@@ -420,21 +403,18 @@
     }
 
     // ==========================================
-    // BLOQUE DE FILOSOFÍA / COACH GORILA MANTRA
+    // MANTRA / COACHING
     // ==========================================
     const yCoach = 890;
     const coachBoxH = 200;
-
-    // Tarjeta con acento naranja (Gorila Coach)
     drawRoundedRect(ctx, 80, yCoach, W - 160, coachBoxH, 8, '#0C111C', 'rgba(255, 90, 0, 0.25)', 1);
 
-    // Borde vertical izquierdo grueso naranja
     ctx.fillStyle = '#FF5A00';
     ctx.fillRect(80, yCoach, 8, coachBoxH);
 
     ctx.fillStyle = '#FF5A00';
     ctx.font = '900 17px "Space Grotesk", sans-serif';
-    ctx.fillText('🦍 GORILA IRON // VALENCE FIT MANTRA:', 115, yCoach + 45);
+    ctx.fillText('🦍 VALENCE FIT COACHING & ATLETISMO:', 115, yCoach + 45);
 
     ctx.fillStyle = '#FFFFFF';
     ctx.font = '700 24px "Plus Jakarta Sans", sans-serif';
@@ -445,10 +425,10 @@
 
     ctx.fillStyle = '#94A3B8';
     ctx.font = '600 16px "Space Grotesk", sans-serif';
-    ctx.fillText('— PLANIFICACIÓN Y ENTRENAMIENTO GUIADO // VALENCE FIT ATHLETICS', 115, yCoach + 175);
+    ctx.fillText('— PLANIFICACIÓN Y ENTRENAMIENTO GUIADO // JOSEMI', 115, yCoach + 175);
 
     // ==========================================
-    // TARJETA DE PERFIL DEL ATLETA
+    // PERFIL DEL ATLETA
     // ==========================================
     const yProfile = 1120;
     drawRoundedRect(ctx, 80, yProfile, W - 160, 105, 8, '#0B0F17', 'rgba(255, 255, 255, 0.1)', 1);
@@ -463,40 +443,54 @@
     ctx.font = '700 16px "Space Grotesk", sans-serif';
     ctx.fillText('OBJETIVO: 42.195 KM MARATÓN VALENCIA // SUB 3:30 TARGET', 115, yProfile + 80);
 
-    // VDOT Badge a la derecha
     drawRoundedRect(ctx, W - 280, yProfile + 25, 170, 55, 6, 'rgba(212, 255, 0, 0.1)', '#D4FF00', 1.5);
     ctx.fillStyle = '#D4FF00';
     ctx.font = '900 26px "Bebas Neue", sans-serif';
     ctx.fillText('VDOT: 38.6', W - 250, yProfile + 62);
 
     // ==========================================
-    // FOOTER TÉCNICO & CÓDIGO BRUTALISTA
+    // FOOTER
     // ==========================================
     const yFoot = 1260;
     ctx.fillStyle = '#475569';
     ctx.font = '600 14px "Space Grotesk", sans-serif';
-    ctx.fillText('GENERATED BY BIOFLOW ATHLETICS ENGINE // CLOUDFLARE D1 SYNCED', 80, yFoot);
+    ctx.fillText('GENERATED BY BIOFLOW ATHLETICS ENGINE // VALENCIA 2026', 80, yFoot);
 
     ctx.fillStyle = '#D4FF00';
     ctx.font = '900 18px "Bebas Neue", sans-serif';
     ctx.fillText('JUST DO IT.', W - 165, yFoot);
 
-    // Líneas simulando código de barras técnico en la esquina
     for (let b = 0; b < 18; b++) {
       ctx.fillStyle = b % 3 === 0 ? '#D4FF00' : (b % 2 === 0 ? '#FFFFFF' : '#475569');
       const barW = (b % 4 === 0) ? 4 : 2;
       ctx.fillRect(80 + (b * 6), yFoot + 15, barW, 20);
+    }
+
+    // Actualizar previsualización <img> para soporte nativo y guardado directo en móviles
+    try {
+      const dataUrl = canvas.toDataURL('image/png', 0.95);
+      const imgPreview = document.getElementById('card-preview-img');
+      if (imgPreview) {
+        imgPreview.src = dataUrl;
+      }
+    } catch (e) {
+      console.warn('Preview dataUrl update skipped:', e);
     }
   }
 
   /**
    * Abre el modal de exportación
    */
-  function openBrutalCardModal(mode = 'today') {
+  function openCardModal(mode = 'week') {
     currentCardMode = mode;
     const modal = document.getElementById('brutal-card-modal-overlay');
-    if (!modal) return;
+    if (!modal) {
+      console.error('Modal overlay #brutal-card-modal-overlay not found');
+      return;
+    }
 
+    // Activar tanto la clase .active como display: flex para compatibilidad total con CSS
+    modal.classList.add('active');
     modal.style.display = 'flex';
 
     // Actualizar botones de filtro
@@ -518,22 +512,25 @@
 
     const canvas = document.getElementById('brutal-card-canvas');
     if (canvas) {
-      renderBrutalCard(canvas, { mode, dayIndex: selectedDayIndex });
+      renderCard(canvas, { mode, dayIndex: (typeof selectedDayIndex === 'number' ? selectedDayIndex : new Date().getDay()) });
     }
   }
 
   /**
    * Cierra el modal
    */
-  function closeBrutalCardModal() {
+  function closeCardModal() {
     const modal = document.getElementById('brutal-card-modal-overlay');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+    }
   }
 
   /**
    * Descarga la imagen en alta resolución como PNG
    */
-  function downloadBrutalCard() {
+  function downloadCard() {
     const canvas = document.getElementById('brutal-card-canvas');
     if (!canvas) return;
 
@@ -541,20 +538,20 @@
       const dataUrl = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
       const nowStr = new Date().toISOString().slice(0, 10);
-      link.download = `VIROL-42K-BRUTAL-CARD-${currentCardMode.toUpperCase()}-${nowStr}.png`;
+      link.download = `VIROL-42K-CARD-${currentCardMode.toUpperCase()}-${nowStr}.png`;
       link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       if (typeof showToast === 'function') {
-        showToast('📥 ¡BRUTAL CARD HD DESCARGADA! Lista para compartir');
+        showToast('📥 ¡CARD GUARDADA! Lista para compartir');
       }
       if (typeof playSuccessSound === 'function') {
         playSuccessSound();
       }
     } catch (err) {
-      console.error('Error downloading Brutal Card:', err);
+      console.error('Error downloading Card:', err);
       if (typeof showToast === 'function') {
         showToast('⚠️ Error al generar la descarga');
       }
@@ -564,96 +561,111 @@
   /**
    * Comparte en Instagram Stories, WhatsApp o redes usando Web Share API
    */
-  async function shareBrutalCard() {
+  async function shareCard() {
     const canvas = document.getElementById('brutal-card-canvas');
     if (!canvas) return;
 
     if (!navigator.share || !canvas.toBlob) {
-      downloadBrutalCard();
+      downloadCard();
       return;
     }
 
     try {
       canvas.toBlob(async (blob) => {
         if (!blob) {
-          downloadBrutalCard();
+          downloadCard();
           return;
         }
 
         const nowStr = new Date().toISOString().slice(0, 10);
-        const fileName = `VIROL-42K-${currentCardMode}-${nowStr}.png`;
+        const fileName = `VIROL-42K-CARD-${currentCardMode}-${nowStr}.png`;
         const file = new File([blob], fileName, { type: 'image/png' });
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             files: [file],
             title: 'VIROL // VALENCIA 42K PRO',
-            text: '🔥 Mi entrenamiento hacia la Maratón de Valencia 2026. ¡Disciplina pura!'
+            text: '🔥 Plan de entrenamiento hacia la Maratón de Valencia 2026. ¡Disciplina pura!'
           });
           if (typeof showToast === 'function') {
             showToast('📲 ¡Compartido con éxito!');
           }
         } else {
-          // Fallback a descarga si el navegador no permite compartir archivos directamente
-          downloadBrutalCard();
+          downloadCard();
         }
       }, 'image/png', 1.0);
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.error('Web Share error:', err);
-        downloadBrutalCard();
+        downloadCard();
       }
     }
   }
 
   /**
-   * Inicializa los escuchadores de eventos
+   * Inicializa escuchadores directos y delegación de eventos en el documento
    */
   function initBrutalCardsModule() {
-    // Botones para abrir modal
-    const btnOpenToday = document.getElementById('btn-open-today-card');
-    if (btnOpenToday) {
-      btnOpenToday.addEventListener('click', () => openBrutalCardModal('today'));
-    }
+    // Delegación global: cualquier clic en botón o sub-icono de CARD dispara la apertura
+    document.addEventListener('click', (e) => {
+      const btnWeek = e.target.closest('#btn-open-week-card, [data-action="open-week-card"]');
+      if (btnWeek) {
+        e.preventDefault();
+        openCardModal('week');
+        return;
+      }
 
-    const btnOpenWeek = document.getElementById('btn-open-week-card');
-    if (btnOpenWeek) {
-      btnOpenWeek.addEventListener('click', () => openBrutalCardModal('week'));
-    }
+      const btnToday = e.target.closest('#btn-open-today-card, [data-action="open-today-card"]');
+      if (btnToday) {
+        e.preventDefault();
+        openCardModal('today');
+        return;
+      }
+
+      // Clic fuera del modal (overlay) para cerrar
+      const modal = document.getElementById('brutal-card-modal-overlay');
+      if (modal && e.target === modal) {
+        closeCardModal();
+      }
+    });
 
     // Botones dentro del modal
     const btnClose = document.getElementById('btn-close-brutal-card');
-    if (btnClose) btnClose.addEventListener('click', closeBrutalCardModal);
+    if (btnClose) btnClose.addEventListener('click', closeCardModal);
 
     const btnCloseFoot = document.getElementById('btn-close-brutal-card-foot');
-    if (btnCloseFoot) btnCloseFoot.addEventListener('click', closeBrutalCardModal);
+    if (btnCloseFoot) btnCloseFoot.addEventListener('click', closeCardModal);
 
     const btnDownload = document.getElementById('btn-download-brutal-card');
-    if (btnDownload) btnDownload.addEventListener('click', downloadBrutalCard);
+    if (btnDownload) btnDownload.addEventListener('click', downloadCard);
 
     const btnShare = document.getElementById('btn-share-brutal-card');
-    if (btnShare) btnShare.addEventListener('click', shareBrutalCard);
+    if (btnShare) btnShare.addEventListener('click', shareCard);
 
     const btnModeToday = document.getElementById('btn-card-mode-today');
     if (btnModeToday) {
-      btnModeToday.addEventListener('click', () => openBrutalCardModal('today'));
+      btnModeToday.addEventListener('click', () => openCardModal('today'));
     }
 
     const btnModeWeek = document.getElementById('btn-card-mode-week');
     if (btnModeWeek) {
-      btnModeWeek.addEventListener('click', () => openBrutalCardModal('week'));
+      btnModeWeek.addEventListener('click', () => openCardModal('week'));
     }
   }
 
-  // Exponer al objeto global
-  window.renderBrutalCard = renderBrutalCard;
-  window.openBrutalCardModal = openBrutalCardModal;
-  window.closeBrutalCardModal = closeBrutalCardModal;
-  window.downloadBrutalCard = downloadBrutalCard;
-  window.shareBrutalCard = shareBrutalCard;
+  // Exponer al objeto global para compatibilidad con código existente
+  window.renderCard = renderCard;
+  window.renderBrutalCard = renderCard;
+  window.openCardModal = openCardModal;
+  window.openBrutalCardModal = openCardModal;
+  window.closeCardModal = closeCardModal;
+  window.closeBrutalCardModal = closeCardModal;
+  window.downloadCard = downloadCard;
+  window.downloadBrutalCard = downloadCard;
+  window.shareCard = shareCard;
+  window.shareBrutalCard = shareCard;
   window.initBrutalCardsModule = initBrutalCardsModule;
 
-  // Auto-init al cargar DOM
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initBrutalCardsModule);
   } else {
