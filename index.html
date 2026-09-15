@@ -305,9 +305,9 @@
               <span class="check-box-square"></span>
               <span class="txt">MARCAR ENTRENO COMPLETADO</span>
             </button>
-            <button class="action-btn-strava-sync" id="btn-today-sync-strava" title="Sincronizar con Strava y validar esfuerzo">
+            <button class="action-btn-strava-sync" id="btn-today-sync-strava" title="Registrar o sincronizar carrera de hoy">
               <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
-              <span>SINCRONIZAR STRAVA</span>
+              <span>⚡ REGISTRAR / EDITAR RUN</span>
             </button>
             <button class="btn-test-alarm" id="btn-open-today-card" data-action="open-today-card" style="padding:10px 14px; font-size:0.8rem; background:#18202F; border:1px solid var(--c-volt); color:var(--c-volt); font-weight:800; display:flex; align-items:center; gap:6px;" title="Exportar Card de hoy para compartir en redes">
               <span>📸 CARD HOY</span>
@@ -472,7 +472,7 @@
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="action-btn-strava-sync" id="btn-running-sync-strava" style="padding:8px 14px; font-size:0.8rem;">
                 <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
-                <span>SINCRONIZAR STRAVA</span>
+                <span>⚡ REGISTRAR / EDITAR RUN</span>
               </button>
               <button class="btn-test-alarm" id="btn-running-simulate-run" style="padding:8px 12px; font-size:0.8rem;">
                 <span>⚡ CARRERA REAL (8.51 KM)</span>
@@ -1353,45 +1353,58 @@
       </div>
 
       <div class="editor-body">
-        <div style="background:rgba(252,76,2,0.08); border:1px solid var(--c-strava); padding:10px 12px; margin-bottom:12px; font-size:0.8rem; line-height:1.4;">
-          <strong>⚡ VINCULACIÓN AUTOMÁTICA CON STRAVA:</strong> Al sincronizar, la app busca tus actividades de running recientes. Si tu esfuerzo alcanza el umbral de tolerancia (ej. 49 de 60 min = 82%), <strong>marca el entreno automáticamente como completado</strong> con tus métricas reales.
-        </div>
-
-        <div class="editor-field">
-          <label class="editor-label">TOKEN DE ACCESO STRAVA (ACCESS TOKEN):</label>
-          <input type="password" id="strava-token-input" class="editor-input" value="" placeholder="Pega tu Access Token de Strava">
-          <span style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; display:block;">
-            ¿Dónde conseguirlo? En <a href="https://www.strava.com/settings/api" target="_blank" style="color:var(--c-strava); text-decoration:underline;">Strava ➔ Ajustes ➔ Mi API</a> o autorizando abajo con scopes <code>read,activity:read_all,activity:write</code>.
-          </span>
-        </div>
-
-        <div class="editor-field">
-          <label class="editor-label">REFRESH TOKEN DE STRAVA (RENOVACIÓN AUTOMÁTICA):</label>
-          <input type="password" id="strava-refresh-token-input" class="editor-input" placeholder="Pega tu Refresh Token para renovar cada 6h">
-          <span style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; display:block;">
-            Permite renovar el Access Token automáticamente cada 6 horas sin que caduque la conexión.
-          </span>
-        </div>
-
-        <!-- DIAGNÓSTICO EN TIEMPO REAL & RATE LIMIT DE STRAVA -->
-        <div id="strava-diagnostic-box" style="background:#0B0E14; border:1px solid #1E293B; padding:12px; margin-bottom:12px; border-radius:6px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <span style="font-size:0.75rem; font-weight:900; color:var(--c-strava); letter-spacing:0.5px;">ESTADO DE LA CONEXIÓN API:</span>
-            <span id="strava-status-pill" style="font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:4px; background:rgba(239,68,68,0.2); color:#F87171; border:1px solid rgba(239,68,68,0.4);">
-              TOKEN CADUCADO (401)
-            </span>
+        <!-- ================= PANEL REGISTRO RÁPIDO MÓVIL ================= -->
+        <div class="quick-run-container" style="background:#0F172A; border:1px solid #1E293B; border-radius:8px; padding:14px; margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:0.85rem; font-weight:900; color:var(--c-volt); letter-spacing:0.5px;">⚡ REGISTRO DE CARRERA (5 SEGUNDOS)</span>
+            <span id="quick-run-day-label" style="font-size:0.75rem; color:#94A3B8; font-weight:800; background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:4px;">HOY</span>
           </div>
-          <div style="font-size:0.74rem; color:#94A3B8; display:flex; flex-direction:column; gap:4px;" id="strava-ratelimit-info">
-            <div>📊 <strong>Límite Strava (15 min):</strong> <span id="strava-rate-15m">0 / 200 peticiones</span></div>
-            <div>📅 <strong>Límite Strava (Día):</strong> <span id="strava-rate-day">0 / 2.000 peticiones</span></div>
-            <div>🕒 <strong>Última llamada:</strong> <span id="strava-last-call-time">Sin llamadas registradas hoy</span></div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+            <div>
+              <label class="editor-label" style="font-size:0.72rem; color:#94A3B8; margin-bottom:4px;">DISTANCIA (KM):</label>
+              <input type="number" step="0.01" min="0" id="quick-run-dist" class="editor-input" placeholder="Ej: 8.50" inputmode="decimal" style="font-size:1.15rem; font-weight:900; padding:10px; height:46px; text-align:center; color:#fff; background:#070A10;">
+            </div>
+            <div>
+              <label class="editor-label" style="font-size:0.72rem; color:#94A3B8; margin-bottom:4px;">TIEMPO TOTAL:</label>
+              <div style="display:flex; gap:6px;">
+                <input type="number" min="0" max="300" id="quick-run-min" class="editor-input" placeholder="Min" inputmode="numeric" style="font-size:1.15rem; font-weight:900; padding:10px; height:46px; text-align:center; width:50%; color:#fff; background:#070A10;">
+                <input type="number" min="0" max="59" id="quick-run-sec" class="editor-input" placeholder="Seg" inputmode="numeric" style="font-size:1.15rem; font-weight:900; padding:10px; height:46px; text-align:center; width:50%; color:#fff; background:#070A10;">
+              </div>
+            </div>
           </div>
-          <div id="strava-last-error-detail" style="margin-top:8px; font-size:0.72rem; color:#F87171; background:rgba(239,68,68,0.08); padding:6px 8px; border-radius:4px; border:1px solid rgba(239,68,68,0.2); display:none;">
+
+          <!-- LIVE FEEDBACK PREVIEW -->
+          <div id="quick-run-preview" style="background:#070A10; border:1px solid #1E293B; border-radius:6px; padding:10px 14px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:0.68rem; color:#94A3B8; text-transform:uppercase; font-weight:800;">Ritmo Calculado</div>
+              <div id="quick-run-pace-display" style="font-size:1.2rem; font-weight:900; color:var(--c-volt); letter-spacing:0.5px;">--:-- /km</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.68rem; color:#94A3B8; text-transform:uppercase; font-weight:800;">Validación Entreno</div>
+              <div id="quick-run-effort-display" style="font-size:0.85rem; font-weight:800; color:#E2E8F0;">Introduce km y tiempo</div>
+            </div>
           </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div>
+              <label class="editor-label" style="font-size:0.72rem; color:#94A3B8; margin-bottom:4px;">DESNIVEL + (M):</label>
+              <input type="number" id="quick-run-elev" class="editor-input" value="8" inputmode="numeric" style="font-size:0.9rem; padding:8px; height:40px; text-align:center; color:#fff; background:#070A10;">
+            </div>
+            <div>
+              <label class="editor-label" style="font-size:0.72rem; color:#94A3B8; margin-bottom:4px;">FC MEDIA (PPM - Opcional):</label>
+              <input type="number" id="quick-run-hr" class="editor-input" placeholder="Ej: 154" inputmode="numeric" style="font-size:0.9rem; padding:8px; height:40px; text-align:center; color:#fff; background:#070A10;">
+            </div>
+          </div>
+
+          <button type="button" id="btn-save-quick-run" class="action-btn-strava-sync" style="width:100%; justify-content:center; padding:12px; font-size:0.95rem; font-weight:900; background:var(--c-volt); color:#000; border-color:var(--c-volt); cursor:pointer; box-shadow:0 0 15px rgba(212,255,0,0.25);">
+            <span>⚡ GUARDAR CARRERA & AUTO-COMPLETAR DÍA</span>
+          </button>
         </div>
 
-        <div class="editor-field">
-          <label class="editor-label">UMBRAL MÍNIMO DE ESFUERZO PARA AUTO-CHECK:</label>
+        <!-- ================= AJUSTES DE UMBRAL & TOLERANCIA ================= -->
+        <div class="editor-field" style="margin-bottom:12px;">
+          <label class="editor-label">UMBRAL DE ESFUERZO PARA COMPLETAR:</label>
           <select id="strava-tolerance-select" class="editor-select">
             <option value="60">60% del tiempo/km previstos (Muy flexible)</option>
             <option value="70" selected>70% del tiempo/km previstos (Recomendado: 42+ min en sesión de 60 min)</option>
@@ -1400,33 +1413,35 @@
           </select>
         </div>
 
-        <div class="editor-field" style="display:flex; align-items:center; gap:10px; margin-top:6px;">
-          <input type="checkbox" id="strava-autocheck-toggle" checked style="width:18px; height:18px; accent-color:var(--c-strava);">
+        <div class="editor-field" style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <input type="checkbox" id="strava-autocheck-toggle" checked style="width:18px; height:18px; accent-color:var(--c-volt);">
           <label for="strava-autocheck-toggle" style="font-size:0.82rem; font-weight:700; cursor:pointer;">
-            Marcar entreno automáticamente si supera el esfuerzo mínimo
+            Marcar entreno automáticamente como completado al alcanzar el umbral
           </label>
         </div>
 
-        <!-- VINCULACIÓN DIRECTA OAUTH & RECARGA DE HOY -->
-        <div style="border-top:1px dashed var(--border-light); margin-top:14px; padding-top:14px;">
-          <label class="editor-label" style="color:var(--c-strava);">1. VINCULACIÓN OAUTH 2.0 (SCOPES: LECTURA + ESCRITURA):</label>
-          <p style="font-size:0.78rem; color:var(--text-sub); margin-bottom:10px;">
-            Autoriza la app con los permisos <code>activity:read_all</code> (leer privadas) y <code>activity:write</code> (registrar entrenamientos):
-          </p>
-          <a id="link-strava-oauth-auth" href="https://www.strava.com/oauth/authorize?client_id=243799&response_type=code&redirect_uri=https://virol.v-roiglo1991.workers.dev/api/strava/callback&approval_prompt=force&scope=read,activity:read_all,activity:write" target="_self" class="action-btn-strava-sync" style="width:100%; justify-content:center; text-decoration:none; margin-bottom:14px;">
-            <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
-            <span>🔗 AUTORIZAR LECTURA Y REGISTRO EN STRAVA</span>
-          </a>
-
-          <label class="editor-label" style="color:var(--c-volt);">2. CARGAR CARRERA DE HOY (DATOS REALES DE TU FOTO):</label>
-          <p style="font-size:0.78rem; color:var(--text-sub); margin-bottom:10px;">
-            Carga tus métricas exactas registradas en Strava hoy a las 11:07 AM: <strong>9,13 km • 50:19 • 5:30 /km • 12m • 735 kcal</strong>.
-          </p>
-          <button type="button" class="btn-open-ai-nutrition" id="btn-strava-simulate-today" style="background:var(--c-volt); color:#000; border-color:#000; width:100%; justify-content:center; font-weight:900;">
-            <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
-            <span>APLICAR CARRERA DE HOY (9,13 KM • 50:19 • 5:30/KM)</span>
-          </button>
-        </div>
+        <!-- ================= SECCIÓN AVANZADA STRAVA API (DESPLEGABLE) ================= -->
+        <details style="background:#070A10; border:1px solid #1E293B; border-radius:6px; padding:10px; margin-bottom:10px;">
+          <summary style="font-size:0.75rem; font-weight:800; color:var(--c-strava); cursor:pointer;">
+            ⚙️ Conexión Strava API (Opcional si dispones de Strava Premium)
+          </summary>
+          <div style="margin-top:10px; font-size:0.75rem; color:#94A3B8; line-height:1.4;">
+            <p style="margin-bottom:8px;">
+              Tus credenciales de Strava (Client ID <code>243799</code>) ya están registradas en la nube. Requiere suscripción activa a Strava para la lectura vía API.
+            </p>
+            <div class="editor-field" style="margin-bottom:8px;">
+              <label class="editor-label" style="font-size:0.7rem;">ACCESS TOKEN:</label>
+              <input type="password" id="strava-token-input" class="editor-input" value="" placeholder="Token de Strava" style="font-size:0.75rem;">
+            </div>
+            <div class="editor-field" style="margin-bottom:8px;">
+              <label class="editor-label" style="font-size:0.7rem;">REFRESH TOKEN:</label>
+              <input type="password" id="strava-refresh-token-input" class="editor-input" value="" placeholder="Refresh Token" style="font-size:0.75rem;">
+            </div>
+            <a id="link-strava-oauth-auth" href="#" target="_self" class="action-btn-strava-sync" style="width:100%; justify-content:center; text-decoration:none; font-size:0.75rem; padding:8px;">
+              <span>🔗 REAUTORIZAR EN STRAVA</span>
+            </a>
+          </div>
+        </details>
       </div>
 
       <div class="editor-modal-foot">

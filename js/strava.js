@@ -9,13 +9,18 @@ function updateStravaHeaderBadge() {
   const txt = document.getElementById('strava-header-text');
   if (!btn || !txt) return;
 
-  const isConfigured = !!(appState.strava && appState.strava.token);
-  if (isConfigured) {
+  const key = (typeof getTodayKey === 'function') ? getTodayKey(selectedDayIndex) : `day_${selectedDayIndex}`;
+  const todayAct = appState.days && appState.days[key] && appState.days[key].stravaActivity;
+
+  if (todayAct && todayAct.distanceKm) {
+    btn.classList.add('connected');
+    txt.innerText = `RUN ${todayAct.distanceKm}K ⚡`;
+  } else if (appState.strava && appState.strava.token) {
     btn.classList.add('connected');
     txt.innerText = 'STRAVA OK ⚡';
   } else {
     btn.classList.remove('connected');
-    txt.innerText = 'STRAVA';
+    txt.innerText = 'REGISTRO RUN';
   }
 }
 
@@ -582,6 +587,114 @@ async function uploadWorkoutToStrava(dayIndex = selectedDayIndex) {
   }
 }
 
+function updateQuickRunPreview() {
+  const distEl = document.getElementById('quick-run-dist');
+  const minEl = document.getElementById('quick-run-min');
+  const secEl = document.getElementById('quick-run-sec');
+  const paceDisp = document.getElementById('quick-run-pace-display');
+  const effortDisp = document.getElementById('quick-run-effort-display');
+  if (!paceDisp || !effortDisp) return;
+
+  const dist = parseFloat(distEl?.value || '0');
+  const mins = parseInt(minEl?.value || '0', 10);
+  const secs = parseInt(secEl?.value || '0', 10);
+  const totalSec = (mins * 60) + secs;
+
+  if (dist > 0 && totalSec > 0) {
+    const paceDecimalSec = totalSec / dist;
+    const pMin = Math.floor(paceDecimalSec / 60);
+    const pSec = Math.round(paceDecimalSec % 60);
+    const paceStr = `${pMin}:${String(pSec).padStart(2, '0')} /km`;
+    paceDisp.innerText = paceStr;
+
+    // Calcular esfuerzo vs plan de entrenamiento del día activo
+    const plan = (typeof WORKOUT_PLANS !== 'undefined' && WORKOUT_PLANS[selectedDayIndex]) ? WORKOUT_PLANS[selectedDayIndex] : {};
+    const targetKm = Number(plan.km) || 0;
+    const targetMinutes = targetKm > 0 ? Math.round(targetKm * 5.5) : 60;
+    const durationMin = Math.round(totalSec / 60);
+
+    let effortRatio = 1;
+    if (targetKm > 0) {
+      effortRatio = Math.max(dist / targetKm, durationMin / targetMinutes);
+    } else {
+      effortRatio = durationMin / targetMinutes;
+    }
+
+    const effortPercent = Math.min(100, Math.round(effortRatio * 100));
+    const tolerance = (appState.strava?.tolerance || 70);
+
+    if (effortPercent >= tolerance) {
+      effortDisp.style.color = 'var(--c-volt)';
+      effortDisp.innerText = `✔ ${effortPercent}% (Supera el umbral de ${tolerance}%)`;
+    } else {
+      effortDisp.style.color = 'var(--c-orange)';
+      effortDisp.innerText = `Parcial: ${effortPercent}% (Umbral: ${tolerance}%)`;
+    }
+  } else {
+    paceDisp.innerText = '--:-- /km';
+    effortDisp.style.color = '#94A3B8';
+    effortDisp.innerText = 'Introduce km y tiempo';
+  }
+}
+
+function saveQuickRun() {
+  const distEl = document.getElementById('quick-run-dist');
+  const minEl = document.getElementById('quick-run-min');
+  const secEl = document.getElementById('quick-run-sec');
+  const elevEl = document.getElementById('quick-run-elev');
+  const hrEl = document.getElementById('quick-run-hr');
+
+  const dist = parseFloat(distEl?.value || '0');
+  const mins = parseInt(minEl?.value || '0', 10);
+  const secs = parseInt(secEl?.value || '0', 10);
+  const totalSec = (mins * 60) + secs;
+
+  if (dist <= 0 || totalSec <= 0) {
+    showToast('⚠️ Introduce distancia y tiempo válidos');
+    return;
+  }
+
+  const elevation = parseInt(elevEl?.value || '8', 10);
+  const hr = parseInt(hrEl?.value || '154', 10);
+
+  const paceDecimalSec = totalSec / dist;
+  const pMin = Math.floor(paceDecimalSec / 60);
+  const pSec = Math.round(paceDecimalSec % 60);
+  const paceStr = `${pMin}:${String(pSec).padStart(2, '0')}/km`;
+
+  const hours = Math.floor(totalSec / 3600);
+  const remMinutes = Math.floor((totalSec % 3600) / 60);
+  const remSec = totalSec % 60;
+  const durationStr = hours > 0 
+    ? `${hours}h ${String(remMinutes).padStart(2, '0')}m`
+    : `${remMinutes}m ${String(remSec).padStart(2, '0')}s`;
+
+  // Calorías estimadas para Víctor (73 kg): aprox 1.036 kcal/kg/km
+  const calories = Math.round(dist * 73 * 1.036);
+
+  const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const dayName = dayNames[selectedDayIndex] || 'Sesión';
+
+  const act = {
+    id: `quick_run_${Date.now()}`,
+    name: `Carrera en ruta (${dayName})`,
+    distanceKm: dist.toFixed(2),
+    distance: Math.round(dist * 1000),
+    moving_time: totalSec,
+    elapsed_time: totalSec,
+    paceStr: paceStr,
+    durationStr: durationStr,
+    elevation: elevation,
+    calories: calories,
+    average_heartrate: hr,
+    start_date_local: new Date().toISOString()
+  };
+
+  applyStravaActivity(act, selectedDayIndex);
+  updateStravaHeaderBadge();
+  closeStravaModal();
+}
+
 function openStravaModal() {
   const modal = document.getElementById('strava-modal-overlay');
   const tokenInput = document.getElementById('strava-token-input');
@@ -589,23 +702,35 @@ function openStravaModal() {
   const tolSelect = document.getElementById('strava-tolerance-select');
   const autoChk = document.getElementById('strava-autocheck-toggle');
 
+  const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const dayLabel = document.getElementById('quick-run-day-label');
+  if (dayLabel) {
+    dayLabel.innerText = `${dayNames[selectedDayIndex]?.toUpperCase() || 'HOY'}`;
+  }
+
+  const key = (typeof getTodayKey === 'function') ? getTodayKey(selectedDayIndex) : `day_${selectedDayIndex}`;
+  const existingAct = appState.days?.[key]?.stravaActivity;
+  if (existingAct) {
+    const distEl = document.getElementById('quick-run-dist');
+    const minEl = document.getElementById('quick-run-min');
+    const secEl = document.getElementById('quick-run-sec');
+    const elevEl = document.getElementById('quick-run-elev');
+    const hrEl = document.getElementById('quick-run-hr');
+
+    if (distEl) distEl.value = existingAct.distanceKm || '';
+    const totalMins = existingAct.durationMinutes || Math.round((existingAct.moving_time || 0) / 60);
+    if (minEl) minEl.value = totalMins || '';
+    if (secEl) secEl.value = (existingAct.moving_time ? (existingAct.moving_time % 60) : 0);
+    if (elevEl && existingAct.elevation !== undefined) elevEl.value = existingAct.elevation;
+    if (hrEl && existingAct.average_heartrate) hrEl.value = existingAct.average_heartrate;
+  }
+  updateQuickRunPreview();
+
   if (appState.strava) {
     if (tokenInput) tokenInput.value = appState.strava.token || '';
     if (refreshInput) refreshInput.value = appState.strava.refreshToken || '';
     if (tolSelect) tolSelect.value = appState.strava.tolerance || 70;
     if (autoChk) autoChk.checked = appState.strava.autoCheck !== false;
-  }
-
-  // Si tenemos auditoría previa guardada, mostrarla en el HUD
-  if (appState.strava?.lastAudit) {
-    const audit = appState.strava.lastAudit;
-    updateStravaDiagnosticHUD(
-      audit.status === 200 ? 'CONECTADO ⚡ (200 OK)' : `STATUS ${audit.status}`,
-      audit.rateLimit,
-      audit.rateUsage,
-      audit.status !== 200 ? `Último estado registrado: HTTP ${audit.status}` : null,
-      audit.status === 200
-    );
   }
 
   if (modal) modal.classList.add('active');
@@ -626,6 +751,21 @@ function initStravaModule() {
   const btnRunningSync = document.getElementById('btn-running-sync-strava');
   const btnSimulate = document.getElementById('btn-strava-simulate-today');
   const modalOverlay = document.getElementById('strava-modal-overlay');
+
+  const btnSaveQuickRun = document.getElementById('btn-save-quick-run');
+  if (btnSaveQuickRun) btnSaveQuickRun.addEventListener('click', saveQuickRun);
+
+  const quickDist = document.getElementById('quick-run-dist');
+  const quickMin = document.getElementById('quick-run-min');
+  const quickSec = document.getElementById('quick-run-sec');
+  const quickElev = document.getElementById('quick-run-elev');
+  const quickHr = document.getElementById('quick-run-hr');
+
+  if (quickDist) quickDist.addEventListener('input', updateQuickRunPreview);
+  if (quickMin) quickMin.addEventListener('input', updateQuickRunPreview);
+  if (quickSec) quickSec.addEventListener('input', updateQuickRunPreview);
+  if (quickElev) quickElev.addEventListener('input', updateQuickRunPreview);
+  if (quickHr) quickHr.addEventListener('input', updateQuickRunPreview);
 
   if (btnHeader) btnHeader.addEventListener('click', openStravaModal);
   if (btnClose) btnClose.addEventListener('click', closeStravaModal);
@@ -794,14 +934,14 @@ function initStravaModule() {
   if (btnTodaySync) {
     btnTodaySync.addEventListener('click', () => {
       playCheckSound();
-      fetchStravaActivities(btnTodaySync);
+      openStravaModal();
     });
   }
 
   if (btnRunningSync) {
     btnRunningSync.addEventListener('click', () => {
       playCheckSound();
-      fetchStravaActivities(btnRunningSync);
+      openStravaModal();
     });
   }
 
