@@ -761,11 +761,13 @@ function initStravaModule() {
   const quickElev = document.getElementById('quick-run-elev');
   const quickHr = document.getElementById('quick-run-hr');
 
-  if (quickDist) quickDist.addEventListener('input', updateQuickRunPreview);
-  if (quickMin) quickMin.addEventListener('input', updateQuickRunPreview);
-  if (quickSec) quickSec.addEventListener('input', updateQuickRunPreview);
-  if (quickElev) quickElev.addEventListener('input', updateQuickRunPreview);
-  if (quickHr) quickHr.addEventListener('input', updateQuickRunPreview);
+  ['input', 'change', 'keyup', 'blur'].forEach(evt => {
+    if (quickDist) quickDist.addEventListener(evt, updateQuickRunPreview);
+    if (quickMin) quickMin.addEventListener(evt, updateQuickRunPreview);
+    if (quickSec) quickSec.addEventListener(evt, updateQuickRunPreview);
+    if (quickElev) quickElev.addEventListener(evt, updateQuickRunPreview);
+    if (quickHr) quickHr.addEventListener(evt, updateQuickRunPreview);
+  });
 
   if (btnHeader) btnHeader.addEventListener('click', openStravaModal);
   if (btnClose) btnClose.addEventListener('click', closeStravaModal);
