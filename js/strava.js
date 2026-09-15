@@ -15,12 +15,9 @@ function updateStravaHeaderBadge() {
   if (todayAct && todayAct.distanceKm) {
     btn.classList.add('connected');
     txt.innerText = `RUN ${todayAct.distanceKm}K ⚡`;
-  } else if (appState.strava && appState.strava.token) {
-    btn.classList.add('connected');
-    txt.innerText = 'STRAVA OK ⚡';
   } else {
     btn.classList.remove('connected');
-    txt.innerText = 'REGISTRO RUN';
+    txt.innerText = 'REGISTRO';
   }
 }
 
@@ -744,6 +741,7 @@ function closeStravaModal() {
 function initStravaModule() {
   const btnHeader = document.getElementById('btn-header-open-strava');
   const btnClose = document.getElementById('btn-close-strava-modal');
+  const btnCloseFoot = document.getElementById('btn-close-strava-modal-foot');
   const btnSave = document.getElementById('btn-save-strava-config');
   const btnDisconnect = document.getElementById('btn-strava-disconnect');
   const btnFetch = document.getElementById('btn-strava-fetch-now');
@@ -771,6 +769,7 @@ function initStravaModule() {
 
   if (btnHeader) btnHeader.addEventListener('click', openStravaModal);
   if (btnClose) btnClose.addEventListener('click', closeStravaModal);
+  if (btnCloseFoot) btnCloseFoot.addEventListener('click', closeStravaModal);
   if (modalOverlay) {
     modalOverlay.addEventListener('click', (e) => {
       if (e.target === modalOverlay) closeStravaModal();

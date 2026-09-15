@@ -164,9 +164,9 @@
           </div>
 
           <!-- STRAVA SYNC BADGE & TRIGGER BUTTON -->
-          <button class="btn-strava-badge" id="btn-header-open-strava" title="Sincronizar entrenamientos con Strava">
+          <button class="btn-strava-badge" id="btn-header-open-strava" title="Registrar sesión de running">
             <svg class="svg-ico" width="14" height="14" style="width:14px;height:14px;max-width:14px;max-height:14px;display:inline-block;vertical-align:middle;" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
-            <span id="strava-header-text">STRAVA</span>
+            <span id="strava-header-text">REGISTRO</span>
           </button>
 
           <!-- EDIT CUSTOM PLAN & PROFILE BUTTON -->
@@ -305,12 +305,9 @@
               <span class="check-box-square"></span>
               <span class="txt">MARCAR ENTRENO COMPLETADO</span>
             </button>
-            <button class="action-btn-strava-sync" id="btn-today-sync-strava" title="Registrar o sincronizar carrera de hoy">
+            <button class="action-btn-strava-sync" id="btn-today-sync-strava" title="Registrar carrera">
               <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
-              <span>⚡ REGISTRAR / EDITAR RUN</span>
-            </button>
-            <button class="btn-test-alarm" id="btn-open-today-card" data-action="open-today-card" style="padding:10px 14px; font-size:0.8rem; background:#18202F; border:1px solid var(--c-volt); color:var(--c-volt); font-weight:800; display:flex; align-items:center; gap:6px;" title="Exportar Card de hoy para compartir en redes">
-              <span>📸 CARD HOY</span>
+              <span>REGISTRO</span>
             </button>
           </div>
         </div>
@@ -472,10 +469,7 @@
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button class="action-btn-strava-sync" id="btn-running-sync-strava" style="padding:8px 14px; font-size:0.8rem;">
                 <svg class="svg-ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
-                <span>⚡ REGISTRAR / EDITAR RUN</span>
-              </button>
-              <button class="btn-test-alarm" id="btn-running-simulate-run" style="padding:8px 12px; font-size:0.8rem;">
-                <span>⚡ CARRERA REAL (8.51 KM)</span>
+                <span>REGISTRO</span>
               </button>
             </div>
           </div>
@@ -693,9 +687,6 @@
               <button class="btn-archive-week" id="btn-archive-week">
                 <svg class="svg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
                 <span>ARCHIVAR SEMANA</span>
-              </button>
-              <button class="btn-archive-week" id="btn-open-week-card" data-action="open-week-card" style="background:#18202F; border-color:var(--c-volt); color:var(--c-volt); font-weight:800;" title="Exportar Card resumen semanal en HD">
-                <span>📸 CARD SEMANA</span>
               </button>
             </div>
           </div>
@@ -1345,9 +1336,9 @@
   <div class="editor-modal-overlay" id="strava-modal-overlay">
     <div class="editor-modal" style="max-width:580px;">
       <div class="editor-modal-head" style="border-bottom-color: var(--c-strava);">
-        <div class="editor-modal-title" style="color: var(--c-strava);">
+        <div class="editor-modal-title" style="color: var(--c-volt);">
           <svg class="svg-ico lg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7.92 15.656h4.168"/></svg>
-          <span>STRAVA ENGINE // SINCRONIZACIÓN & AUTO-CHECK</span>
+          <span>REGISTRO DE CARRERA</span>
         </div>
         <button class="editor-btn-close" id="btn-close-strava-modal">✕</button>
       </div>
@@ -1419,41 +1410,10 @@
             Marcar entreno automáticamente como completado al alcanzar el umbral
           </label>
         </div>
-
-        <!-- ================= SECCIÓN AVANZADA STRAVA API (DESPLEGABLE) ================= -->
-        <details style="background:#070A10; border:1px solid #1E293B; border-radius:6px; padding:10px; margin-bottom:10px;">
-          <summary style="font-size:0.75rem; font-weight:800; color:var(--c-strava); cursor:pointer;">
-            ⚙️ Conexión Strava API (Opcional si dispones de Strava Premium)
-          </summary>
-          <div style="margin-top:10px; font-size:0.75rem; color:#94A3B8; line-height:1.4;">
-            <p style="margin-bottom:8px;">
-              Tus credenciales de Strava (Client ID <code>243799</code>) ya están registradas en la nube. Requiere suscripción activa a Strava para la lectura vía API.
-            </p>
-            <div class="editor-field" style="margin-bottom:8px;">
-              <label class="editor-label" style="font-size:0.7rem;">ACCESS TOKEN:</label>
-              <input type="password" id="strava-token-input" class="editor-input" value="" placeholder="Token de Strava" style="font-size:0.75rem;">
-            </div>
-            <div class="editor-field" style="margin-bottom:8px;">
-              <label class="editor-label" style="font-size:0.7rem;">REFRESH TOKEN:</label>
-              <input type="password" id="strava-refresh-token-input" class="editor-input" value="" placeholder="Refresh Token" style="font-size:0.75rem;">
-            </div>
-            <a id="link-strava-oauth-auth" href="#" target="_self" class="action-btn-strava-sync" style="width:100%; justify-content:center; text-decoration:none; font-size:0.75rem; padding:8px;">
-              <span>🔗 REAUTORIZAR EN STRAVA</span>
-            </a>
-          </div>
-        </details>
       </div>
 
-      <div class="editor-modal-foot">
-        <button class="btn-editor-reset" id="btn-strava-disconnect">DESCONECTAR</button>
-        <div style="display:flex; gap:8px;">
-          <button class="action-btn-strava-sync" id="btn-strava-fetch-now" style="padding:8px 14px; font-size:0.8rem;">
-            🔄 SINCRONIZAR AHORA
-          </button>
-          <button class="btn-editor-save" id="btn-save-strava-config" style="background:var(--c-strava); color:#fff;">
-            GUARDAR AJUSTES
-          </button>
-        </div>
+      <div class="editor-modal-foot" style="display:flex; justify-content:flex-end;">
+        <button class="btn-editor-reset" id="btn-close-strava-modal-foot" style="min-width:100px;">CERRAR</button>
       </div>
     </div>
   </div>
@@ -1681,53 +1641,6 @@
     </div>
   </div>
 
-  <!-- ================= CARD GENERATOR MODAL ================= -->
-  <div class="editor-modal-overlay" id="brutal-card-modal-overlay">
-    <div class="editor-modal" style="max-width:520px; background:#0B0E14; border:2px solid var(--c-volt); box-shadow:0 12px 40px rgba(0,0,0,0.9);">
-      <div class="editor-modal-head" style="border-bottom-color: var(--c-volt); background:#06080E; padding:12px 16px;">
-        <div class="editor-modal-title" style="color: var(--c-volt); display:flex; align-items:center; gap:8px;">
-          <svg class="svg-ico lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          <span style="font-family:var(--font-heading); font-size:1.15rem; letter-spacing:0.5px;">CARD ATHLETICS // FORMATO HISTORIAS</span>
-        </div>
-        <button class="editor-btn-close" id="btn-close-brutal-card">✕</button>
-      </div>
-      
-      <div class="editor-body" style="padding:14px; text-align:center; max-height:calc(85vh - 130px); overflow-y:auto;">
-        <!-- Selector entre modo Hoy y Semanal -->
-        <div style="display:flex; gap:8px; margin-bottom:12px; justify-content:center;">
-          <button type="button" class="ai-quick-btn" id="btn-card-mode-today" style="flex:1; padding:8px 12px; font-weight:800; border-radius:4px;">
-            🔥 CARD HOY
-          </button>
-          <button type="button" class="ai-quick-btn" id="btn-card-mode-week" style="flex:1; padding:8px 12px; font-weight:800; border-radius:4px;">
-            📊 CARD SEMANA
-          </button>
-        </div>
-
-        <!-- Previsualización Responsive del Canvas 1080x1350 (4:5) -->
-        <div style="position:relative; width:100%; max-width:340px; margin:0 auto; background:#06080E; border-radius:8px; overflow:hidden; box-shadow:0 12px 35px rgba(0,0,0,0.85); border:2px solid #1E293B;">
-          <canvas id="brutal-card-canvas" width="1080" height="1350" style="display:none;"></canvas>
-          <img id="card-preview-img" src="" alt="Card de Entrenamiento" style="width:100%; height:auto; display:block; aspect-ratio:4/5; border-radius:6px; object-fit:contain; background:#000;">
-        </div>
-        
-        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:10px; line-height:1.4;">
-          Tarjeta gráfica en alta resolución (1080x1350 px). Pulsa <strong>Guardar</strong> o mantén pulsada la imagen en tu iPhone para guardarla en Fotos.
-        </p>
-      </div>
-
-      <div class="editor-modal-foot" style="display:flex; gap:8px; justify-content:space-between; background:#06080E; border-top:1px solid #1E293B; padding:12px 16px;">
-        <button class="btn-editor-reset" id="btn-close-brutal-card-foot">CERRAR</button>
-        <div style="display:flex; gap:8px;">
-          <button class="btn-editor-save" id="btn-share-brutal-card" style="background:#2563EB; color:#fff; display:flex; align-items:center; gap:6px; font-weight:800;">
-            <span>📲 COMPARTIR</span>
-          </button>
-          <button class="btn-editor-save" id="btn-download-brutal-card" style="background:var(--c-volt); color:#000; display:flex; align-items:center; gap:6px; font-weight:900;">
-            <span>📥 GUARDAR CARD</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- FLOATING NOTIFICATION / TOAST -->
   <div id="toast" class="brutal-toast">
     <span class="toast-icon">⚡</span>
@@ -1738,7 +1651,6 @@
   <script src="js/state.js?v=35"></script>
   <script src="js/sync.js?v=35"></script>
   <script src="js/alarms.js?v=35"></script>
-  <script src="js/cards.js?v=35"></script>
   <script src="js/running.js?v=35"></script>
   <script src="js/strava.js?v=35"></script>
   <script src="js/ui.js?v=35"></script>

@@ -69,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initAIWeeklyReviewModule();
   initAlarmsModule();
   initRunningModule();
-  if (typeof initBrutalCardsModule === 'function') initBrutalCardsModule();
 
   // 8. Tab navigation helper
   window.switchToTab = function(targetTabId) {
