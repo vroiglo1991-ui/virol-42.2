@@ -638,7 +638,8 @@ function initStravaModule() {
   // Dinamizar enlace de autorización Strava con el origen actual en el parámetro state
   const linkAuth = document.getElementById('link-strava-oauth-auth');
   if (linkAuth) {
-    const currentLoc = encodeURIComponent(window.location.href);
+    const cleanUrl = window.location.origin + window.location.pathname;
+    const currentLoc = encodeURIComponent(cleanUrl);
     linkAuth.href = `https://www.strava.com/oauth/authorize?client_id=243799&response_type=code&redirect_uri=https://virol.v-roiglo1991.workers.dev/api/strava/callback&approval_prompt=force&scope=read,activity:read_all,activity:write&state=${currentLoc}`;
   }
 
@@ -804,46 +805,17 @@ function initStravaModule() {
     });
   }
 
-  if (btnSimulate) btnSimulate.addEventListener('click', simulateTodayRun);
-
-  // Asegurar que el día 4 (Jueves - HOY) tenga cargada la carrera real de hoy (9.13 km • 50:19)
-  const jKey = getTodayKey(4);
-  if (!appState.days[jKey]) appState.days[jKey] = {};
-  if (!appState.days[jKey].stravaActivity || appState.days[jKey].stravaActivity.distanceKm !== '9.13') {
-    appState.days[jKey].workoutCompleted = true;
-    appState.days[jKey].stravaActivity = {
-      id: 'strava_victor_real_almuerzo_0910',
-      name: 'Carrera a la hora del almuerzo',
-      distanceKm: '9.13',
-      durationStr: '50m 19s',
-      durationMinutes: 50,
-      paceStr: '5:30/km',
-      elevation: 12,
-      calories: 735,
-      effortRatio: 1.01,
-      date: '2026-09-10T11:07:00'
-    };
-    saveState(appState);
-  }
-
-  // Asegurar que el día 2 (Martes) mantenga los datos exactos y reales de la carrera de Víctor
-  const tKey = getTodayKey(2);
-  if (!appState.days[tKey]) appState.days[tKey] = {};
-  if (!appState.days[tKey].stravaActivity || appState.days[tKey].stravaActivity.distanceKm !== '8.51') {
-    appState.days[tKey].workoutCompleted = true;
-    appState.days[tKey].stravaActivity = {
-      id: 'strava_victor_real_1026',
-      name: 'Carrera de mañana',
-      distanceKm: '8.51',
-      durationStr: '49m 09s',
-      durationMinutes: 49,
-      paceStr: '5:46/km',
-      elevation: 8,
-      calories: 712,
-      effortRatio: 0.82,
-      date: '2026-09-08T10:26:00'
-    };
-    saveState(appState);
+  // Purgar actividades simuladas de sesiones previas para garantizar que solo existan datos 100% reales de Strava
+  if (appState && appState.days) {
+    let stateCleaned = false;
+    Object.keys(appState.days).forEach(k => {
+      const act = appState.days[k]?.stravaActivity;
+      if (act && (act.id === 'strava_victor_real_almuerzo_0910' || act.id === 'strava_victor_real_1026' || act.id === 'strava_victor_almuerzo_0910')) {
+        delete appState.days[k].stravaActivity;
+        stateCleaned = true;
+      }
+    });
+    if (stateCleaned) saveState(appState, false);
   }
 
   updateStravaHeaderBadge();
